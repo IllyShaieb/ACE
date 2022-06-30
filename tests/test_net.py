@@ -64,3 +64,16 @@ class TestIntentModel:
     )
     def test_predict_close_app(self, text, expected):
         assert self.model.predict(text) == expected
+
+    @pytest.mark.parametrize(
+        "text,expected",
+        [
+            ("What is on my to do list?", "show_to_do_list"),
+            ("show my to do list", "show_to_do_list"),
+            ("get to do list", "show_to_do_list"),
+            ("show to-do list", "show_to_do_list"),
+            ("get my to do list", "show_to_do_list"),
+        ],
+    )
+    def test_predict_show_to_do_list(self, text, expected):
+        assert self.model.predict(text) == expected

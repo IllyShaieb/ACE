@@ -43,4 +43,13 @@ class IntentModel:
             "goodbye": ["goodbye", "good bye", "bye"],
             "open_app": ["open", "start"],
             "close_app": ["close", "stop"],
+            "show_to_do_list": [
+                "what is on my to do list",
+                "show my to do list",
+                "show my to-do list",
+                "show to-do list",
+                "get to do list",
+                "get to-do list",
+                "get my to do list",
+            ],
         }
