@@ -19,23 +19,26 @@ Please make sure you have the following installed:
 | Python     | 3.9+    | https://www.python.org/downloads/ | :heavy_check_mark: |
 | Poetry     | 1.0+    | https://python-poetry.org/        | :heavy_check_mark: |
 | Git        | 2.27+   | https://git-scm.com/              | :heavy_check_mark: |
+| Git LFS    | 3.4.1+  | https://git-lfs.github.com/       | :heavy_check_mark: |
 | GitHub CLI | 2.7+    | https://github.com/cli/cli        | :x:                |
+
+**Important Note:** This project uses Git Large File Storage (LFS) to manage large files. Please ensure you have Git LFS installed before cloning the repository.
 
 ### Installation
 
 First, navigate to a directory of your choice and run one of the following commands:
 
--   Git
+- Git
 
-    ```bash
-    $ git clone https://github.com/IllyShaieb/ACE.git
-    ```
+  ```bash
+  $ git clone https://github.com/IllyShaieb/ACE.git
+  ```
 
--   GitHub CLI
+- GitHub CLI
 
-    ```shell
-    $ gh clone IllyShaieb/ACE
-    ```
+  ```shell
+  $ gh clone IllyShaieb/ACE
+  ```
 
 Then run the following commands to install the dependencies:
 
@@ -44,11 +47,17 @@ $ cd ACE
 $ poetry install
 ```
 
+You must also ensure Git LFS is initialized. Run the following command to do so:
+
+```shell
+$ git lfs install
+```
+
 You must also install the following dependencies:
 
--   [FFmpeg](https://ffmpeg.org/download.html):
+- [FFmpeg](https://ffmpeg.org/download.html):
 
-    FFmpeg is a powerful multimedia framework that can handle almost any format of multimedia content, is highly portable, and can run across a wide range of operating systems and configurations
+  FFmpeg is a powerful multimedia framework that can handle almost any format of multimedia content, is highly portable, and can run across a wide range of operating systems and configurations
 
 ### Running
 
@@ -56,17 +65,17 @@ ACE can be run as a CLI (Command Line Interface) or as a GUI (Graphical User Int
 
 To start ACE, run one of the following commands:
 
--   CLI
+- CLI
 
-    ```shell
-    $ poetry run python main.py cli
-    ```
+  ```shell
+  $ poetry run python main.py cli
+  ```
 
--   GUI
+- GUI
 
-    ```shell
-    $ poetry run python main.py gui
-    ```
+  ```shell
+  $ poetry run python main.py gui
+  ```
 
 ### Extending ACE
 
@@ -95,7 +104,7 @@ To set up the weather intent, you must set the following environment variables:
 
 For Windows follow this link to set the environment variables:
 
--   https://www.computerhope.com/issues/ch000549.htm
+- https://www.computerhope.com/issues/ch000549.htm
 
 ## Todo List
 
@@ -106,4 +115,4 @@ To set up the todo list intent, you must set the following environment variables
 
 For Windows follow this link to set the environment variables:
 
--   https://www.computerhope.com/issues/ch000549.htm
+- https://www.computerhope.com/issues/ch000549.htm

@@ -1,0 +1,12 @@
+start {app_name}
+begin {app_name}
+load {app_name}
+open {app_name}
+please start {app_name}
+please begin {app_name}
+please load {app_name}
+please open {app_name}
+start {app_name} please
+begin {app_name} please
+load {app_name} please
+open {app_name} please

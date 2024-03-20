@@ -1,0 +1,6 @@
+close {app_name}
+stop {app_name}
+please close {app_name}
+please stop {app_name}
+close {app_name} please
+stop {app_name} please

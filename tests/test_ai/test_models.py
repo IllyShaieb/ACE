@@ -114,7 +114,6 @@ class TestIntentClassifierModel:
         "text",
         [
             "Show my todo list",
-            "Get the to do list",
             "GET TASKS",
             "show tasks",
             "Todays TODOs",

@@ -1,0 +1,2 @@
+models/intents/model-best/vocab/vectors filter=lfs diff=lfs merge=lfs -text
+models/intents/model-last/vocab/vectors filter=lfs diff=lfs merge=lfs -text

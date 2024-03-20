@@ -1,16 +1,16 @@
 [IntentClassifierModelConfig]
-spacy_model = "en_core_web_md"                    # to load a blank model, use "en"
-data_path = "data/intents/intents.csv"            # path to the training data
-train_percentage = 0.8                            # percent of data to use for training as a float
-train_data_save_path = "data/intents/train.spacy" # path to save the training data
-valid_data_save_path = "data/intents/dev.spacy"   # path to save the test data
-rebuild_config = true                             # whether to rebuild the config file
-rebuild_data = true                               # whether to rebuild the training data
-best_model_location = "models/intents/model-best" # path where the best model will be saved
-threshold = 0.5                                   # how confident the model must be to classify an intent
-base_config = "config/intents/base_config.cfg"    # path to the spacy config file
-output_dir = "models/intents"                     # path to the output directory
-mode = "test"                                     # whether to "train" or "test" the model
+spacy_model = "en_core_web_md"                           # to load a blank model, use "en"
+data_path = "data/intents/UK_EN_PA_Intents_20240129.csv" # path to the training data
+train_percentage = 0.8                                   # percent of data to use for training as a float
+train_data_save_path = "data/intents/train.spacy"        # path to save the training data
+valid_data_save_path = "data/intents/dev.spacy"          # path to save the test data
+rebuild_config = true                                    # whether to rebuild the config file
+rebuild_data = true                                      # whether to rebuild the training data
+best_model_location = "models/intents/model-best"        # path where the best model will be saved
+threshold = 0.5                                          # how confident the model must be to classify an intent
+base_config = "config/intents/base_config.cfg"           # path to the spacy config file
+output_dir = "models/intents"                            # path to the output directory
+mode = "test"                                            # whether to "train" or "test" the model
 
 [NERModelConfig]
 spacy_model = "en_core_web_md" # to load a blank model, use "en"

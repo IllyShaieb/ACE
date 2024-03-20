@@ -201,7 +201,12 @@ class IntentClassifierModel:
         #### Raises: None
         """
         doc = self.nlp(text.strip().lower() if text else "")
-        prediction = max(doc.cats, key=doc.cats.get)  # type: ignore
+
+        try:
+            prediction = max(doc.cats, key=doc.cats.get)  # type: ignore
+        except ValueError:
+            logger.log("error", "No predictions found")
+            return "unknown"
 
         return (
             "unknown"

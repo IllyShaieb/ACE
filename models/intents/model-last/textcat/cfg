@@ -1,14 +1,14 @@
 {
   "labels":[
-    "close_app",
+    "tomorrow_weather",
     "show_todo_list",
-    "open_app",
-    "greeting",
-    "goodbye",
     "current_weather",
-    "add_todo",
-    "tomorrow_weather"
+    "close_app",
+    "goodbye",
+    "greeting",
+    "open_app",
+    "add_todo"
   ],
-  "threshold":0.5,
+  "threshold":0.0,
   "positive_label":null
 }

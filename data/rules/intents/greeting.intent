@@ -1,0 +1,14 @@
+hello
+hi
+hey
+howdy
+hi there
+hello there
+good {period_of_day}
+hello {person}
+hi {person}
+hey {person}
+howdy {person}
+hi there {person}
+hello there {person}
+good {period_of_day} {person}

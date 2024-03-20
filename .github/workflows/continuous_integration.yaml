@@ -3,46 +3,51 @@ name: continuous-integration
 on: push
 
 jobs:
-    markdown-link-check:
-        runs-on: ubuntu-latest
-        steps:
-            - uses: actions/checkout@v3
-            - uses: gaurav-nelson/github-action-markdown-link-check@v1
-              with:
-                  use-quiet-mode: "yes"
-                  use-verbose-mode: "yes"
-    build:
-        strategy:
-            fail-fast: false
-            matrix:
-                python-version: ["3.9", "3.10"]
-                poetry-version: ["1.2.2"]
-                os: [windows-2019, windows-latest]
+  markdown-link-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: "yes"
+          use-verbose-mode: "yes"
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.9", "3.10"]
+        poetry-version: ["1.2.2"]
+        os: [windows-2019, windows-latest]
 
-        runs-on: ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
 
-        steps:
-            - name: Checkout using actions/checkout@v3
-              uses: actions/checkout@v3
+    steps:
+      - name: Checkout using actions/checkout@v3
+        uses: actions/checkout@v3
+        with:
+          lfs: true
 
-            - name: Set up Python ${{ matrix.python-version }}
-              uses: actions/setup-python@v2
-              with:
-                  python-version: ${{ matrix.python-version }}
+      - name: Checkout LFS objects
+        run: git lfs checkout
 
-            - name: Install poetry ${{ matrix.poetry-version }}
-              run: |
-                  python -m ensurepip
-                  python -m pip install --upgrade pip
-                  python -m pip install poetry==${{ matrix.poetry-version }}
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.python-version }}
 
-            - name: View poetry version
-              run: poetry -V
+      - name: Install poetry ${{ matrix.poetry-version }}
+        run: |
+          python -m ensurepip
+          python -m pip install --upgrade pip
+          python -m pip install poetry==${{ matrix.poetry-version }}
 
-            - name: Install dependencies
-              run: |
-                  python -m poetry install
-                  python -m poetry run python -m spacy download en_core_web_md
+      - name: View poetry version
+        run: poetry -V
 
-            - name: Test with pytest
-              run: poetry run python -m pytest tests --continue-on-collection-errors
+      - name: Install dependencies
+        run: |
+          python -m poetry install
+          python -m poetry run python -m spacy download en_core_web_md
+
+      - name: Test with pytest
+        run: poetry run python -m pytest tests --continue-on-collection-errors

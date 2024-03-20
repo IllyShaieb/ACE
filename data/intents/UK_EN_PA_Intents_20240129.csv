@@ -1,0 +1,635 @@
+phrase,intent
+add finish work project to my task list please,add_todo
+add task send email to task list,add_todo
+add book doctors appointment to to-do please,add_todo
+add clean the house to my tasks please,add_todo
+please add task walk the dog to task list,add_todo
+add buy milk to todo-list please,add_todo
+add do laundry to the tasks,add_todo
+add to my tasks walk the dog,add_todo
+add get a haircut to the tasks,add_todo
+please add attend class to task list,add_todo
+please add show dad around town to the to-do,add_todo
+add jogging to task list please,add_todo
+add task call John to task list please,add_todo
+add to my todo list go for a run,add_todo
+add take out the bins to my todo list please,add_todo
+add to todo list buy groceries please,add_todo
+add the task call mum to my todos please,add_todo
+add buy groceries to my task list,add_todo
+add to my todo-list attend class please,add_todo
+please add the task buy milk to my todo list,add_todo
+please add to my tasks call mum,add_todo
+add take out the bins to the task list please,add_todo
+add to to-do list buy milk,add_todo
+please add to my task list go for a run,add_todo
+add to my todo-list buy milk,add_todo
+please add task book flight tickets to task list,add_todo
+add watch youtube video to tasks please,add_todo
+please add send email to my task list,add_todo
+add send email to tasks,add_todo
+add send email to my to-do list please,add_todo
+add jogging to the to-do please,add_todo
+add task take out the bins to task list please,add_todo
+add send email to my task list,add_todo
+please add call mum to to-do list,add_todo
+please add to to-do show dad around town,add_todo
+add jogging to my todo list,add_todo
+please add call John to my todos,add_todo
+add to my to-do list book doctors appointment,add_todo
+add task get a haircut to task list,add_todo
+please add task call John to task list,add_todo
+add task get new phone to task list,add_todo
+please add call mum to the task list,add_todo
+please add task write blog post to task list,add_todo
+add buy groceries to my task list please,add_todo
+add to todo-list get a haircut,add_todo
+add finish work project to the todo-list,add_todo
+please add to my todos finish work project,add_todo
+please add walk the dog to todo-list,add_todo
+please add finish work project to to-do,add_todo
+please add task get new phone to task list,add_todo
+add get new phone to the to-do,add_todo
+add watch youtube video to my task list,add_todo
+add the task plan holiday to my todo list please,add_todo
+add the task show dad around town to my to-do,add_todo
+please add task buy dinner from shops to task list,add_todo
+add get new phone to todo list,add_todo
+add get new phone to my todos please,add_todo
+add book doctors appointment to the todos please,add_todo
+please add go for a run to the task list,add_todo
+add watch youtube video to todo list,add_todo
+please add the task show dad around town to my todo-list,add_todo
+add the task walk the dog to my todos please,add_todo
+add take out trash to todos,add_todo
+please add write blog post to to-do list,add_todo
+add walk the dog to todo-list,add_todo
+add to to-do call mum please,add_todo
+please add watch youtube video to the todo-list,add_todo
+add jogging to todo list,add_todo
+add the task send email to my todo-list,add_todo
+add go for a run to my task list please,add_todo
+add the task finish work project to my todo list,add_todo
+please add to my todo-list take money out,add_todo
+add to todo-list attend class,add_todo
+add to my todos take out the bins,add_todo
+add send email to to-do,add_todo
+add the task take money out to my task list please,add_todo
+add the task book doctors appointment to my tasks,add_todo
+add get a haircut to the to-do list please,add_todo
+add the task send email to my task list,add_todo
+please add to todo-list plan holiday,add_todo
+please add go for a run to my task list,add_todo
+please add send email to todo-list,add_todo
+add to to-do plan holiday,add_todo
+add send email to my todos,add_todo
+add the task write blog post to my to-do list please,add_todo
+add watch youtube video to the todos,add_todo
+add to tasks jogging please,add_todo
+add go for a run to task list,add_todo
+add task buy dinner from shops to task list,add_todo
+add show dad around town to my task list,add_todo
+add to task list watch youtube video,add_todo
+add task buy milk to task list,add_todo
+add to my task list take out the bins,add_todo
+please add the task attend class to my to-do list,add_todo
+please add call John to my task list,add_todo
+please add buy groceries to my todo list,add_todo
+add task do laundry to task list please,add_todo
+please add call mum to the todo-list,add_todo
+add book doctors appointment to to-do,add_todo
+add take money out to my task list please,add_todo
+stop github desktop,close_app
+close control panel,close_app
+close visual studio code please,close_app
+stop ms excel,close_app
+close db browser please,close_app
+stop control panel,close_app
+stop notepad,close_app
+please stop ms excel,close_app
+please stop microsoft edge,close_app
+close microsoft edge please,close_app
+close calculator,close_app
+please stop calculator,close_app
+please stop visual studio code,close_app
+close snipping tool,close_app
+stop chrome,close_app
+close web browser,close_app
+please stop notepad,close_app
+stop cmd please,close_app
+close snipping tool please,close_app
+please stop powershell,close_app
+stop task scheduler,close_app
+stop web browser please,close_app
+close zoom please,close_app
+stop task manager,close_app
+stop settings,close_app
+please stop word,close_app
+please close chrome,close_app
+close f.lux please,close_app
+close task manager please,close_app
+please stop todoist,close_app
+close control panel please,close_app
+please close todoist,close_app
+stop db browser,close_app
+please close word,close_app
+stop microsoft edge please,close_app
+please close microsoft edge,close_app
+stop cmd,close_app
+close todoist please,close_app
+stop task scheduler please,close_app
+please stop task manager,close_app
+stop f.lux,close_app
+please stop web browser,close_app
+close cmd please,close_app
+close ms paint please,close_app
+stop ms excel please,close_app
+please close powershell,close_app
+close chrome please,close_app
+stop powershell,close_app
+stop task manager please,close_app
+stop calculator,close_app
+close calculator please,close_app
+close notepad,close_app
+please stop zoom,close_app
+please stop control panel,close_app
+please close ms excel,close_app
+stop ms paint,close_app
+stop todoist please,close_app
+stop f.lux please,close_app
+please close settings,close_app
+close ms paint,close_app
+stop ms paint please,close_app
+stop web browser,close_app
+stop snipping tool,close_app
+please stop snipping tool,close_app
+stop chrome please,close_app
+please stop chrome,close_app
+please close f.lux,close_app
+close db browser,close_app
+please close control panel,close_app
+close ms excel,close_app
+stop fork please,close_app
+close task manager,close_app
+stop visual studio code please,close_app
+stop settings please,close_app
+close fork please,close_app
+stop zoom,close_app
+stop snipping tool please,close_app
+close wireshark please,close_app
+stop notepad please,close_app
+stop powershell please,close_app
+please close db browser,close_app
+close word,close_app
+please close cmd,close_app
+stop calculator please,close_app
+close github desktop please,close_app
+please stop ms paint,close_app
+stop control panel please,close_app
+close wireshark,close_app
+please close github desktop,close_app
+stop word,close_app
+stop github desktop please,close_app
+close word please,close_app
+please close task manager,close_app
+close notepad please,close_app
+close settings,close_app
+close zoom,close_app
+stop todoist,close_app
+stop db browser please,close_app
+close github desktop,close_app
+please close task scheduler,close_app
+what is the weather like today please,current_weather
+"weather in alaska, united states today please",current_weather
+will it drizzle today,current_weather
+weather for today,current_weather
+todays weather,current_weather
+weather now please,current_weather
+"please get weather in scottish highlands, scotland",current_weather
+"weather in dubai, united arab emirates today please",current_weather
+"get weather in hawaii, united states",current_weather
+weather for today please,current_weather
+will todays weather be sunny,current_weather
+will it thunder today,current_weather
+get current weather,current_weather
+will there be sunny today,current_weather
+weather forecast please,current_weather
+weather today,current_weather
+weather now,current_weather
+please get current weather,current_weather
+weather forecast,current_weather
+will today's weather be overcast,current_weather
+"get weather in marrakech, morocco",current_weather
+current weather,current_weather
+will there be snowy today,current_weather
+what is the weather like today,current_weather
+will it hail today,current_weather
+what's the current weather like,current_weather
+please tell me the current weather,current_weather
+will it shower today,current_weather
+will todays weather be sun,current_weather
+get weather in fiji,current_weather
+please tell me what's the current weather like,current_weather
+will there be sun today?,current_weather
+weather in paris today,current_weather
+get weather in london,current_weather
+weather today please,current_weather
+will it snow today?,current_weather
+will it be rain today,current_weather
+will there be snow today,current_weather
+weather in london please,current_weather
+weather in london today,current_weather
+will todays weather be showers,current_weather
+will it rain today,current_weather
+"todays weather for marrakech, morocco",current_weather
+todays weather for iceland,current_weather
+will todays weather be rain,current_weather
+weather in las vegas,current_weather
+weather in fiji today,current_weather
+"get weather in rome, italy",current_weather
+will it be sun today?,current_weather
+will it be hail today,current_weather
+"please get weather in marrakech, morocco",current_weather
+todays weather for new zealand,current_weather
+will it be thunder today?,current_weather
+"todays weather for amsterdam, netherlands",current_weather
+"todays weather for tokyo, japan",current_weather
+will there be rain today,current_weather
+please get weather in singapore,current_weather
+"please get weather in bora bora, french polynesia",current_weather
+"weather in hawaii, united states today please",current_weather
+todays weather for las vegas,current_weather
+will it be thunder today,current_weather
+"weather in swiss alps, switzerland please",current_weather
+will there be snow today?,current_weather
+"please get weather in hawaii, united states",current_weather
+will there be sun today,current_weather
+"todays weather for petra, jordan",current_weather
+"todays weather for dubai, united arab emirates",current_weather
+"weather in petra, jordan please",current_weather
+"todays weather for swiss alps, switzerland",current_weather
+will there be rain today?,current_weather
+"todays weather for bali, indonesia",current_weather
+"todays weather for alaska, united states",current_weather
+please get weather in morocco,current_weather
+"weather in bora bora, french polynesia today",current_weather
+"please get weather in patagonia, argentina",current_weather
+will there be showers today,current_weather
+"weather in barcelona, spain please",current_weather
+weather in maldives please,current_weather
+will it be sunny today?,current_weather
+"todays weather for rome, italy",current_weather
+"weather in amsterdam, netherlands today please",current_weather
+"weather in petra, jordan today please",current_weather
+will todays weather be thunder,current_weather
+see you ace,goodbye
+bye mate,goodbye
+good bye mate,goodbye
+bye for now ace,goodbye
+see you,goodbye
+bye bye,goodbye
+goodbye ace,goodbye
+see you soon mate,goodbye
+bye for now,goodbye
+bye bye ace,goodbye
+see you soon ace,goodbye
+good bye,goodbye
+goodbye,goodbye
+good bye ace,goodbye
+see you later,goodbye
+bye for now mate,goodbye
+bye ace,goodbye
+bye,goodbye
+see you later mate,goodbye
+see you mate,goodbye
+bye bye mate,goodbye
+see you soon,goodbye
+goodbye mate,goodbye
+see you later ace,goodbye
+hi there,greeting
+good afternoon,greeting
+hey ace,greeting
+hey,greeting
+hi ace,greeting
+howdy ace,greeting
+hi,greeting
+hello mate,greeting
+hi mate,greeting
+hi there mate,greeting
+good morning ace,greeting
+howdy,greeting
+hey mate,greeting
+good night,greeting
+good afternoon ace,greeting
+good evening ace,greeting
+hello,greeting
+hello there,greeting
+hello there mate,greeting
+hi there ace,greeting
+hello there ace,greeting
+good night mate,greeting
+good evening,greeting
+howdy mate,greeting
+hello ace,greeting
+good day mate,greeting
+good morning,greeting
+good evening mate,greeting
+good afternoon mate,greeting
+load snipping tool,open_app
+start github desktop,open_app
+load word,open_app
+start fork,open_app
+please open notepad,open_app
+please begin settings,open_app
+please load f.lux,open_app
+open todoist,open_app
+begin calculator please,open_app
+please begin f.lux,open_app
+open zoom,open_app
+please start visual studio code,open_app
+please load task manager,open_app
+start microsoft edge,open_app
+begin task scheduler,open_app
+load calculator,open_app
+open ms paint,open_app
+begin fork,open_app
+please begin control panel,open_app
+load todoist please,open_app
+begin ms excel please,open_app
+please open calculator,open_app
+open cmd,open_app
+open wireshark,open_app
+please load snipping tool,open_app
+load control panel please,open_app
+open github desktop please,open_app
+please open web browser,open_app
+begin ms paint please,open_app
+begin notepad please,open_app
+please open wireshark,open_app
+start todoist,open_app
+open calculator,open_app
+load microsoft edge please,open_app
+please start notepad,open_app
+load zoom,open_app
+please begin web browser,open_app
+start word please,open_app
+open todoist please,open_app
+open visual studio code,open_app
+start web browser,open_app
+load wireshark,open_app
+load f.lux please,open_app
+load task manager please,open_app
+begin zoom please,open_app
+open db browser,open_app
+start ms paint,open_app
+open ms excel,open_app
+open chrome please,open_app
+please begin microsoft edge,open_app
+please start github desktop,open_app
+load wireshark please,open_app
+open powershell please,open_app
+please begin todoist,open_app
+please load visual studio code,open_app
+start calculator please,open_app
+start ms paint please,open_app
+please start ms paint,open_app
+open task manager,open_app
+start web browser please,open_app
+begin microsoft edge,open_app
+begin db browser please,open_app
+please open fork,open_app
+please load settings,open_app
+please load microsoft edge,open_app
+start settings,open_app
+please start db browser,open_app
+start calculator,open_app
+begin snipping tool please,open_app
+open ms paint please,open_app
+open word please,open_app
+load f.lux,open_app
+please load wireshark,open_app
+open wireshark please,open_app
+open f.lux please,open_app
+open fork,open_app
+please start fork,open_app
+please begin visual studio code,open_app
+please open f.lux,open_app
+open task scheduler please,open_app
+start db browser please,open_app
+please start word,open_app
+please open word,open_app
+please begin db browser,open_app
+start control panel please,open_app
+please load task scheduler,open_app
+please open task manager,open_app
+please start ms excel,open_app
+please begin task scheduler,open_app
+start ms excel please,open_app
+load notepad please,open_app
+start task manager,open_app
+please begin calculator,open_app
+load settings,open_app
+begin control panel please,open_app
+open github desktop,open_app
+load fork,open_app
+start zoom please,open_app
+please load notepad,open_app
+please begin zoom,open_app
+todo list,show_todo_list
+get to-do,show_todo_list
+please show my to-do for today,show_todo_list
+todays to-do list please,show_todo_list
+please show my todo list for today,show_todo_list
+get tasks please,show_todo_list
+what is on my tasks for today?,show_todo_list
+todays todo list,show_todo_list
+get to-do list,show_todo_list
+show task list,show_todo_list
+tasks,show_todo_list
+what is on my todo-list please,show_todo_list
+any todos left?,show_todo_list
+do i have any tasks,show_todo_list
+do i have any tasks left today,show_todo_list
+get todays todo-list,show_todo_list
+any todos left,show_todo_list
+what is on my todos for today,show_todo_list
+show my task list for today please,show_todo_list
+what is on my task list,show_todo_list
+please show my to-do,show_todo_list
+show my task list please,show_todo_list
+get task list,show_todo_list
+get todays to-do,show_todo_list
+what is on my to-do list,show_todo_list
+what is on my task list please?,show_todo_list
+todos please,show_todo_list
+get todo list,show_todo_list
+show my todos,show_todo_list
+please show my task list,show_todo_list
+get todos,show_todo_list
+to-do list please,show_todo_list
+todo-list,show_todo_list
+todays todos,show_todo_list
+show my todo-list please,show_todo_list
+todays todos please,show_todo_list
+get tasks,show_todo_list
+get todays to-do list,show_todo_list
+show tasks please,show_todo_list
+show my to-do list,show_todo_list
+task list,show_todo_list
+please show my todo-list,show_todo_list
+show my todo list for today,show_todo_list
+any tasks left today,show_todo_list
+what is on my to-do list for today?,show_todo_list
+what is on my to-do list please?,show_todo_list
+show my tasks for today,show_todo_list
+todays to-do,show_todo_list
+show my task list for today,show_todo_list
+what is on my to-do,show_todo_list
+what is on my todos for today?,show_todo_list
+please show my to-do list,show_todo_list
+what is on my todos,show_todo_list
+get todays todo list,show_todo_list
+get todo-list please,show_todo_list
+show tasks,show_todo_list
+todo list please,show_todo_list
+show my tasks please,show_todo_list
+what is on my to-do list for today,show_todo_list
+show my todo list for today please,show_todo_list
+show my tasks,show_todo_list
+show my to-do,show_todo_list
+what is on my todo-list for today?,show_todo_list
+please show my tasks,show_todo_list
+what is on my task list for today?,show_todo_list
+todo-list please,show_todo_list
+get to-do please,show_todo_list
+todays todo list please,show_todo_list
+show todos,show_todo_list
+get to-do list please,show_todo_list
+what is on my todo list,show_todo_list
+get todays tasks,show_todo_list
+todays task list,show_todo_list
+what is on my todo list please?,show_todo_list
+show todo-list please,show_todo_list
+what is on my todos please?,show_todo_list
+todays tasks please,show_todo_list
+what is on my to-do list please,show_todo_list
+what is on my tasks please?,show_todo_list
+show todos please,show_todo_list
+what is on my task list for today,show_todo_list
+todos,show_todo_list
+show my to-do list for today please,show_todo_list
+show my todo-list for today please,show_todo_list
+show my todo list please,show_todo_list
+show todo list please,show_todo_list
+what is on my tasks please,show_todo_list
+task list please,show_todo_list
+show to-do please,show_todo_list
+what is on my todo-list please?,show_todo_list
+what is on my tasks,show_todo_list
+get todays task list,show_todo_list
+show my todo list,show_todo_list
+get todo-list,show_todo_list
+what is on my todos please,show_todo_list
+show my todos for today,show_todo_list
+what is on my to-do for today?,show_todo_list
+show my to-do for today,show_todo_list
+show my todo-list for today,show_todo_list
+will there be overcast tomorrow,tomorrow_weather
+will there be rain tomorrow,tomorrow_weather
+tomorrow weather please,tomorrow_weather
+"weather in swiss alps, switzerland tomorrow please",tomorrow_weather
+weather tomorrow,tomorrow_weather
+"weather tomorrow in marrakech, morocco please",tomorrow_weather
+"weather in marrakech, morocco tomorrow",tomorrow_weather
+get weather tomorrow,tomorrow_weather
+what will tomorrows weather be like?,tomorrow_weather
+what will tomorrows weather be in paris,tomorrow_weather
+will it drizzle tomorrow,tomorrow_weather
+weather tomorrow please,tomorrow_weather
+"weather in santorini, greece tomorrow please",tomorrow_weather
+get tomorrows weather please,tomorrow_weather
+get tomorrows weather,tomorrow_weather
+"weather in petra, jordan tomorrow",tomorrow_weather
+will there be rainy tomorrow,tomorrow_weather
+tomorrow weather,tomorrow_weather
+"weather tomorrow in rome, italy",tomorrow_weather
+"weather tomorrow in patagonia, argentina",tomorrow_weather
+what will tomorrows weather be,tomorrow_weather
+"weather tomorrow in bali, indonesia",tomorrow_weather
+what will tomorrows weather be please,tomorrow_weather
+tomorrows weather please,tomorrow_weather
+get weather tomorrow please,tomorrow_weather
+tomorrows weather,tomorrow_weather
+will there be showers tomorrow?,tomorrow_weather
+will there be thunder tomorrow?,tomorrow_weather
+will it shower tomorrow,tomorrow_weather
+will there be showers tomorrow,tomorrow_weather
+what will tomorrows weather be in new zealand please,tomorrow_weather
+will tomorrow's weather be rainy,tomorrow_weather
+weather in spain tomorrow please,tomorrow_weather
+will tomorrow's weather be snow,tomorrow_weather
+"weather in barcelona, spain tomorrow please",tomorrow_weather
+weather in london tomorrow,tomorrow_weather
+"weather in yosemite national park, united states tomorrow",tomorrow_weather
+will it be thunder tomorrow,tomorrow_weather
+"tomorrows weather in amsterdam, netherlands",tomorrow_weather
+will it be thunder tomorrow?,tomorrow_weather
+"weather in dubai, united arab emirates tomorrow please",tomorrow_weather
+will tomorrow's weather be thunder,tomorrow_weather
+will it drizzle tomorrow?,tomorrow_weather
+"weather in alaska, united states tomorrow",tomorrow_weather
+will it snow tomorrow?,tomorrow_weather
+will it be overcast tomorrow?,tomorrow_weather
+"what will tomorrows weather be in petra, jordan",tomorrow_weather
+"weather tomorrow in santorini, greece",tomorrow_weather
+"weather in scottish highlands, scotland tomorrow please",tomorrow_weather
+"weather tomorrow in barcelona, spain please",tomorrow_weather
+weather tomorrow in las vegas,tomorrow_weather
+will it be sunny tomorrow?,tomorrow_weather
+will there be snow tomorrow?,tomorrow_weather
+"weather in rome, italy tomorrow",tomorrow_weather
+will there be hail tomorrow,tomorrow_weather
+tomorrows weather in singapore,tomorrow_weather
+weather in new zealand tomorrow please,tomorrow_weather
+what will tomorrows weather be in spain please,tomorrow_weather
+"weather tomorrow in berlin, germany",tomorrow_weather
+will it thunder tomorrow,tomorrow_weather
+weather in fiji tomorrow please,tomorrow_weather
+"tomorrows weather in scottish highlands, scotland",tomorrow_weather
+"tomorrows weather in taj mahal, india",tomorrow_weather
+will tomorrow's weather be sunny,tomorrow_weather
+"what will tomorrows weather be in marrakech, morocco please",tomorrow_weather
+will it hail tomorrow?,tomorrow_weather
+"what will tomorrows weather be in bora bora, french polynesia",tomorrow_weather
+weather in maldives tomorrow please,tomorrow_weather
+will it be showers tomorrow,tomorrow_weather
+weather in fiji tomorrow,tomorrow_weather
+will it thunder tomorrow?,tomorrow_weather
+will it shower tomorrow?,tomorrow_weather
+will it be rain tomorrow,tomorrow_weather
+will it be a heatwave tomorrow,tomorrow_weather
+"weather tomorrow in tokyo, japan please",tomorrow_weather
+"tomorrows weather in machu picchu, peru",tomorrow_weather
+will it hail tomorrow,tomorrow_weather
+"weather in budapest, hungary tomorrow please",tomorrow_weather
+"what will tomorrows weather be in hawaii, united states",tomorrow_weather
+what will tomorrows weather be like,tomorrow_weather
+"weather in barcelona, spain tomorrow",tomorrow_weather
+"weather tomorrow in hawaii, united states please",tomorrow_weather
+will it be sunny tomorrow,tomorrow_weather
+"what will tomorrows weather be in dubai, united arab emirates please",tomorrow_weather
+tomorrows weather in las vegas please,tomorrow_weather
+"weather in scottish highlands, scotland tomorrow",tomorrow_weather
+"what will tomorrows weather be in prague, czech republic please",tomorrow_weather
+will it be snow tomorrow?,tomorrow_weather
+weather in london tomorrow please,tomorrow_weather
+will it be rain tomorrow?,tomorrow_weather
+tomorrows weather in fiji,tomorrow_weather
+"weather in bora bora, french polynesia tomorrow please",tomorrow_weather
+will it be rainy tomorrow?,tomorrow_weather
+will there be thunder tomorrow,tomorrow_weather
+weather tomorrow in new zealand please,tomorrow_weather
+"weather in dubai, united arab emirates tomorrow",tomorrow_weather
+"tomorrows weather in amsterdam, netherlands please",tomorrow_weather
+"what will tomorrows weather be in scottish highlands, scotland please",tomorrow_weather
+weather tomorrow in london,tomorrow_weather
