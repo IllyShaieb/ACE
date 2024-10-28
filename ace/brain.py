@@ -12,3 +12,9 @@ def process_user_input(user_input: str) -> str:
     processed_input = re.sub(r"[^\w\s]", "", processed_input)
 
     return processed_input
+
+
+def recognise_intent(processed_input: str) -> str:
+    """Recognise intent."""
+    if processed_input == "this is a dummy user input":
+        return "DUMMY"

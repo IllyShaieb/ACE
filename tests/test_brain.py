@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from ace.brain import get_user_input, process_user_input
+from ace.brain import get_user_input, process_user_input, recognise_intent
 
 
 class TestGetInput(unittest.TestCase):
@@ -14,6 +14,13 @@ class TestProcessInput(unittest.TestCase):
     def test_process_user_input(self):
         processed = process_user_input("This is a dummy user input.")
         assert processed == "this is a dummy user input"
+
+
+class TestRecogniseIntent(unittest.TestCase):
+    def test_recognise_intent(self):
+        processed_input = "this is a dummy user input"
+        intent = recognise_intent(processed_input)
+        assert intent == "DUMMY"
 
 
 if __name__ == "__main__":
