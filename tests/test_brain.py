@@ -14,3 +14,7 @@ class TestProcessInput(unittest.TestCase):
     def test_process_user_input(self):
         processed = process_user_input("This is a dummy user input.")
         assert processed == "this is a dummy user input"
+
+
+if __name__ == "__main__":
+    unittest.main()
