@@ -1,7 +1,7 @@
 def skills() -> dict:
     """Return a dictionary of skills."""
     return {
-        "dummy": dummy_skill,
+        "DUMMY_SKILL": dummy_skill,
     }
 
 

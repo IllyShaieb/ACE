@@ -5,7 +5,7 @@ from ace.skills import skills
 
 class TestSkillDummy(unittest.TestCase):
     def setUp(self):
-        self.skill = skills()["dummy"]
+        self.skill = skills()["DUMMY_SKILL"]
 
     def test_dummy_skill_no_entities(self):
         assert self.skill() == "This is a dummy skill. It does nothing."
