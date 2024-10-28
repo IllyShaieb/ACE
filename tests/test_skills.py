@@ -15,3 +15,7 @@ class TestSkillDummy(unittest.TestCase):
             self.skill(entities=["TEST"])
             == "This dummy skill has the following entities: ['TEST']"
         )
+
+
+if __name__ == "__main__":
+    unittest.main()
