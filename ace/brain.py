@@ -18,3 +18,11 @@ def recognise_intent(processed_input: str) -> str:
     """Recognise intent."""
     if processed_input == "this is a dummy user input":
         return "DUMMY"
+
+
+def select_skill(intent: str) -> str:
+    """Select skill."""
+    if intent == "DUMMY":
+        return "DUMMY_SKILL"
+    else:
+        return "UNKNOWN_SKILL"
