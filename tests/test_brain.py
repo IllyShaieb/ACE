@@ -13,37 +13,37 @@ from ace.brain import (
 class TestGetInput(unittest.TestCase):
     def test_get_user_input(self):
         with patch("builtins.input", return_value="This is a dummy user input."):
-            assert get_user_input() == "This is a dummy user input."
+            self.assertEqual(get_user_input(), "This is a dummy user input.")
 
 
 class TestProcessInput(unittest.TestCase):
     def test_process_user_input(self):
         processed = process_user_input("This is a dummy user input.")
-        assert processed == "this is a dummy user input"
+        self.assertEqual(processed, "this is a dummy user input")
 
 
 class TestRecogniseIntent(unittest.TestCase):
     def test_recognise_intent(self):
         processed_input = "this is a dummy user input"
         intent = recognise_intent(processed_input)
-        assert intent == "DUMMY"
+        self.assertEqual(intent, "DUMMY")
 
 
 class TestExtractEntities(unittest.TestCase):
     def test_extract_entities(self):
         processed_input = "this is a dummy user input"
         entities = extract_entities(processed_input)
-        assert entities == []
+        self.assertEqual(entities, [])
 
 
 class TestSelectSkill(unittest.TestCase):
     def test_select_skill(self):
         skill = select_skill("DUMMY")
-        assert skill == "DUMMY_SKILL"
+        self.assertEqual(skill, "DUMMY_SKILL")
 
     def test_select_skill_unknown(self):
         skill = select_skill("UNKNOWN")
-        assert skill == "UNKNOWN_SKILL"
+        self.assertEqual(skill, "UNKNOWN_SKILL")
 
 
 if __name__ == "__main__":

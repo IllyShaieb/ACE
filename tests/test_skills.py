@@ -8,12 +8,12 @@ class TestSkillDummy(unittest.TestCase):
         self.skill = skills()["DUMMY_SKILL"]
 
     def test_dummy_skill_no_entities(self):
-        assert self.skill() == "This is a dummy skill. It does nothing."
+        self.assertEqual(self.skill(), "This is a dummy skill. It does nothing.")
 
     def test_dummy_skill_with_entities(self):
-        assert (
-            self.skill(entities=["TEST"])
-            == "This dummy skill has the following entities: ['TEST']"
+        self.assertEqual(
+            self.skill(entities=["TEST"]),
+            "This dummy skill has the following entities: ['TEST']",
         )
 
 
