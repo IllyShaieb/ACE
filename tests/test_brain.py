@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 
-from ace import skills_config
+from ace import skills_dict
 from ace.brain import (
     extract_entities,
     get_user_input,
@@ -40,7 +40,7 @@ class TestExtractEntities(unittest.TestCase):
 class TestSelectSkill(unittest.TestCase):
     def test_select_skill(self):
         skill = select_skill("DUMMY_SKILL")
-        self.assertEqual(skill, skills_config["DUMMY_SKILL"])
+        self.assertEqual(skill, skills_dict["DUMMY_SKILL"])
 
 
 if __name__ == "__main__":

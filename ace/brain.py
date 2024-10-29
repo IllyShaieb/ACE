@@ -1,6 +1,6 @@
 import re
 
-from ace import skills_config
+from ace import skills_dict
 
 
 def get_user_input() -> str:
@@ -29,4 +29,4 @@ def extract_entities(processed_input: str) -> list[tuple[str, str]]:
 
 def select_skill(intent: str) -> callable:
     """Select skill function based on intent."""
-    return skills_config[intent]
+    return skills_dict[intent]

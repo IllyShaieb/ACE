@@ -1,11 +1,11 @@
 import unittest
 
-from ace import skills_config
+from ace import skills_dict
 
 
 class TestSkillDummy(unittest.TestCase):
     def setUp(self):
-        self.skill = skills_config["DUMMY_SKILL"]
+        self.skill = skills_dict["DUMMY_SKILL"]
 
     def test_dummy_skill_no_entities(self):
         self.assertEqual(self.skill(), "This is a dummy skill. It does nothing.")
