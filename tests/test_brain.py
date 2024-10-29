@@ -1,7 +1,13 @@
 import unittest
 from unittest.mock import patch
 
-from ace.brain import get_user_input, process_user_input, recognise_intent, select_skill
+from ace.brain import (
+    extract_entities,
+    get_user_input,
+    process_user_input,
+    recognise_intent,
+    select_skill,
+)
 
 
 class TestGetInput(unittest.TestCase):
@@ -21,6 +27,13 @@ class TestRecogniseIntent(unittest.TestCase):
         processed_input = "this is a dummy user input"
         intent = recognise_intent(processed_input)
         assert intent == "DUMMY"
+
+
+class TestExtractEntities(unittest.TestCase):
+    def test_extract_entities(self):
+        processed_input = "this is a dummy user input"
+        entities = extract_entities(processed_input)
+        assert entities == []
 
 
 class TestSelectSkill(unittest.TestCase):

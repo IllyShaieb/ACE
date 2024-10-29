@@ -20,6 +20,11 @@ def recognise_intent(processed_input: str) -> str:
         return "DUMMY"
 
 
+def extract_entities(processed_input: str) -> list[tuple[str, str]]:
+    """Extract entities."""
+    return []
+
+
 def select_skill(intent: str) -> str:
     """Select skill."""
     if intent == "DUMMY":
