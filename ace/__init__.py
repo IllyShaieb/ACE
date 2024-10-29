@@ -1,4 +1,4 @@
-from ace import skills
+from ace import skills  # noqa: F401
 
 # Automatically create a skills configuration dictionary from the skills module.
 # This allows the skills to be easily imported and used in the brain module.
