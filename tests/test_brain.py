@@ -24,10 +24,14 @@ class TestProcessInput(unittest.TestCase):
 
 
 class TestRecogniseIntent(unittest.TestCase):
-    def test_recognise_intent(self):
-        processed_input = "run dummy skill"
-        intent = recognise_intent(processed_input)
-        self.assertEqual(intent, "DUMMY_SKILL")
+
+    def test_recognise_intent_DUMMY(self):
+        parameters = ["run dummy skill"]
+
+        for parameter in parameters:
+            with self.subTest(parameter=parameter):
+                intent = recognise_intent(parameter)
+                self.assertEqual(intent, "DUMMY_SKILL")
 
 
 class TestExtractEntities(unittest.TestCase):
