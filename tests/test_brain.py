@@ -25,7 +25,7 @@ class TestProcessInput(unittest.TestCase):
 
 class TestRecogniseIntent(unittest.TestCase):
     def test_recognise_intent(self):
-        processed_input = "this is a dummy user input"
+        processed_input = "run dummy skill"
         intent = recognise_intent(processed_input)
         self.assertEqual(intent, "DUMMY_SKILL")
 
