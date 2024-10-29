@@ -1,10 +1,3 @@
-def skills() -> dict:
-    """Return a dictionary of skills."""
-    return {
-        "DUMMY_SKILL": dummy_skill,
-    }
-
-
 def dummy_skill(entities=None) -> str:
     """Dummy skill that does nothing. Used for testing."""
     if entities:

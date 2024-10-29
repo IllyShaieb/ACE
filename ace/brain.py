@@ -1,5 +1,7 @@
 import re
 
+from ace import skills_config
+
 
 def get_user_input() -> str:
     """Get user input."""
@@ -17,7 +19,7 @@ def process_user_input(user_input: str) -> str:
 def recognise_intent(processed_input: str) -> str:
     """Recognise intent."""
     if processed_input == "this is a dummy user input":
-        return "DUMMY"
+        return "DUMMY_SKILL"
 
 
 def extract_entities(processed_input: str) -> list[tuple[str, str]]:
@@ -25,9 +27,6 @@ def extract_entities(processed_input: str) -> list[tuple[str, str]]:
     return []
 
 
-def select_skill(intent: str) -> str:
-    """Select skill."""
-    if intent == "DUMMY":
-        return "DUMMY_SKILL"
-    else:
-        return "UNKNOWN_SKILL"
+def select_skill(intent: str) -> callable:
+    """Select skill function based on intent."""
+    return skills_config[intent]
