@@ -1,6 +1,7 @@
 import re
 
 from ace import skills_dict
+from ace.config import INTENT_PATTERNS
 
 
 def get_user_input() -> str:
@@ -18,8 +19,11 @@ def process_user_input(user_input: str) -> str:
 
 def recognise_intent(processed_input: str) -> str:
     """Recognise intent."""
-    if processed_input == "run dummy skill":
-        return "DUMMY_SKILL"
+    for intent, patterns in INTENT_PATTERNS.items():
+        for pattern in patterns:
+            if re.search(pattern, processed_input):
+                return intent
+    return None
 
 
 def extract_entities(processed_input: str) -> list[tuple[str, str]]:
