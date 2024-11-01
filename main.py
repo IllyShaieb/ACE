@@ -17,7 +17,7 @@ def main() -> None:
         intent = brain.recognise_intent(processed_input)
 
         if intent:
-            entities = brain.extract_entities(processed_input)
+            entities = brain.extract_entities(processed_input, intent)
             selected_skill = brain.select_skill(intent)
             response = selected_skill(entities=entities)
             print(f"ACE: {response}")

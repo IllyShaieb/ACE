@@ -26,9 +26,20 @@ def recognise_intent(processed_input: str) -> str:
     return None
 
 
-def extract_entities(processed_input: str) -> list[tuple[str, str]]:
-    """Extract entities."""
-    return []
+def extract_entities(processed_input: str, intent: str) -> list[tuple[str, str]]:
+    """Extract entities from processed input based on intent."""
+    entities = []
+    if intent in INTENT_PATTERNS:
+        for pattern in INTENT_PATTERNS[intent]:
+            match = re.search(pattern, processed_input)
+            if match:
+                for group_num in range(
+                    1, len(match.groups()) + 1
+                ):  # Start from group 1
+                    entity_value = match.group(group_num)
+                    entities.append(entity_value)
+                return entities  # Return the list of entities
+    return entities  # Return empty list if no entities found
 
 
 def select_skill(intent: str) -> callable:
