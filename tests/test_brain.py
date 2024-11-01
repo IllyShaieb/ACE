@@ -35,10 +35,17 @@ class TestRecogniseIntent(unittest.TestCase):
 
 
 class TestExtractEntities(unittest.TestCase):
-    def test_extract_entities(self):
-        processed_input = "this is a dummy user input"
-        entities = extract_entities(processed_input)
-        self.assertEqual(entities, [])
+    def test_extract_entities_DUMMY_SKILL(self):
+        parameters = [
+            ("run dummy skill", "DUMMY_SKILL", []),
+            ("run dummy skill with 1", "DUMMY_SKILL", ["1"]),
+            ("run dummy skill with 1 and 2", "DUMMY_SKILL", ["1", "2"]),
+        ]
+
+        for text, intent, expected in parameters:
+            with self.subTest(text=text, intent=intent, expected=expected):
+                entities = extract_entities(text, intent)
+                self.assertEqual(entities, expected)
 
 
 class TestSelectSkill(unittest.TestCase):
