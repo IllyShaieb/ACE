@@ -33,6 +33,21 @@ class TestRecogniseIntent(unittest.TestCase):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "DUMMY_SKILL")
 
+    def test_recognise_intent_GREETING(self):
+        parameters = [
+            "hi",
+            "hello",
+            "hey",
+            "good morning",
+            "good afternoon",
+            "good evening",
+        ]
+
+        for parameter in parameters:
+            with self.subTest(parameter=parameter):
+                intent = recognise_intent(parameter)
+                self.assertEqual(intent, "GREETING_SKILL")
+
     def test_recognise_intent_FAREWELL(self):
         parameters = ["goodbye", "bye", "good bye"]
 
