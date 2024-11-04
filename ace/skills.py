@@ -8,3 +8,8 @@ def dummy_skill(entities=None) -> str:
 def greeting_skill(entities=None) -> str:
     """Greeting the user."""
     return "Hello! How can I help you?"
+
+
+def farewell_skill(entities=None) -> str:
+    """Say goodbye to the user."""
+    return "Goodbye!"

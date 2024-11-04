@@ -22,6 +22,12 @@ class TestSkillDummy(unittest.TestCase):
             "Hello! How can I help you?",
         )
 
+    def test_farewell_skill(self):
+        self.assertEqual(
+            skills_dict["FAREWELL_SKILL"](),
+            "Goodbye!",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

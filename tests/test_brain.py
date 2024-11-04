@@ -33,6 +33,14 @@ class TestRecogniseIntent(unittest.TestCase):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "DUMMY_SKILL")
 
+    def test_recognise_intent_FAREWELL(self):
+        parameters = ["goodbye", "bye", "good bye"]
+
+        for parameter in parameters:
+            with self.subTest(parameter=parameter):
+                intent = recognise_intent(parameter)
+                self.assertEqual(intent, "FAREWELL_SKILL")
+
 
 class TestExtractEntities(unittest.TestCase):
     def test_extract_entities_DUMMY_SKILL(self):

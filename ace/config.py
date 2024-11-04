@@ -5,4 +5,5 @@ INTENT_PATTERNS = {
         "run dummy skill",
     ],
     "GREETING_SKILL": [r"(hi|hello|hey)", r"good (morning|afternoon|evening)"],
+    "FAREWELL_SKILL": [r"goodbye", r"bye"],
 }
