@@ -4,4 +4,5 @@ INTENT_PATTERNS = {
         r"run dummy skill with (\d+)",
         "run dummy skill",
     ],
+    "GREETING_SKILL": [r"(hi|hello|hey)", r"good (morning|afternoon|evening)"],
 }

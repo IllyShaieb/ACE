@@ -3,3 +3,8 @@ def dummy_skill(entities=None) -> str:
     if entities:
         return f"This dummy skill has the following entities: {entities}"
     return "This is a dummy skill. It does nothing."
+
+
+def greeting_skill(entities=None) -> str:
+    """Greeting the user."""
+    return "Hello! How can I help you?"

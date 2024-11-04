@@ -16,6 +16,12 @@ class TestSkillDummy(unittest.TestCase):
             "This dummy skill has the following entities: ['TEST']",
         )
 
+    def test_greeting_skill(self):
+        self.assertEqual(
+            skills_dict["GREETING_SKILL"](),
+            "Hello! How can I help you?",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
