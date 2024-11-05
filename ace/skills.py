@@ -1,3 +1,6 @@
+from random import choice
+
+
 def dummy_skill(entities=None) -> str:
     """Dummy skill that does nothing. Used for testing."""
     if entities:
@@ -7,12 +10,18 @@ def dummy_skill(entities=None) -> str:
 
 def greeting_skill(entities=None) -> str:
     """Greeting the user."""
-    return "Hello! How can I help you?"
+    responses = [
+        "Hello! How can I help you?",
+        "Hi there! What can I do for you?",
+        "Hey! What's up?",
+    ]
+    return choice(responses)
 
 
 def farewell_skill(entities=None) -> str:
     """Say goodbye to the user."""
-    return "Goodbye!"
+    responses = ["Goodbye!", "Bye! See you later.", "See you soon!"]
+    return choice(responses)
 
 
 def who_are_you_skill(entities=None) -> str:
