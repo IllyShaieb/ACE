@@ -36,6 +36,13 @@ class TestSkillDummy(unittest.TestCase):
         ]
         self.assertEqual(skills_dict["WHO_ARE_YOU_SKILL"](), " ".join(expected))
 
+    def test_how_are_you_skill(self):
+        expected = [
+            "As an Artificial Consciousness Engine, I don't have feelings,",
+            "but I'm ready to help you out. What can I do for you today?",
+        ]
+        self.assertEqual(skills_dict["HOW_ARE_YOU_SKILL"](), " ".join(expected))
+
 
 if __name__ == "__main__":
     unittest.main()

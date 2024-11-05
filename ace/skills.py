@@ -23,3 +23,12 @@ def who_are_you_skill(entities=None) -> str:
         "You can ask me to do stuff for you, or just chat with me!",
     ]
     return " ".join(lines)
+
+
+def how_are_you_skill(entities=None) -> str:
+    """Ask ACE how it is doing."""
+    lines = [
+        "As an Artificial Consciousness Engine, I don't have feelings,",
+        "but I'm ready to help you out. What can I do for you today?",
+    ]
+    return " ".join(lines)

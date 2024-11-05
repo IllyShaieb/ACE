@@ -64,6 +64,14 @@ class TestRecogniseIntent(unittest.TestCase):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "WHO_ARE_YOU_SKILL")
 
+    def test_how_are_you_skill(self):
+        parameters = ["how are you"]
+
+        for parameter in parameters:
+            with self.subTest(parameter=parameter):
+                intent = recognise_intent(parameter)
+                self.assertEqual(intent, "HOW_ARE_YOU_SKILL")
+
 
 class TestExtractEntities(unittest.TestCase):
     def test_extract_entities_DUMMY_SKILL(self):
