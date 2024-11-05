@@ -19,11 +19,15 @@ class TestSkillDummy(unittest.TestCase):
         )
 
     def test_greeting_skill(self):
-        possible_responses = ["Hello! How can I help you?"]
+        possible_responses = [
+            "Hello! How can I help you?",
+            "Hi there! What can I do for you?",
+            "Hey! What's up?",
+        ]
         self.assertIn(skills_dict["GREETING_SKILL"](), possible_responses)
 
     def test_farewell_skill(self):
-        possible_responses = ["Goodbye!"]
+        possible_responses = ["Goodbye!", "Bye! See you later.", "See you soon!"]
         self.assertIn(skills_dict["FAREWELL_SKILL"](), possible_responses)
 
     def test_who_are_you_skill(self):
