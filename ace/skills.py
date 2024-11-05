@@ -1,5 +1,9 @@
 from random import choice
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 def dummy_skill(entities=None) -> str:
     """Dummy skill that does nothing. Used for testing."""
