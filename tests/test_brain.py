@@ -33,6 +33,45 @@ class TestRecogniseIntent(unittest.TestCase):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "DUMMY_SKILL")
 
+    def test_recognise_intent_GREETING(self):
+        parameters = [
+            "hi",
+            "hello",
+            "hey",
+            "good morning",
+            "good afternoon",
+            "good evening",
+        ]
+
+        for parameter in parameters:
+            with self.subTest(parameter=parameter):
+                intent = recognise_intent(parameter)
+                self.assertEqual(intent, "GREETING_SKILL")
+
+    def test_recognise_intent_FAREWELL(self):
+        parameters = ["goodbye", "bye", "good bye"]
+
+        for parameter in parameters:
+            with self.subTest(parameter=parameter):
+                intent = recognise_intent(parameter)
+                self.assertEqual(intent, "FAREWELL_SKILL")
+
+    def test_who_are_you_skill(self):
+        parameters = ["who are you", "what are you"]
+
+        for parameter in parameters:
+            with self.subTest(parameter=parameter):
+                intent = recognise_intent(parameter)
+                self.assertEqual(intent, "WHO_ARE_YOU_SKILL")
+
+    def test_how_are_you_skill(self):
+        parameters = ["how are you"]
+
+        for parameter in parameters:
+            with self.subTest(parameter=parameter):
+                intent = recognise_intent(parameter)
+                self.assertEqual(intent, "HOW_ARE_YOU_SKILL")
+
 
 class TestExtractEntities(unittest.TestCase):
     def test_extract_entities_DUMMY_SKILL(self):
