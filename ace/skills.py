@@ -13,3 +13,13 @@ def greeting_skill(entities=None) -> str:
 def farewell_skill(entities=None) -> str:
     """Say goodbye to the user."""
     return "Goodbye!"
+
+
+def who_are_you_skill(entities=None) -> str:
+    """Explain who ACE is."""
+    lines = [
+        "I'm ACE, your Artificial Consciousness Engine.",
+        "I'm here to help with things and tell you what's going on.",
+        "You can ask me to do stuff for you, or just chat with me!",
+    ]
+    return " ".join(lines)

@@ -28,6 +28,14 @@ class TestSkillDummy(unittest.TestCase):
             "Goodbye!",
         )
 
+    def test_who_are_you_skill(self):
+        expected = [
+            "I'm ACE, your Artificial Consciousness Engine.",
+            "I'm here to help with things and tell you what's going on.",
+            "You can ask me to do stuff for you, or just chat with me!",
+        ]
+        self.assertEqual(skills_dict["WHO_ARE_YOU_SKILL"](), " ".join(expected))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -6,4 +6,5 @@ INTENT_PATTERNS = {
     ],
     "GREETING_SKILL": [r"(hi|hello|hey)", r"good (morning|afternoon|evening)"],
     "FAREWELL_SKILL": [r"goodbye", r"bye"],
+    "WHO_ARE_YOU_SKILL": [r"(who|what) (are) (you)"],
 }
