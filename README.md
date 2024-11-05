@@ -40,6 +40,13 @@ _Note: This project is developed and tested on Python 3.10.2, in Windows 10. It 
     pip install -r requirements.txt
     ```
 
+5.  Create a `.env` file in the root directory of the project and add the following environment variables:
+
+    ```env
+    # The API key name and value
+    API_KEY=your_api_key_here
+    ```
+
 ### Running ACE
 
 1.  Make sure your virtual environment is activated.
@@ -63,4 +70,4 @@ We use [CalVer](https://calver.org/) for versioning. For the versions available,
 
 ## License
 
-This project is licensed under the GNU General Public License version 3 (GPLv3) - see the [LICENSE.md](LICENSE.md) file for details.+
+This project is licensed under the GNU General Public License version 3 (GPLv3) - see the [LICENSE.md](LICENSE.md) file for details.
