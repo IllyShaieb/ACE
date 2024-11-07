@@ -1,6 +1,10 @@
+import os
 from random import choice
 
 from dotenv import load_dotenv
+from weatherapi.rest import ApiException as WeatherApiException
+
+from ace.utils import get_weather
 
 load_dotenv()
 
@@ -45,3 +49,43 @@ def how_are_you_skill(entities=None) -> str:
         "but I'm ready to help you out. What can I do for you today?",
     ]
     return " ".join(lines)
+
+
+def current_weather_skill(entities=None) -> str:
+    """Get the current weather."""
+    location = entities[0] if entities else None
+    if not entities:
+        location = os.environ.get("ACE_HOME_LOCATION", "London")
+
+    try:
+        api_response = get_weather(location)
+    except WeatherApiException as e:
+        if e.status == 400:
+            return f"Sorry, the location provided ({location}) is invalid."
+        elif e.status == 401:
+            return "Sorry, the weather API key is invalid."
+        elif e.status == 403:
+            return "Sorry, I've reached the usage limit for the weather API. Please try again later."
+        elif e.status == 404:
+            return "Sorry, the weather API is not available right now, please try again later."
+        else:  # Generic error message
+            return "Sorry, there was an error fetching weather information."
+
+    try:
+        current = api_response["current"]
+        actual_location = api_response["location"]["name"]
+        temp_c = current["temp_c"]
+        condition = current["condition"]["text"]
+        feelslike_c = current["feelslike_c"]
+        humidity = current["humidity"]
+        wind_kph = current["wind_kph"]
+
+        response = (
+            f"The weather in {actual_location} is currently {condition}. "
+            f"The temperature is {temp_c:.1f}°C, and it feels like {feelslike_c:.1f}°C. "
+            f"The humidity is {humidity}%, and the wind speed is {wind_kph} km/h."
+        )
+        return response
+
+    except KeyError:
+        return "Sorry, there was an error processing the weather data."

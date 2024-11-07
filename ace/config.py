@@ -8,4 +8,13 @@ INTENT_PATTERNS = {
     "FAREWELL_SKILL": [r"goodbye", r"bye"],
     "WHO_ARE_YOU_SKILL": [r"(who|what) (are) (you)"],
     "HOW_ARE_YOU_SKILL": [r"(how) (are) (you)"],
+    "CURRENT_WEATHER_SKILL": [
+        r"current weather in (.*)",
+        r"weather today in (.*)",
+        r"current weather at (.*)",
+        r"weather today at (.*)",
+        r"weather in (.*) today",
+        r"current weather",
+        r"weather today",
+    ],
 }
