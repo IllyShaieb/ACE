@@ -51,14 +51,52 @@ def how_are_you_skill(entities=None) -> str:
     return " ".join(lines)
 
 
-def current_weather_skill(entities=None) -> str:
-    """Get the current weather."""
-    location = entities[0] if entities else None
-    if not entities:
-        location = os.environ.get("ACE_HOME_LOCATION", "London")
+def get_weather_skill(entities=None) -> str:
+    """Get the current or future weather."""
+    location = entities.get("location", os.environ.get("ACE_HOME_LOCATION", "London"))
+    timeframe = entities.get("timeframe", "current")
+
+    timeframe_mapping = {
+        "current": 0,
+        "today": 0,
+        "tomorrow": 1,
+    }
+    future_days = timeframe_mapping.get(timeframe, 0)
 
     try:
-        api_response = get_weather(location)
+        api_response = get_weather(location, future_days=future_days)
+
+        if future_days == 0:  # Current weather
+            current = api_response["current"]
+            actual_location = api_response["location"]["name"]
+            temp_c = current["temp_c"]
+            condition = current["condition"]["text"]
+            feelslike_c = current["feelslike_c"]
+            humidity = current["humidity"]
+            wind_kph = current["wind_kph"]
+
+            response = (
+                f"The weather in {actual_location} is currently {condition}. "
+                f"The temperature is {temp_c:.1f}°C, and it feels like {feelslike_c:.1f}°C. "
+                f"The humidity is {humidity}%, and the wind speed is {wind_kph} km/h."
+            )
+        else:  # Future weather
+            forecast = api_response["forecast"]["forecastday"][0]
+            actual_location = api_response["location"]["name"]
+            max_temp_c = forecast["day"]["maxtemp_c"]
+            min_temp_c = forecast["day"]["mintemp_c"]
+            condition = forecast["day"]["condition"]["text"]
+            average_humidity = forecast["day"]["avghumidity"]
+            max_wind_kph = forecast["day"]["maxwind_kph"]
+
+            response = (
+                f"The weather in {actual_location} tomorrow is forecast to be {condition}. "
+                f"With a high of {max_temp_c:.1f}°C and a low of {min_temp_c:.1f}°C. "
+                f"The average humidity will be {average_humidity}%, "
+                f"and the maximum wind speed will be {max_wind_kph} km/h."
+            )
+        return response
+
     except WeatherApiException as e:
         if e.status == 400:
             return f"Sorry, the location provided ({location}) is invalid."
@@ -70,62 +108,6 @@ def current_weather_skill(entities=None) -> str:
             return "Sorry, the weather API is not available right now, please try again later."
         else:  # Generic error message
             return "Sorry, there was an error fetching weather information."
-
-    try:
-        current = api_response["current"]
-        actual_location = api_response["location"]["name"]
-        temp_c = current["temp_c"]
-        condition = current["condition"]["text"]
-        feelslike_c = current["feelslike_c"]
-        humidity = current["humidity"]
-        wind_kph = current["wind_kph"]
-
-        response = (
-            f"The weather in {actual_location} is currently {condition}. "
-            f"The temperature is {temp_c:.1f}°C, and it feels like {feelslike_c:.1f}°C. "
-            f"The humidity is {humidity}%, and the wind speed is {wind_kph} km/h."
-        )
-        return response
-
-    except KeyError:
-        return "Sorry, there was an error processing the weather data."
-
-
-def future_weather_skill(entities=None) -> str:
-    """Get the future weather."""
-    location = entities[0] if entities else None
-    if not entities:
-        location = os.environ.get("ACE_HOME_LOCATION", "London")
-
-    try:
-        api_response = get_weather(location, future_days=1)
-    except WeatherApiException as e:
-        if e.status == 400:
-            return f"Sorry, the location provided ({location}) is invalid."
-        elif e.status == 401:
-            return "Sorry, the weather API key is invalid."
-        elif e.status == 403:
-            return "Sorry, I've reached the usage limit for the weather API. Please try again later."
-        elif e.status == 404:
-            return "Sorry, the weather API is not available right now, please try again later."
-        else:  # Generic error message
-            return "Sorry, there was an error fetching weather information."
-
-    try:
-        forecast = api_response["forecast"]["forecastday"][0]
-        actual_location = api_response["location"]["name"]
-        max_temp_c = forecast["day"]["maxtemp_c"]
-        min_temp_c = forecast["day"]["mintemp_c"]
-        condition = forecast["day"]["condition"]["text"]
-        average_humidity = forecast["day"]["avghumidity"]
-        max_wind_kph = forecast["day"]["maxwind_kph"]
-
-        response = (
-            f"The weather in {actual_location} tomorrow is forecast to be {condition}. "
-            f"With a high of {max_temp_c:.1f}°C and a low of {min_temp_c:.1f}°C. "
-            f"The average humidity will be {average_humidity}%, and the maximum wind speed will be {max_wind_kph} km/h."
-        )
-        return response
 
     except KeyError:
         return "Sorry, there was an error processing the weather data."

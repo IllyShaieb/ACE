@@ -50,12 +50,12 @@ class TestSkillDummy(unittest.TestCase):
         self.assertIn(skills_dict["HOW_ARE_YOU_SKILL"](), possible_responses)
 
 
-class TestSkillCurrentWeather(unittest.TestCase):
+class TestSkillGetWeather(unittest.TestCase):
     def setUp(self):
-        self.skill = skills_dict["CURRENT_WEATHER_SKILL"]
+        self.skill = skills_dict["GET_WEATHER_SKILL"]
 
     @patch("ace.skills.get_weather")
-    def test_current_weather_skill_with_location(self, mock_call_weather_api):
+    def test_get_current_weather_with_location(self, mock_call_weather_api):
         mock_api_response = {
             "current": {
                 "temp_c": 15.5,
@@ -67,7 +67,7 @@ class TestSkillCurrentWeather(unittest.TestCase):
             "location": {"name": "London"},
         }
         mock_call_weather_api.return_value = mock_api_response
-        entities = ["London"]
+        entities = {"location": "London"}
         expected_response = (
             "The weather in London is currently Partly cloudy. "
             "The temperature is 15.5°C, and it feels like 12.3°C. "
@@ -77,7 +77,7 @@ class TestSkillCurrentWeather(unittest.TestCase):
         self.assertEqual(self.skill(entities=entities), expected_response)
 
     @patch("ace.skills.get_weather")
-    def test_current_weather_skill_no_location(self, mock_call_weather_api):
+    def test_get_current_weather_no_location(self, mock_call_weather_api):
         # The default location is set in the .env file
         home_location = os.environ.get("ACE_HOME_LOCATION", "London")
         mock_api_response = {
@@ -92,17 +92,17 @@ class TestSkillCurrentWeather(unittest.TestCase):
         }
 
         mock_call_weather_api.return_value = mock_api_response
-
+        entities = {"timeframe": "current"}
         expected_response = (
             f"The weather in {home_location} is currently Partly cloudy. "
             "The temperature is 15.5°C, and it feels like 12.3°C. "
             "The humidity is 60%, and the wind speed is 15 km/h."
         )
 
-        self.assertEqual(self.skill(), expected_response)
+        self.assertEqual(self.skill(entities=entities), expected_response)
 
     @patch("ace.skills.get_weather")
-    def test_current_weather_skill_errors(self, mock_call_weather_api):
+    def test_get_current_weather_with_errors(self, mock_call_weather_api):
         parameters = [
             (
                 ApiException(status=400),
@@ -123,18 +123,15 @@ class TestSkillCurrentWeather(unittest.TestCase):
             ),
         ]
 
+        entities = {"timeframe": "current"}
+
         for error, expected_response in parameters:
             with self.subTest(error=error, expected_response=expected_response):
                 mock_call_weather_api.side_effect = error
-                self.assertEqual(self.skill(), expected_response)
-
-
-class TestSkillFutureWeather(unittest.TestCase):
-    def setUp(self):
-        self.skill = skills_dict["FUTURE_WEATHER_SKILL"]
+                self.assertEqual(self.skill(entities), expected_response)
 
     @patch("ace.skills.get_weather")
-    def test_future_weather_skill_with_location(self, mock_call_weather_api):
+    def test_get_future_weather_with_location(self, mock_call_weather_api):
         mock_api_response = {
             "forecast": {
                 "forecastday": [
@@ -153,7 +150,8 @@ class TestSkillFutureWeather(unittest.TestCase):
             "location": {"name": "London"},
         }
         mock_call_weather_api.return_value = mock_api_response
-        entities = ["London"]
+        entities = {"timeframe": "tomorrow", "location": "London"}
+
         expected_response = (
             "The weather in London tomorrow is forecast to be Partly cloudy. "
             "With a high of 20.5°C and a low of 15.5°C. "
@@ -163,7 +161,7 @@ class TestSkillFutureWeather(unittest.TestCase):
         self.assertEqual(self.skill(entities=entities), expected_response)
 
     @patch("ace.skills.get_weather")
-    def test_future_weather_skill_no_location(self, mock_call_weather_api):
+    def test_get_future_weather_no_location(self, mock_call_weather_api):
         # The default location is set in the .env file
         home_location = os.environ.get("ACE_HOME_LOCATION", "London")
         mock_api_response = {
@@ -185,17 +183,17 @@ class TestSkillFutureWeather(unittest.TestCase):
         }
 
         mock_call_weather_api.return_value = mock_api_response
-
+        entities = {"timeframe": "tomorrow"}
         expected_response = (
             f"The weather in {home_location} tomorrow is forecast to be Partly cloudy. "
             "With a high of 20.5°C and a low of 15.5°C. "
             "The average humidity will be 60%, and the maximum wind speed will be 15 km/h."
         )
 
-        self.assertEqual(self.skill(), expected_response)
+        self.assertEqual(self.skill(entities), expected_response)
 
     @patch("ace.skills.get_weather")
-    def test_future_weather_skill_errors(self, mock_call_weather_api):
+    def test_get_future_weather_with_errors(self, mock_call_weather_api):
         parameters = [
             (
                 ApiException(status=400),
@@ -216,10 +214,12 @@ class TestSkillFutureWeather(unittest.TestCase):
             ),
         ]
 
+        entities = {"timeframe": "tomorrow"}
+
         for error, expected_response in parameters:
             with self.subTest(error=error, expected_response=expected_response):
                 mock_call_weather_api.side_effect = error
-                self.assertEqual(self.skill(), expected_response)
+                self.assertEqual(self.skill(entities), expected_response)
 
 
 if __name__ == "__main__":
