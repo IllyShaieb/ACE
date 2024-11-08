@@ -1,4 +1,5 @@
 import os
+from datetime import datetime, timedelta
 from random import choice
 
 from dotenv import load_dotenv
@@ -111,3 +112,47 @@ def get_weather_skill(entities=None) -> str:
 
     except KeyError:
         return "Sorry, there was an error processing the weather data."
+
+
+def tell_time_skill(entities=None) -> str:
+    """Tell the current time or calculate future time."""
+    time_value = entities.get("timevalue", 0)
+    time_unit = entities.get("timeunit", None)
+
+    if time_value == 0:
+        response_templates_current = [
+            "The current time is {time}",
+            "It's {time} now",
+            "The time is {time}",
+            "It's currently {time}",
+        ]
+
+        current_time = datetime.now().strftime("%H:%M %p")
+        return choice(response_templates_current).format(time=current_time)
+
+    if time_unit:
+        response_templates_future = [
+            "The time will be {future_time} in {time_value} {time_unit}",
+            "It will be {future_time} in {time_value} {time_unit}",
+            "The time will be {future_time}",
+            "It will be {future_time}",
+        ]
+
+        time_format_config = {
+            "hour": "%H:%M %p",
+            "minute": "%H:%M %p",
+            "second": "%H:%M:%S %p",
+        }
+
+        plural = "s" if float(time_value) > 1 else ""
+
+        future_time = datetime.now() + timedelta(**{time_unit + "s": int(time_value)})
+        future_time = future_time.strftime(
+            time_format_config.get(time_unit, "%H:%M %p")
+        )
+
+        return choice(response_templates_future).format(
+            future_time=future_time,
+            time_value=time_value,
+            time_unit=time_unit + plural,
+        )

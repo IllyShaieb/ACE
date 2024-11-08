@@ -1,6 +1,7 @@
 import os
 import random
 import unittest
+from datetime import datetime
 from unittest.mock import patch
 
 from dotenv import load_dotenv
@@ -220,6 +221,68 @@ class TestSkillGetWeather(unittest.TestCase):
             with self.subTest(error=error, expected_response=expected_response):
                 mock_call_weather_api.side_effect = error
                 self.assertEqual(self.skill(entities), expected_response)
+
+
+class TestSkillTellTime(unittest.TestCase):
+    def setUp(self):
+        self.skill = skills_dict["TELL_TIME_SKILL"]
+        random.seed(42)
+
+    @patch("ace.skills.datetime")
+    def test_tell_time_now(self, mock_datetime):
+        mock_datetime.now.return_value = datetime(2021, 8, 1, 12, 0, 0)
+
+        possible_responses = [
+            "The current time is 12:00 PM",
+            "It's 12:00 PM now",
+            "The time is 12:00 PM",
+            "It is currently 12:00 PM",
+        ]
+
+        entities = {}
+
+        self.assertIn(self.skill(entities), possible_responses)
+
+    @patch("ace.skills.datetime")
+    def test_tell_time_future(self, mock_datetime):
+        mock_datetime.now.return_value = datetime(2021, 8, 1, 12, 0, 0)
+
+        parameters = [
+            (
+                {"timevalue": "1", "timeunit": "hour"},
+                [
+                    "The time will be 13:00 PM in 1 hour",
+                    "It will be 13:00 PM in 1 hour",
+                    "The time will be 13:00 PM",
+                    "It will be 13:00 PM",
+                ],
+            ),
+            (
+                {"timevalue": "30", "timeunit": "minute"},
+                [
+                    "The time will be 12:30 PM in 30 minutes",
+                    "It will be 12:30 PM in 30 minutes",
+                    "The time will be 12:30 PM",
+                    "It will be 12:30 PM",
+                ],
+            ),
+            (
+                {"timevalue": "10", "timeunit": "second"},
+                [
+                    "The time will be 12:00:10 PM in 10 seconds",
+                    "It will be 12:00:10 PM in 10 seconds",
+                    "The time will be 12:00:10 PM",
+                    "It will be 12:00:10 PM",
+                ],
+            ),
+        ]
+
+        for entities, expected_responses in parameters:
+            with self.subTest(entities=entities, expected_responses=expected_responses):
+                actual_response = self.skill(entities)
+                self.assertTrue(
+                    any(expected in actual_response for expected in expected_responses)
+                )
 
 
 if __name__ == "__main__":
