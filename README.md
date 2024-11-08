@@ -43,8 +43,8 @@ _Note: This project is developed and tested on Python 3.10.2, in Windows 10. It 
 5.  Create a `.env` file in the root directory of the project and add the following environment variables:
 
     ```env
-    # The API key name and value
-    API_KEY=your_api_key_here
+    ACE_WEATHER_API_KEY=your_api_key_here
+    ACE_HOME_LOCATION=your_home_location_here
     ```
 
 ### Running ACE
@@ -71,3 +71,9 @@ We use [CalVer](https://calver.org/) for versioning. For the versions available,
 ## License
 
 This project is licensed under the GNU General Public License version 3 (GPLv3) - see the [LICENSE.md](LICENSE.md) file for details.
+
+## Acknowledgments
+
+We have used the following resources to build ACE:
+
+- [WeatherAPI](https://www.weatherapi.com/) - For weather data

@@ -20,7 +20,7 @@ class TestGetInput(unittest.TestCase):
 class TestProcessInput(unittest.TestCase):
     def test_process_user_input(self):
         processed = process_user_input("This is a dummy user input.")
-        self.assertEqual(processed, "this is a dummy user input")
+        self.assertEqual(processed, "this is a dummy user input.")
 
 
 class TestRecogniseIntent(unittest.TestCase):
@@ -72,18 +72,129 @@ class TestRecogniseIntent(unittest.TestCase):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "HOW_ARE_YOU_SKILL")
 
+    def test_get_weather_skill(self):
+        parameters = [
+            "what is the current weather",
+            "what is the weather today",
+            "weather today",
+            "current weather",
+            "current weather in London",
+            "weather today in London",
+            "current weather in New York",
+            "weather today in -44.10435,146.84735",
+            "current weather in -44.10435,146.84735",
+            "current weather at -44.10435,146.84735",
+            "weather today at -44.10435,146.84735",
+            "what is the weather tomorrow",
+            "what is the weather tomorrow in London",
+            "what is the weather tomorrow in New York",
+            "what is the weather tomorrow in -44.10435,146.847",
+            "tomorrow's weather",
+            "tomorrow's weather in London",
+            "tomorrow's weather in New York",
+            "tomorrow's weather in -44.10435,146.847",
+            "weather tomorrow",
+            "weather tomorrow at -44.10435,146.847",
+        ]
+
+        for parameter in parameters:
+            with self.subTest(parameter=parameter):
+                intent = recognise_intent(parameter)
+                self.assertEqual(intent, "GET_WEATHER_SKILL")
+
 
 class TestExtractEntities(unittest.TestCase):
     def test_extract_entities_DUMMY_SKILL(self):
         parameters = [
-            ("run dummy skill", "DUMMY_SKILL", []),
-            ("run dummy skill with 1", "DUMMY_SKILL", ["1"]),
-            ("run dummy skill with 1 and 2", "DUMMY_SKILL", ["1", "2"]),
+            ("run dummy skill", "DUMMY_SKILL", {}),
+            ("run dummy skill with 1", "DUMMY_SKILL", {"group1": "1"}),
+            (
+                "run dummy skill with 1 and 2",
+                "DUMMY_SKILL",
+                {"group1": "1", "group2": "2"},
+            ),
         ]
 
         for text, intent, expected in parameters:
             with self.subTest(text=text, intent=intent, expected=expected):
                 entities = extract_entities(text, intent)
+                self.assertEqual(entities, expected)
+
+    def test_extract_entities_GET_WEATHER_SKILL(self):
+        intent = "GET_WEATHER_SKILL"
+        parameters = [
+            ("current weather", {"timeframe": "current"}),
+            (
+                "current weather in London",
+                {"timeframe": "current", "location": "London"},
+            ),
+            (
+                "current weather in New York",
+                {"timeframe": "current", "location": "New York"},
+            ),
+            ("weather today", {"timeframe": "today"}),
+            ("weather today in London", {"timeframe": "today", "location": "London"}),
+            (
+                "weather today in New York",
+                {"timeframe": "today", "location": "New York"},
+            ),
+            ("weather in London today", {"timeframe": "today", "location": "London"}),
+            (
+                "weather in New York today",
+                {"timeframe": "today", "location": "New York"},
+            ),
+            (
+                "current weather in -44.10435,146.84735",
+                {"timeframe": "current", "location": "-44.10435,146.84735"},
+            ),
+            (
+                "weather today in -44.10435,146.84735",
+                {"timeframe": "today", "location": "-44.10435,146.84735"},
+            ),
+            (
+                "current weather at -44.10435,146.84735",
+                {"timeframe": "current", "location": "-44.10435,146.84735"},
+            ),
+            ("weather tomorrow", {"timeframe": "tomorrow"}),
+            (
+                "weather tomorrow in London",
+                {"timeframe": "tomorrow", "location": "London"},
+            ),
+            (
+                "weather tomorrow in New York",
+                {"timeframe": "tomorrow", "location": "New York"},
+            ),
+            (
+                "weather tomorrow in -44.10435,146.84735",
+                {"timeframe": "tomorrow", "location": "-44.10435,146.84735"},
+            ),
+            ("tomorrow's weather", {"timeframe": "tomorrow"}),
+            (
+                "tomorrow's weather in London",
+                {"timeframe": "tomorrow", "location": "London"},
+            ),
+            (
+                "tomorrow's weather in New York",
+                {"timeframe": "tomorrow", "location": "New York"},
+            ),
+            (
+                "tomorrow's weather in -44.10435,146.84735",
+                {"timeframe": "tomorrow", "location": "-44.10435,146.84735"},
+            ),
+            (
+                "weather tomorrow at -44.10435,146.84735",
+                {"timeframe": "tomorrow", "location": "-44.10435,146.84735"},
+            ),
+            (
+                "tomorrow's weather at -44.10435,146.84735",
+                {"timeframe": "tomorrow", "location": "-44.10435,146.84735"},
+            ),
+        ]
+
+        for text, expected in parameters:
+            with self.subTest(text=text, expected=expected):
+                entities = extract_entities(text, intent)
+                # entities can be in any order
                 self.assertEqual(entities, expected)
 
 

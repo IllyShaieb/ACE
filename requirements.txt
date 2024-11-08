@@ -1,1 +1,6 @@
+certifi==2024.8.30
+python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
+six==1.16.0
+urllib3==2.2.3
+weatherapipython @ git+https://github.com/weatherapicom/python.git@05344f2d04cbf0b9513cb69b71f56a66a348e1be
