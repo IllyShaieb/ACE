@@ -23,4 +23,13 @@ INTENT_PATTERNS = {
         r"(?P<timeframe>current) weather",
         r"weather (?P<timeframe>today)",
     ],
+    "TELL_TIME_SKILL": [
+        r"what is the time",
+        r"what time is it",
+        r"tell me the time",
+        r"current time",
+        r"time (?:.*) in (?P<timevalue>.*) (?P<timeunit>hour|minute|second)",
+        r"time in (?P<timevalue>.*) (?P<timeunit>hour|minute|second)",
+        r"time now",
+    ],
 }

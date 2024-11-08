@@ -102,6 +102,22 @@ class TestRecogniseIntent(unittest.TestCase):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "GET_WEATHER_SKILL")
 
+    def test_tell_time_skill(self):
+        parameters = [
+            "what time is it",
+            "tell me the time",
+            "current time",
+            "what time will it be in 5 minutes",
+            "what time will it be in 2 hours",
+            "what is the time now",
+            "give me the time in 10 seconds",
+        ]
+
+        for parameter in parameters:
+            with self.subTest(parameter=parameter):
+                intent = recognise_intent(parameter)
+                self.assertEqual(intent, "TELL_TIME_SKILL")
+
 
 class TestExtractEntities(unittest.TestCase):
     def test_extract_entities_DUMMY_SKILL(self):
@@ -195,6 +211,32 @@ class TestExtractEntities(unittest.TestCase):
             with self.subTest(text=text, expected=expected):
                 entities = extract_entities(text, intent)
                 # entities can be in any order
+                self.assertEqual(entities, expected)
+
+    def test_extract_entities_TELL_TIME_SKILL(self):
+        intent = "TELL_TIME_SKILL"
+        parameters = [
+            (
+                "what time will it be in 5 minutes",
+                {"timevalue": "5", "timeunit": "minute"},
+            ),
+            (
+                "what time will it be in 2 hours",
+                {"timevalue": "2", "timeunit": "hour"},
+            ),
+            (
+                "what time will it be in 10 seconds",
+                {"timevalue": "10", "timeunit": "second"},
+            ),
+            (
+                "tell me the time",
+                {},
+            ),
+        ]
+
+        for text, expected in parameters:
+            with self.subTest(text=text, expected=expected):
+                entities = extract_entities(text, intent)
                 self.assertEqual(entities, expected)
 
 
