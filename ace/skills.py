@@ -89,3 +89,43 @@ def current_weather_skill(entities=None) -> str:
 
     except KeyError:
         return "Sorry, there was an error processing the weather data."
+
+
+def future_weather_skill(entities=None) -> str:
+    """Get the future weather."""
+    location = entities[0] if entities else None
+    if not entities:
+        location = os.environ.get("ACE_HOME_LOCATION", "London")
+
+    try:
+        api_response = get_weather(location, future_days=1)
+    except WeatherApiException as e:
+        if e.status == 400:
+            return f"Sorry, the location provided ({location}) is invalid."
+        elif e.status == 401:
+            return "Sorry, the weather API key is invalid."
+        elif e.status == 403:
+            return "Sorry, I've reached the usage limit for the weather API. Please try again later."
+        elif e.status == 404:
+            return "Sorry, the weather API is not available right now, please try again later."
+        else:  # Generic error message
+            return "Sorry, there was an error fetching weather information."
+
+    try:
+        forecast = api_response["forecast"]["forecastday"][0]
+        actual_location = api_response["location"]["name"]
+        max_temp_c = forecast["day"]["maxtemp_c"]
+        min_temp_c = forecast["day"]["mintemp_c"]
+        condition = forecast["day"]["condition"]["text"]
+        average_humidity = forecast["day"]["avghumidity"]
+        max_wind_kph = forecast["day"]["maxwind_kph"]
+
+        response = (
+            f"The weather in {actual_location} tomorrow is forecast to be {condition}. "
+            f"With a high of {max_temp_c:.1f}°C and a low of {min_temp_c:.1f}°C. "
+            f"The average humidity will be {average_humidity}%, and the maximum wind speed will be {max_wind_kph} km/h."
+        )
+        return response
+
+    except KeyError:
+        return "Sorry, there was an error processing the weather data."

@@ -129,5 +129,98 @@ class TestSkillCurrentWeather(unittest.TestCase):
                 self.assertEqual(self.skill(), expected_response)
 
 
+class TestSkillFutureWeather(unittest.TestCase):
+    def setUp(self):
+        self.skill = skills_dict["FUTURE_WEATHER_SKILL"]
+
+    @patch("ace.skills.get_weather")
+    def test_future_weather_skill_with_location(self, mock_call_weather_api):
+        mock_api_response = {
+            "forecast": {
+                "forecastday": [
+                    {
+                        "date": "2021-08-01",
+                        "day": {
+                            "maxtemp_c": 20.5,
+                            "mintemp_c": 15.5,
+                            "condition": {"text": "Partly cloudy"},
+                            "avghumidity": 60,
+                            "maxwind_kph": 15,
+                        },
+                    }
+                ]
+            },
+            "location": {"name": "London"},
+        }
+        mock_call_weather_api.return_value = mock_api_response
+        entities = ["London"]
+        expected_response = (
+            "The weather in London tomorrow is forecast to be Partly cloudy. "
+            "With a high of 20.5°C and a low of 15.5°C. "
+            "The average humidity will be 60%, and the maximum wind speed will be 15 km/h."
+        )
+
+        self.assertEqual(self.skill(entities=entities), expected_response)
+
+    @patch("ace.skills.get_weather")
+    def test_future_weather_skill_no_location(self, mock_call_weather_api):
+        # The default location is set in the .env file
+        home_location = os.environ.get("ACE_HOME_LOCATION", "London")
+        mock_api_response = {
+            "forecast": {
+                "forecastday": [
+                    {
+                        "date": "2021-08-01",
+                        "day": {
+                            "maxtemp_c": 20.5,
+                            "mintemp_c": 15.5,
+                            "condition": {"text": "Partly cloudy"},
+                            "avghumidity": 60,
+                            "maxwind_kph": 15,
+                        },
+                    }
+                ]
+            },
+            "location": {"name": home_location},
+        }
+
+        mock_call_weather_api.return_value = mock_api_response
+
+        expected_response = (
+            f"The weather in {home_location} tomorrow is forecast to be Partly cloudy. "
+            "With a high of 20.5°C and a low of 15.5°C. "
+            "The average humidity will be 60%, and the maximum wind speed will be 15 km/h."
+        )
+
+        self.assertEqual(self.skill(), expected_response)
+
+    @patch("ace.skills.get_weather")
+    def test_future_weather_skill_errors(self, mock_call_weather_api):
+        parameters = [
+            (
+                ApiException(status=400),
+                f"Sorry, the location provided ({os.environ.get('ACE_HOME_LOCATION', 'London')}) is invalid.",
+            ),
+            (ApiException(status=401), "Sorry, the weather API key is invalid."),
+            (
+                ApiException(status=403),
+                "Sorry, I've reached the usage limit for the weather API. Please try again later.",
+            ),
+            (
+                ApiException(status=404),
+                "Sorry, the weather API is not available right now, please try again later.",
+            ),
+            (
+                ApiException("Generic error"),
+                "Sorry, there was an error fetching weather information.",
+            ),
+        ]
+
+        for error, expected_response in parameters:
+            with self.subTest(error=error, expected_response=expected_response):
+                mock_call_weather_api.side_effect = error
+                self.assertEqual(self.skill(), expected_response)
+
+
 if __name__ == "__main__":
     unittest.main()

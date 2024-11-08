@@ -92,6 +92,25 @@ class TestRecogniseIntent(unittest.TestCase):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "CURRENT_WEATHER_SKILL")
 
+    def test_future_weather_skill(self):
+        parameters = [
+            "what is the weather tomorrow",
+            "what is the weather tomorrow in London",
+            "what is the weather tomorrow in New York",
+            "what is the weather tomorrow in -44.10435,146.847",
+            "tomorrow's weather",
+            "tomorrow's weather in London",
+            "tomorrow's weather in New York",
+            "tomorrow's weather in -44.10435,146.847",
+            "weather tomorrow",
+            "weather tomorrow at -44.10435,146.847",
+        ]
+
+        for parameter in parameters:
+            with self.subTest(parameter=parameter):
+                intent = recognise_intent(parameter)
+                self.assertEqual(intent, "FUTURE_WEATHER_SKILL")
+
 
 class TestExtractEntities(unittest.TestCase):
     def test_extract_entities_DUMMY_SKILL(self):
@@ -129,6 +148,41 @@ class TestExtractEntities(unittest.TestCase):
             (
                 "current weather at -44.10435,146.84735",
                 "CURRENT_WEATHER_SKILL",
+                ["-44.10435,146.84735"],
+            ),
+        ]
+
+        for text, intent, expected in parameters:
+            with self.subTest(text=text, intent=intent, expected=expected):
+                entities = extract_entities(text, intent)
+                self.assertEqual(entities, expected)
+
+    def test_extract_entities_FUTURE_WEATHER_SKILL(self):
+        parameters = [
+            ("weather tomorrow", "FUTURE_WEATHER_SKILL", []),
+            ("weather tomorrow in London", "FUTURE_WEATHER_SKILL", ["London"]),
+            ("weather tomorrow in New York", "FUTURE_WEATHER_SKILL", ["New York"]),
+            (
+                "weather tomorrow in -44.10435,146.84735",
+                "FUTURE_WEATHER_SKILL",
+                ["-44.10435,146.84735"],
+            ),
+            ("tomorrow's weather", "FUTURE_WEATHER_SKILL", []),
+            ("tomorrow's weather in London", "FUTURE_WEATHER_SKILL", ["London"]),
+            ("tomorrow's weather in New York", "FUTURE_WEATHER_SKILL", ["New York"]),
+            (
+                "tomorrow's weather in -44.10435,146.84735",
+                "FUTURE_WEATHER_SKILL",
+                ["-44.10435,146.84735"],
+            ),
+            (
+                "weather tomorrow at -44.10435,146.84735",
+                "FUTURE_WEATHER_SKILL",
+                ["-44.10435,146.84735"],
+            ),
+            (
+                "tomorrow's weather at -44.10435,146.84735",
+                "FUTURE_WEATHER_SKILL",
                 ["-44.10435,146.84735"],
             ),
         ]
