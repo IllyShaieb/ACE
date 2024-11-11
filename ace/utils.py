@@ -1,8 +1,10 @@
 import os
+import re
 from datetime import date, timedelta
 
 import weatherapi
 from cachetools import TTLCache, cached
+from todoist_api_python.api import TodoistAPI
 
 
 @cached(cache=TTLCache(maxsize=60, ttl=300))
@@ -21,3 +23,29 @@ def get_weather(location: str, future_days: int = 0) -> dict:
         )
     else:
         return weatherapi_instance.realtime_weather(q=location)
+
+
+def get_todos(project: str, task_filter: str = None) -> list[dict[str, str]]:
+    """Get the user's todo list."""
+    api = TodoistAPI(os.environ.get("ACE_TODOIST_API_KEY"))
+
+    tasks = []
+    for task in api.get_tasks(project=project, filter=task_filter):
+        tasks.append(
+            {
+                "id": task.id,
+                # Need to remove urls markdown links from the content
+                # Want to keep the bit of text that is not a link around the square brackets
+                "content": re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", task.content),
+                "due": task.due.date,
+                "labels": task.labels,
+            }
+        )
+
+    return tasks
+
+
+def add_todo(content: str, project: str = None) -> dict:
+    """Add a task to the user's todo list."""
+    api = TodoistAPI(os.environ.get("ACE_TODOIST_API_KEY"))
+    return api.add_task(content, project=project)

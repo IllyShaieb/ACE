@@ -118,6 +118,40 @@ class TestRecogniseIntent(unittest.TestCase):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "TELL_TIME_SKILL")
 
+    def test_todo_skill(self):
+        list_name_singular = ["todo", "task", "to-do", "to do"]
+        list_name_plural = ["todos", "tasks", "to-dos", "to dos"]
+
+        parameters = [
+            ["show {0} list", [*list_name_singular, *list_name_plural]],
+            ["show me my {0} list", [*list_name_singular, *list_name_plural]],
+            ["what's on my {0} list", [*list_name_singular, *list_name_plural]],
+            ["what do I have to do", []],
+            ["what are my {0}", [*list_name_plural]],
+            ["add a task to my {0} list", [*list_name_singular, *list_name_plural]],
+            ["add buy milk to my {0} list", [*list_name_singular, *list_name_plural]],
+            [
+                "add take out the trash to my {0} list",
+                [*list_name_singular, *list_name_plural],
+            ],
+            [
+                "add show the ace project to team to my {0} list",
+                [*list_name_singular, *list_name_plural],
+            ],
+            [
+                "add show ace to the world to my {0} list",
+                [*list_name_singular, *list_name_plural],
+            ],
+        ]
+
+        for task, lists in parameters:
+            for list_name in lists:
+                for list_name in lists:
+                    text = task.format(list_name)
+                    with self.subTest(text=text):
+                        intent = recognise_intent(text)
+                        self.assertEqual(intent, "TODO_SKILL")
+
 
 class TestExtractEntities(unittest.TestCase):
     def test_extract_entities_DUMMY_SKILL(self):
@@ -238,6 +272,73 @@ class TestExtractEntities(unittest.TestCase):
             with self.subTest(text=text, expected=expected):
                 entities = extract_entities(text, intent)
                 self.assertEqual(entities, expected)
+
+    def test_extract_entities_TODO_SKILL(self):
+        intent = "TODO_SKILL"
+
+        list_name_singular = ["todo", "task", "to-do", "to do"]
+        list_name_plural = ["todos", "tasks", "to-dos", "to dos"]
+
+        parameters = [
+            (
+                "show {0} list",
+                [*list_name_singular, *list_name_plural],
+                {"action": "show"},
+            ),
+            (
+                "show {0}",
+                [*list_name_plural],
+                {"action": "show"},
+            ),
+            (
+                "show my {0} list",
+                [*list_name_singular, *list_name_plural],
+                {"action": "show"},
+            ),
+            (
+                "show me my {0} list",
+                [*list_name_singular, *list_name_plural],
+                {"action": "show"},
+            ),
+            (
+                "what's on my {0} list",
+                [*list_name_singular, *list_name_plural],
+                {"action": "what"},
+            ),
+            ("what do I have to do", [], {"action": "what"}),
+            (
+                "what are my {0}",
+                [*list_name_plural],
+                {"action": "what"},
+            ),
+            (
+                "add a task to my {0} list",
+                [*list_name_singular, *list_name_plural],
+                {"action": "add"},
+            ),
+            (
+                "add buy milk to my {0} list",
+                [*list_name_singular, *list_name_plural],
+                {"action": "add", "task": "buy milk"},
+            ),
+            (
+                "add take out the trash to my {0} list",
+                [*list_name_singular, *list_name_plural],
+                {"action": "add", "task": "take out the trash"},
+            ),
+            (
+                "add show the ace project to my team to my {0} list",
+                [*list_name_singular, *list_name_plural],
+                {"action": "add", "task": "show the ace project to my team"},
+            ),
+        ]
+
+        for text, lists, expected in parameters:
+            for list_name in lists:
+                text = text.format(list_name)
+                with self.subTest(text=text, expected=expected):
+                    entities = extract_entities(text, intent)
+                    self.assertEqual(entities, expected)
 
 
 class TestSelectSkill(unittest.TestCase):

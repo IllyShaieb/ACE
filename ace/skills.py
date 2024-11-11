@@ -1,11 +1,12 @@
 import os
+import re
 from datetime import datetime, timedelta
 from random import choice
 
 from dotenv import load_dotenv
 from weatherapi.rest import ApiException as WeatherApiException
 
-from ace.utils import get_weather
+from ace.utils import add_todo, get_todos, get_weather
 
 load_dotenv()
 
@@ -156,3 +157,39 @@ def tell_time_skill(entities=None) -> str:
             time_value=time_value,
             time_unit=time_unit + plural,
         )
+
+
+def todo_skill(entities=None) -> str:
+    """Manage the user's to-do list."""
+    action = entities.get("action", "show")
+    project = None
+    due = datetime.now().strftime("%Y-%m-%d")
+
+    filter_mapping = {"todoist": {"today": f"today|overdue|{due} & !subtask"}}
+
+    task_filter = filter_mapping.get(
+        os.environ.get("ACE_TODOIST_PROJECT", "todoist").lower(), {}
+    ).get("today")
+
+    # Check if the entities is show or what
+    if re.match(r"^(show|what)", action):
+        response_text = "Here are your tasks for today:"
+        todos = get_todos(project, task_filter)
+        for todo in todos:
+            response_text += f"\n- {todo['content']}"
+        return response_text
+
+    if re.match(r"^add", action):
+        task = entities.get("task", None)
+        if task:
+            add_todo_content = f"{task} (added by ACE)"
+
+            try:
+                add_todo(add_todo_content, project=project)
+                return f"Added '{task}' to your list."
+            except Exception:
+                return "Sorry, there was an error adding the task to your list."
+
+        return "Sorry, I didn't understand what task you wanted to add."
+
+    return "Sorry, I didn't understand that. Please try again."

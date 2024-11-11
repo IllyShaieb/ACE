@@ -285,5 +285,54 @@ class TestSkillTellTime(unittest.TestCase):
                 )
 
 
+class TestSkillTodo(unittest.TestCase):
+    def setUp(self):
+        self.skill = skills_dict["TODO_SKILL"]
+        random.seed(42)
+
+    @patch("ace.skills.get_todos")
+    def test_todo_skill_show_list(self, mock_get_todos):
+        mock_get_todos.return_value = [
+            {"id": 1, "content": "Task 1", "due": None, "labels": []},
+            {"id": 2, "content": "Task 2", "due": None, "labels": []},
+        ]
+
+        parameters = [
+            {"action": "show"},
+            {"action": "show me"},
+            {"action": "show my"},
+            {"action": "what"},
+            {"action": "what is"},
+            {"action": "what's"},
+        ]
+
+        expected_response = "Here are your tasks for today:\n- Task 1\n- Task 2"
+
+        for entities in parameters:
+            with self.subTest(entities=entities):
+                self.assertEqual(self.skill(entities), expected_response)
+
+    @patch("ace.skills.add_todo")
+    def test_todo_skill_add_task(self, mock_add_todo):
+        mock_add_todo.return_value = {
+            "id": 3,
+            "content": "Task 3",
+            "due": None,
+            "labels": [],
+        }
+
+        parameters = [
+            {"action": "add", "task": "Task 3"},
+            {"action": "add a task", "task": "Task 3"},
+            {"action": "add task", "task": "Task 3"},
+        ]
+
+        expected_response = "Added 'Task 3' to your list."
+
+        for entities in parameters:
+            with self.subTest(entities=entities):
+                self.assertEqual(self.skill(entities), expected_response)
+
+
 if __name__ == "__main__":
     unittest.main()
