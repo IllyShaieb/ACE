@@ -333,6 +333,28 @@ class TestSkillTodo(unittest.TestCase):
             with self.subTest(entities=entities):
                 self.assertEqual(self.skill(entities), expected_response)
 
+    def test_todo_skill_invalid_todo_manager(self):
+        parameters = [
+            ({"action": "show"}),
+            ({"action": "add", "task": "Task 4"}),
+        ]
+
+        # Need to mock any installed todo apis
+        mock_todoist_api = patch("ace.skills.TodoistAPI.add_task")
+        mock_todoist_api.return_value = {
+            "id": 4,
+            "content": "Task 4",
+            "due": None,
+            "labels ": [],
+        }
+
+        # Mock the environment variable to an invalid value
+        with patch.dict("os.environ", {"ACE_TODO_MANAGER": "invalid"}):
+            for entities in parameters:
+                with self.subTest(entities=entities):
+                    with self.assertRaises(ValueError):
+                        self.skill(entities)
+
 
 if __name__ == "__main__":
     unittest.main()

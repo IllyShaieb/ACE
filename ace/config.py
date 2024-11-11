@@ -41,5 +41,6 @@ INTENT_PATTERNS = {
         r"^(?P<action>what) are my (?:tasks|todos|to-dos|to dos)",
         r"^(?P<action>add) a task to my (?:todo|task|to-do|to do)s?",
         r"^(?P<action>add) (?P<task>.*) to my (?:todo|task|to-do|to do)s?",
+        r"^(?P<action>add) (?:todo|task|to-do|to do)",
     ],
 }

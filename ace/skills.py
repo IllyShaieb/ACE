@@ -180,15 +180,19 @@ def todo_skill(entities=None) -> str:
         return response_text
 
     if re.match(r"^add", action):
-        task = entities.get("task", None)
-        if task:
-            add_todo_content = f"{task} (added by ACE)"
+        # Get the task from the user
+        task = entities.get("task", None) or input(
+            "ACE: What task would you like to add? "
+        )
 
-            try:
-                add_todo(add_todo_content, project=project)
-                return f"Added '{task}' to your list."
-            except Exception:
-                return "Sorry, there was an error adding the task to your list."
+        if not task.strip():
+            return "Sorry, I didn't understand what task you wanted to add."
+
+        if task:
+            add_todo_content = f"(Added by ACE) {task}"
+            add_todo(add_todo_content, project=project)
+
+            return f"Added '{task}' to your list."
 
         return "Sorry, I didn't understand what task you wanted to add."
 

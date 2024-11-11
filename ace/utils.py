@@ -27,7 +27,12 @@ def get_weather(location: str, future_days: int = 0) -> dict:
 
 def get_todos(project: str, task_filter: str = None) -> list[dict[str, str]]:
     """Get the user's todo list."""
-    api = TodoistAPI(os.environ.get("ACE_TODOIST_API_KEY"))
+    todo_manager = os.environ.get("ACE_TODO_MANAGER", "todoist").lower()
+
+    if todo_manager == "todoist":
+        api = TodoistAPI(os.environ.get("ACE_TODOIST_API_KEY"))
+    else:
+        raise ValueError(f"Unknown todo manager: {todo_manager}")
 
     tasks = []
     for task in api.get_tasks(project=project, filter=task_filter):
@@ -47,5 +52,9 @@ def get_todos(project: str, task_filter: str = None) -> list[dict[str, str]]:
 
 def add_todo(content: str, project: str = None) -> dict:
     """Add a task to the user's todo list."""
-    api = TodoistAPI(os.environ.get("ACE_TODOIST_API_KEY"))
-    return api.add_task(content, project=project)
+    todo_manager = os.environ.get("ACE_TODO_MANAGER", "todoist").lower()
+    if todo_manager == "todoist":
+        api = TodoistAPI(os.environ.get("ACE_TODOIST_API_KEY"))
+        return api.add_task(content, project=project)
+    else:
+        raise ValueError(f"Unknown todo manager: {todo_manager}")
