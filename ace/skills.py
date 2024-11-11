@@ -172,9 +172,17 @@ def todo_skill(entities=None) -> str:
     ).get("today")
 
     # Check if the entities is show or what
-    if re.match(r"^(show|what)", action):
-        response_text = "Here are your tasks for today:"
+    if re.match(r"^(show|what|give)", action):
         todos = get_todos(project, task_filter)
+        if len(todos) == 0:
+            possible_responses = [
+                "You don't have any tasks due today.",
+                "You're all caught up! No tasks due today.",
+                "No tasks due today. Time to relax!",
+            ]
+            return choice(possible_responses)
+
+        response_text = "Here are your tasks for today:"
         for todo in todos:
             response_text += f"\n- {todo['content']}"
         return response_text

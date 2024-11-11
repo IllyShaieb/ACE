@@ -123,8 +123,13 @@ class TestRecogniseIntent(unittest.TestCase):
         list_name_plural = ["todos", "tasks", "to-dos", "to dos"]
 
         parameters = [
+            ["{0} list", [*list_name_singular, *list_name_plural]],
+            ["{0}", [*list_name_plural]],
             ["show {0} list", [*list_name_singular, *list_name_plural]],
             ["show me my {0} list", [*list_name_singular, *list_name_plural]],
+            ["give me my {0} list", [*list_name_singular, *list_name_plural]],
+            ["give my {0} list", [*list_name_singular, *list_name_plural]],
+            ["give {0} list", [*list_name_singular, *list_name_plural]],
             ["what's on my {0} list", [*list_name_singular, *list_name_plural]],
             ["what do I have to do", []],
             ["what are my {0}", [*list_name_plural]],
@@ -280,6 +285,8 @@ class TestExtractEntities(unittest.TestCase):
         list_name_plural = ["todos", "tasks", "to-dos", "to dos"]
 
         parameters = [
+            ("{0} list", [*list_name_singular, *list_name_plural], {}),
+            ("{0}", [*list_name_plural], {}),
             (
                 "show {0} list",
                 [*list_name_singular, *list_name_plural],
@@ -299,6 +306,21 @@ class TestExtractEntities(unittest.TestCase):
                 "show me my {0} list",
                 [*list_name_singular, *list_name_plural],
                 {"action": "show"},
+            ),
+            (
+                "give me my {0} list",
+                [*list_name_singular, *list_name_plural],
+                {"action": "give"},
+            ),
+            (
+                "give my {0} list",
+                [*list_name_singular, *list_name_plural],
+                {"action": "give"},
+            ),
+            (
+                "give {0} list",
+                [*list_name_singular, *list_name_plural],
+                {"action": "give"},
             ),
             (
                 "what's on my {0} list",

@@ -304,6 +304,7 @@ class TestSkillTodo(unittest.TestCase):
             {"action": "what"},
             {"action": "what is"},
             {"action": "what's"},
+            {"action": "give"},
         ]
 
         expected_response = "Here are your tasks for today:\n- Task 1\n- Task 2"
@@ -311,6 +312,30 @@ class TestSkillTodo(unittest.TestCase):
         for entities in parameters:
             with self.subTest(entities=entities):
                 self.assertEqual(self.skill(entities), expected_response)
+
+    @patch("ace.skills.get_todos")
+    def test_todo_skill_empty_list(self, mock_get_todos):
+        mock_get_todos.return_value = []
+
+        parameters = [
+            {"action": "show"},
+            {"action": "show me"},
+            {"action": "show my"},
+            {"action": "what"},
+            {"action": "what is"},
+            {"action": "what's"},
+            {"action": "give"},
+        ]
+
+        possible_responses = [
+            "You don't have any tasks due today.",
+            "You're all caught up! No tasks due today.",
+            "No tasks due today. Time to relax!",
+        ]
+
+        for entities in parameters:
+            with self.subTest(entities=entities):
+                self.assertIn(self.skill(entities), possible_responses)
 
     @patch("ace.skills.add_todo")
     def test_todo_skill_add_task(self, mock_add_todo):
