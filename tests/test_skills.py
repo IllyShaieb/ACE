@@ -5,6 +5,7 @@ from datetime import datetime
 from unittest.mock import patch
 
 from dotenv import load_dotenv
+from requests import exceptions as requests_exceptions
 from weatherapi.rest import ApiException
 
 from ace import skills_dict
@@ -379,6 +380,60 @@ class TestSkillTodo(unittest.TestCase):
                 with self.subTest(entities=entities):
                     with self.assertRaises(ValueError):
                         self.skill(entities)
+
+    def test_todo_skill_show_list_api_errors(self):
+        parameters = [
+            (
+                requests_exceptions.ConnectionError(),
+                "Sorry, I can't connect to the to-do service. Please check your internet connection.",
+            ),
+            (
+                requests_exceptions.Timeout(),
+                "Sorry, the to-do service is taking too long to respond. Please try again later.",
+            ),
+            (
+                requests_exceptions.HTTPError(),
+                "Sorry, there was an error fetching your to-do list. Please try again later.",
+            ),
+            (
+                requests_exceptions.RequestException("Testing: Request error"),
+                "Sorry, there was an unexpected error with the to-do service:: Testing: Request error",
+            ),
+        ]
+
+        entities = {"action": "show"}
+
+        for error, expected_response in parameters:
+            with self.subTest(error=error, expected_response=expected_response):
+                with patch("ace.skills.get_todos", side_effect=error):
+                    self.assertEqual(self.skill(entities), expected_response)
+
+    def test_todo_skill_add_task_api_errors(self):
+        parameters = [
+            (
+                requests_exceptions.ConnectionError("Testing: Connection error"),
+                "Sorry, I can't connect to the to-do service. Please check your internet connection.",
+            ),
+            (
+                requests_exceptions.Timeout(),
+                "Sorry, the to-do service is taking too long to respond. Please try again later.",
+            ),
+            (
+                requests_exceptions.HTTPError(),
+                "Sorry, there was an error fetching your to-do list. Please try again later.",
+            ),
+            (
+                requests_exceptions.RequestException("Testing: Request error"),
+                "Sorry, there was an unexpected error with the to-do service:: Testing: Request error",
+            ),
+        ]
+
+        entities = {"action": "add", "task": "Task 5"}
+
+        for error, expected_response in parameters:
+            with self.subTest(error=error, expected_response=expected_response):
+                with patch("ace.skills.add_todo", side_effect=error):
+                    self.assertEqual(self.skill(entities), expected_response)
 
 
 if __name__ == "__main__":
