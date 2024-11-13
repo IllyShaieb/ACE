@@ -157,6 +157,24 @@ class TestRecogniseIntent(unittest.TestCase):
                         intent = recognise_intent(text)
                         self.assertEqual(intent, "TODO_SKILL")
 
+    def test_recognise_intent_TIMER(self):
+        time_units = ["hours", "minutes", "seconds"]
+        time_values = [1, 20, 100]
+        parameters = [
+            "set a timer for {0} {1}",
+            "start a timer for {0} {1}",
+            "set a {0} {1} timer",
+            "start a {0} {1} timer",
+        ]
+
+        for task in parameters:
+            for time_value in time_values:
+                for time_unit in time_units:
+                    text = task.format(time_value, time_unit)
+                    with self.subTest(text=text):
+                        intent = recognise_intent(text)
+                        self.assertEqual(intent, "TIMER_SKILL")
+
 
 class TestExtractEntities(unittest.TestCase):
     def test_extract_entities_DUMMY_SKILL(self):
@@ -361,6 +379,28 @@ class TestExtractEntities(unittest.TestCase):
                 with self.subTest(text=text, expected=expected):
                     entities = extract_entities(text, intent)
                     self.assertEqual(entities, expected)
+
+    def test_extract_entities_TIMER_SKILL(self):
+        intent = "TIMER_SKILL"
+        parameters = [
+            (
+                "set a timer for 1 hour",
+                {"timevalue": "1", "timeunit": "hour"},
+            ),
+            (
+                "start a timer for 20 minutes",
+                {"timevalue": "20", "timeunit": "minute"},
+            ),
+            (
+                "set a 100 seconds timer",
+                {"timevalue": "100", "timeunit": "second"},
+            ),
+        ]
+
+        for task, expected in parameters:
+            with self.subTest(task=task, expected=expected):
+                entities = extract_entities(task, intent)
+                self.assertEqual(entities, expected)
 
 
 class TestSelectSkill(unittest.TestCase):

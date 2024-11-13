@@ -45,4 +45,9 @@ INTENT_PATTERNS = {
         r"^(?P<action>add) (?P<task>.*) to my (?:todo|task|to-do|to do)s?",
         r"^(?P<action>add) (?:todo|task|to-do|to do)",
     ],
+    "TIMER_SKILL": [
+        r"timer for (?P<timevalue>\d+) (?P<timeunit>hour|minute|second)s?",
+        r"timer for (?P<timevalue>\d+) (?P<timeunit>hour|minute|second)s?",
+        r"a (?P<timevalue>\d+) (?P<timeunit>hour|minute|second)s? timer",
+    ],
 }
