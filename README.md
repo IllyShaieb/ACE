@@ -45,6 +45,8 @@ _Note: This project is developed and tested on Python 3.10.2, in Windows 10. It 
     ```env
     ACE_WEATHER_API_KEY=your_api_key_here
     ACE_HOME_LOCATION=your_home_location_here
+    ACE_TODO_MANAGER=todoist
+    ACE_TODO_MANAGER_API_KEY=your_api_key_here
     ```
 
 ### Running ACE
