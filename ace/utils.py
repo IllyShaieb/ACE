@@ -30,7 +30,7 @@ def get_todos(project: str, task_filter: str = None) -> list[dict[str, str]]:
     todo_manager = os.environ.get("ACE_TODO_MANAGER", "todoist").lower()
 
     if todo_manager == "todoist":
-        api = TodoistAPI(os.environ.get("ACE_TODOIST_API_KEY"))
+        api = TodoistAPI(os.environ.get("ACE_TODO_MANAGER_API_KEY"))
     else:
         raise ValueError(f"Unknown todo manager: {todo_manager}")
 
@@ -54,7 +54,7 @@ def add_todo(content: str, project: str = None) -> dict:
     """Add a task to the user's todo list."""
     todo_manager = os.environ.get("ACE_TODO_MANAGER", "todoist").lower()
     if todo_manager == "todoist":
-        api = TodoistAPI(os.environ.get("ACE_TODOIST_API_KEY"))
+        api = TodoistAPI(os.environ.get("ACE_TODO_MANAGER_API_KEY"))
         return api.add_task(content, project=project)
     else:
         raise ValueError(f"Unknown todo manager: {todo_manager}")
