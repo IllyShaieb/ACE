@@ -5,6 +5,7 @@ from datetime import datetime
 from unittest.mock import patch
 
 from dotenv import load_dotenv
+from requests import exceptions as requests_exceptions
 from weatherapi.rest import ApiException
 
 from ace import skills_dict
@@ -283,6 +284,156 @@ class TestSkillTellTime(unittest.TestCase):
                 self.assertTrue(
                     any(expected in actual_response for expected in expected_responses)
                 )
+
+
+class TestSkillTodo(unittest.TestCase):
+    def setUp(self):
+        self.skill = skills_dict["TODO_SKILL"]
+        random.seed(42)
+
+    @patch("ace.skills.get_todos")
+    def test_todo_skill_show_list(self, mock_get_todos):
+        mock_get_todos.return_value = [
+            {"id": 1, "content": "Task 1", "due": None, "labels": []},
+            {"id": 2, "content": "Task 2", "due": None, "labels": []},
+        ]
+
+        parameters = [
+            {"action": "show"},
+            {"action": "show me"},
+            {"action": "show my"},
+            {"action": "what"},
+            {"action": "what is"},
+            {"action": "what's"},
+            {"action": "give"},
+        ]
+
+        expected_response = "Here are your tasks for today:\n- Task 1\n- Task 2"
+
+        for entities in parameters:
+            with self.subTest(entities=entities):
+                self.assertEqual(self.skill(entities), expected_response)
+
+    @patch("ace.skills.get_todos")
+    def test_todo_skill_empty_list(self, mock_get_todos):
+        mock_get_todos.return_value = []
+
+        parameters = [
+            {"action": "show"},
+            {"action": "show me"},
+            {"action": "show my"},
+            {"action": "what"},
+            {"action": "what is"},
+            {"action": "what's"},
+            {"action": "give"},
+        ]
+
+        possible_responses = [
+            "You don't have any tasks due today.",
+            "You're all caught up! No tasks due today.",
+            "No tasks due today. Time to relax!",
+        ]
+
+        for entities in parameters:
+            with self.subTest(entities=entities):
+                self.assertIn(self.skill(entities), possible_responses)
+
+    @patch("ace.skills.add_todo")
+    def test_todo_skill_add_task(self, mock_add_todo):
+        mock_add_todo.return_value = {
+            "id": 3,
+            "content": "Task 3",
+            "due": None,
+            "labels": [],
+        }
+
+        parameters = [
+            {"action": "add", "task": "Task 3"},
+            {"action": "add a task", "task": "Task 3"},
+            {"action": "add task", "task": "Task 3"},
+        ]
+
+        expected_response = "Added 'Task 3' to your list."
+
+        for entities in parameters:
+            with self.subTest(entities=entities):
+                self.assertEqual(self.skill(entities), expected_response)
+
+    def test_todo_skill_invalid_todo_manager(self):
+        parameters = [
+            ({"action": "show"}),
+            ({"action": "add", "task": "Task 4"}),
+        ]
+
+        # Need to mock any installed todo apis
+        mock_todoist_api = patch("ace.skills.TodoistAPI.add_task")
+        mock_todoist_api.return_value = {
+            "id": 4,
+            "content": "Task 4",
+            "due": None,
+            "labels ": [],
+        }
+
+        # Mock the environment variable to an invalid value
+        with patch.dict("os.environ", {"ACE_TODO_MANAGER": "invalid"}):
+            for entities in parameters:
+                with self.subTest(entities=entities):
+                    with self.assertRaises(ValueError):
+                        self.skill(entities)
+
+    def test_todo_skill_show_list_api_errors(self):
+        parameters = [
+            (
+                requests_exceptions.ConnectionError(),
+                "Sorry, I can't connect to the to-do service. Please check your internet connection.",
+            ),
+            (
+                requests_exceptions.Timeout(),
+                "Sorry, the to-do service is taking too long to respond. Please try again later.",
+            ),
+            (
+                requests_exceptions.HTTPError(),
+                "Sorry, there was an error fetching your to-do list. Please try again later.",
+            ),
+            (
+                requests_exceptions.RequestException("Testing: Request error"),
+                "Sorry, there was an unexpected error with the to-do service:: Testing: Request error",
+            ),
+        ]
+
+        entities = {"action": "show"}
+
+        for error, expected_response in parameters:
+            with self.subTest(error=error, expected_response=expected_response):
+                with patch("ace.skills.get_todos", side_effect=error):
+                    self.assertEqual(self.skill(entities), expected_response)
+
+    def test_todo_skill_add_task_api_errors(self):
+        parameters = [
+            (
+                requests_exceptions.ConnectionError("Testing: Connection error"),
+                "Sorry, I can't connect to the to-do service. Please check your internet connection.",
+            ),
+            (
+                requests_exceptions.Timeout(),
+                "Sorry, the to-do service is taking too long to respond. Please try again later.",
+            ),
+            (
+                requests_exceptions.HTTPError(),
+                "Sorry, there was an error fetching your to-do list. Please try again later.",
+            ),
+            (
+                requests_exceptions.RequestException("Testing: Request error"),
+                "Sorry, there was an unexpected error with the to-do service:: Testing: Request error",
+            ),
+        ]
+
+        entities = {"action": "add", "task": "Task 5"}
+
+        for error, expected_response in parameters:
+            with self.subTest(error=error, expected_response=expected_response):
+                with patch("ace.skills.add_todo", side_effect=error):
+                    self.assertEqual(self.skill(entities), expected_response)
 
 
 if __name__ == "__main__":

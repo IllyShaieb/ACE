@@ -1,11 +1,13 @@
 import os
+import re
 from datetime import datetime, timedelta
 from random import choice
 
 from dotenv import load_dotenv
+from requests import exceptions as requests_exceptions
 from weatherapi.rest import ApiException as WeatherApiException
 
-from ace.utils import get_weather
+from ace.utils import add_todo, get_todos, get_weather
 
 load_dotenv()
 
@@ -156,3 +158,64 @@ def tell_time_skill(entities=None) -> str:
             time_value=time_value,
             time_unit=time_unit + plural,
         )
+
+
+def todo_skill(entities=None) -> str:
+    """Manage the user's to-do list."""
+    action = entities.get("action", "show")
+    project = None
+    due = datetime.now().strftime("%Y-%m-%d")
+
+    filter_mapping = {"todoist": {"today": f"today|overdue|{due} & !subtask"}}
+
+    task_filter = filter_mapping.get(
+        os.environ.get("ACE_TODOIST_PROJECT", "todoist").lower(), {}
+    ).get("today")
+
+    try:
+        # Check if the entities is show or what
+        if re.match(r"^(show|what|give)", action):
+
+            todos = get_todos(project, task_filter)
+
+            if len(todos) == 0:
+                possible_responses = [
+                    "You don't have any tasks due today.",
+                    "You're all caught up! No tasks due today.",
+                    "No tasks due today. Time to relax!",
+                ]
+                return choice(possible_responses)
+
+            response_text = "Here are your tasks for today:"
+            for todo in todos:
+                response_text += f"\n- {todo['content']}"
+            return response_text
+
+        if re.match(r"^add", action):
+            # Get the task from the user
+            task = entities.get("task", None) or input(
+                "ACE: What task would you like to add? "
+            )
+
+            if not task.strip():
+                return "Sorry, I didn't understand what task you wanted to add."
+
+            if task:
+
+                add_todo_content = f"(Added by ACE) {task}"
+                add_todo(add_todo_content, project=project)
+
+                return f"Added '{task}' to your list."
+
+            return "Sorry, I didn't understand what task you wanted to add."
+
+        return "Sorry, I didn't understand that. Please try again."
+
+    except requests_exceptions.ConnectionError:
+        return "Sorry, I can't connect to the to-do service. Please check your internet connection."
+    except requests_exceptions.Timeout:
+        return "Sorry, the to-do service is taking too long to respond. Please try again later."
+    except requests_exceptions.HTTPError:
+        return "Sorry, there was an error fetching your to-do list. Please try again later."
+    except requests_exceptions.RequestException as e:
+        return f"Sorry, there was an unexpected error with the to-do service:: {e}"

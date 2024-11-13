@@ -32,4 +32,17 @@ INTENT_PATTERNS = {
         r"time in (?P<timevalue>.*) (?P<timeunit>hour|minute|second)",
         r"time now",
     ],
+    "TODO_SKILL": [
+        r"^(?:todo|task|to-do|to do)s? list",
+        r"^(?:todo|task|to-do|to do)s$",
+        r"^(?P<action>show|give) (?:todo|task|to-do|to do)s?",
+        r"^(?P<action>show|give) me my (?:todo|task|to-do|to do)s?",
+        r"^(?P<action>show|give) my (?:todo|task|to-do|to do)s?",
+        r"^(?P<action>what)(?:'s| is) on my (?:todo|task|to-do|to do)s?",
+        r"^(?P<action>what) do I have to do",
+        r"^(?P<action>what) are my (?:tasks|todos|to-dos|to dos)",
+        r"^(?P<action>add) a task to my (?:todo|task|to-do|to do)s?",
+        r"^(?P<action>add) (?P<task>.*) to my (?:todo|task|to-do|to do)s?",
+        r"^(?P<action>add) (?:todo|task|to-do|to do)",
+    ],
 }
