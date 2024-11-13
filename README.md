@@ -49,6 +49,8 @@ _Note: This project is developed and tested on Python 3.10.2, in Windows 10. It 
     ACE_TODO_MANAGER_API_KEY=your_api_key_here
     ```
 
+See the [Setting up APIs and Skills](#setting-up-apis-and-skills) section for more information on setting up the APIs.
+
 ### Running ACE
 
 1.  Make sure your virtual environment is activated.
@@ -57,6 +59,59 @@ _Note: This project is developed and tested on Python 3.10.2, in Windows 10. It 
     ```bash
     python main.py
     ```
+
+## Usage
+
+### Interacting with ACE
+
+Once you run `main.py`, you can interact with ACE by typing your requests in the console. ACE will try to understand your intent and respond accordingly.
+
+### Available Skills
+
+ACE currently has the following skills:
+
+- **Basic Interactions:**
+
+  - Greetings: (e.g., "hello", "good morning")
+  - Farewells (e.g., "goodbye", "bye")
+  - Self-introduction (e.g., "who are you?")
+  - Responding to "how are you?"
+
+- **Weather:**
+
+  - Get the current weather for a location (e.g., "what's the weather in London?")
+  - Get tomorrow's weather for a location (e.g., "what's the weather in New York tomorrow?")
+
+- **To-Do List:**
+
+  - Show today's tasks (e.g., "show my to-dos")
+  - Add a task to the to-do list (e.g., "add buy groceries to my to-do list")
+
+- **Time:**
+  - Tell the current time (e.g., "what time is it?")
+  - Calculate future time (e.g., "what will the time be in 2 hours?")
+
+## Setting up APIs and Skills
+
+ACE uses external APIs and services to provide some of its functionality. You'll need to set up accounts and configure the following:
+
+- **Weather:**
+  _Note: ACE uses WeatherAPI to get weather data._
+
+  1.  Sign up for a free account at [WeatherAPI](https://www.weatherapi.com/).
+  2.  Obtain your API key from the WeatherAPI dashboard.
+  3.  In your `.env` file:
+      - Set the `ACE_WEATHER_API_KEY` variable to your WeatherAPI key.
+      - Set the `ACE_HOME_LOCATION` variable to your home location (e.g., "London").
+
+- **To-Do List:**
+  _Note: Currently, ACE only supports ToDoist as the to-do list manager._
+
+  1.  Sign up for a [ToDoist](https://todoist.com/) account if you don't already have one.
+  2.  Go to [ToDoist Developers](https://developer.todoist.com/) and create an app to obtain your API key.
+  3.  In your `.env` file:
+      - Set the `ACE_TODO_MANAGER` variable to `todoist`.
+      - Set the `ACE_TODO_MANAGER_API_KEY` variable to your ToDoist API key.
 
 ## Contributing
 
@@ -79,3 +134,4 @@ This project is licensed under the GNU General Public License version 3 (GPLv3) 
 We have used the following resources to build ACE:
 
 - [WeatherAPI](https://www.weatherapi.com/) - For weather data
+- [Todoist API](https://developer.todoist.com/rest/v2/) - For managing to-do lists
