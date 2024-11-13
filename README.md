@@ -58,6 +58,37 @@ _Note: This project is developed and tested on Python 3.10.2, in Windows 10. It 
     python main.py
     ```
 
+## Usage
+
+### Interacting with ACE
+
+Once you run `main.py`, you can interact with ACE by typing your requests in the console. ACE will try to understand your intent and respond accordingly.
+
+### Available Skills
+
+ACE currently has the following skills:
+
+- **Basic Interactions:**
+
+  - Greetings: (e.g., "hello", "good morning")
+  - Farewells (e.g., "goodbye", "bye")
+  - Self-introduction (e.g., "who are you?")
+  - Responding to "how are you?"
+
+- **Weather:**
+
+  - Get the current weather for a location (e.g., "what's the weather in London?")
+  - Get tomorrow's weather for a location (e.g., "what's the weather in New York tomorrow?")
+
+- **To-Do List:**
+
+  - Show today's tasks (e.g., "show my to-dos")
+  - Add a task to the to-do list (e.g., "add buy groceries to my to-do list")
+
+- **Time:**
+  - Tell the current time (e.g., "what time is it?")
+  - Calculate future time (e.g., "what will the time be in 2 hours?")
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
@@ -79,3 +110,4 @@ This project is licensed under the GNU General Public License version 3 (GPLv3) 
 We have used the following resources to build ACE:
 
 - [WeatherAPI](https://www.weatherapi.com/) - For weather data
+- [Todoist API](https://developer.todoist.com/rest/v2/) - For managing to-do lists
