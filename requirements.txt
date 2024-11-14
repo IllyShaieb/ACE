@@ -1,6 +1,11 @@
+cachetools==5.5.0
 certifi==2024.8.30
+charset-normalizer==3.4.0
+idna==3.10
 python-dateutil==2.9.0.post0
 python-dotenv==1.0.1
+requests==2.32.3
 six==1.16.0
+todoist_api_python==2.1.7
 urllib3==2.2.3
 weatherapipython @ git+https://github.com/weatherapicom/python.git@05344f2d04cbf0b9513cb69b71f56a66a348e1be
