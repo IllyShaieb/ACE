@@ -45,4 +45,13 @@ INTENT_PATTERNS = {
         r"^(?P<action>add) (?P<task>.*) to my (?:todo|task|to-do|to do)s?",
         r"^(?P<action>add) (?:todo|task|to-do|to do)",
     ],
+    "NEWS_SKILL": [
+        r"(?:show|get) me the news about (?P<topic>.*)?",
+        r"(?:show|get) me news about (?P<topic>.*)?",
+        r"(?:show|get) news about (?P<topic>.*)?",
+        r"(?:show|get) the news about (?P<topic>.*)?",
+        r"(?:show|get) me the news",
+        r"(?:show|get) the news",
+        r"(?:show|get) news",
+    ],
 }
