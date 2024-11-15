@@ -171,6 +171,12 @@ class TestRecogniseIntent(unittest.TestCase):
             "show me news about science",
             "get the news about technology",
             "show the news about sports",
+            "what's in the news",
+            "what's in the news about cheese",
+            "what is in the news",
+            "what is in the news about python",
+            "what is the news today",
+            "what is the news about technology today",
         ]
 
         for parameter in parameters:
@@ -398,6 +404,12 @@ class TestExtractEntities(unittest.TestCase):
             ("show me news about science", {"topic": "science"}),
             ("get the news about technology", {"topic": "technology"}),
             ("show the news about sports", {"topic": "sports"}),
+            ("what's in the news", {}),
+            ("what's in the news about cheese", {"topic": "cheese"}),
+            ("what is in the news", {}),
+            ("what is in the news about python", {"topic": "python"}),
+            ("what is the news today", {}),
+            ("what is the news about technology today", {"topic": "technology"}),
         ]
 
         for text, expected in parameters:
