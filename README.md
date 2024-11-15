@@ -47,6 +47,8 @@ _Note: This project is developed and tested on Python 3.10.2, in Windows 10. It 
     ACE_HOME_LOCATION=your_home_location_here
     ACE_TODO_MANAGER=todoist
     ACE_TODO_MANAGER_API_KEY=your_api_key_here
+    ACE_NEWS_API_KEY=your_api_key_here
+    ACE_NEWS_SOURCES=your_news_sources_here (comma-separated)
     ```
 
 See the [Setting up APIs and Skills](#setting-up-apis-and-skills) section for more information on setting up the APIs.
@@ -88,8 +90,13 @@ ACE currently has the following skills:
   - Add a task to the to-do list (e.g., "add buy groceries to my to-do list")
 
 - **Time:**
+
   - Tell the current time (e.g., "what time is it?")
   - Calculate future time (e.g., "what will the time be in 2 hours?")
+
+- **News:**
+  - Get the latest news (e.g., "what's the news?")
+  - Get news from a specific topic (e.g., "what's in the news about technology?")
 
 ## Setting up APIs and Skills
 
@@ -113,6 +120,15 @@ ACE uses external APIs and services to provide some of its functionality. You'll
       - Set the `ACE_TODO_MANAGER` variable to `todoist`.
       - Set the `ACE_TODO_MANAGER_API_KEY` variable to your ToDoist API key.
 
+- **News:**
+  _Note: ACE uses the NewsAPI to get news data._
+
+  1.  Sign up for a free account at [NewsAPI](https://newsapi.org/).
+  2.  Obtain your API key from the NewsAPI dashboard.
+  3.  In your `.env` file:
+      - Set the `ACE_NEWS_API_KEY` variable to your NewsAPI key.
+      - Set the `ACE_NEWS_SOURCES` variable to the news sources you want to get news from (e.g., "bbc-news, cnn").
+
 ## Contributing
 
 Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, and the process for submitting pull requests to us.
@@ -135,3 +151,4 @@ We have used the following resources to build ACE:
 
 - [WeatherAPI](https://www.weatherapi.com/) - For weather data
 - [Todoist API](https://developer.todoist.com/rest/v2/) - For managing to-do lists
+- [NewsAPI](https://newsapi.org/) - For news data

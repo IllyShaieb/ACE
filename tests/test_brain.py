@@ -157,6 +157,33 @@ class TestRecogniseIntent(unittest.TestCase):
                         intent = recognise_intent(text)
                         self.assertEqual(intent, "TODO_SKILL")
 
+    def test_news_skill(self):
+        parameters = [
+            "show me the news",
+            "get me the news",
+            "show the news",
+            "get the news",
+            "show news",
+            "get news",
+            "get me the news about technology",
+            "show me the news about sports",
+            "get me news about politics",
+            "show me news about science",
+            "get the news about technology",
+            "show the news about sports",
+            "what's in the news",
+            "what's in the news about cheese",
+            "what is in the news",
+            "what is in the news about python",
+            "what is the news today",
+            "what is the news about technology today",
+        ]
+
+        for parameter in parameters:
+            with self.subTest(parameter=parameter):
+                intent = recognise_intent(parameter)
+                self.assertEqual(intent, "NEWS_SKILL")
+
 
 class TestExtractEntities(unittest.TestCase):
     def test_extract_entities_DUMMY_SKILL(self):
@@ -361,6 +388,34 @@ class TestExtractEntities(unittest.TestCase):
                 with self.subTest(text=text, expected=expected):
                     entities = extract_entities(text, intent)
                     self.assertEqual(entities, expected)
+
+    def test_extract_entities_NEWS_SKILL(self):
+        intent = "NEWS_SKILL"
+        parameters = [
+            ("show me the news", {}),
+            ("get me the news", {}),
+            ("show the news", {}),
+            ("get the news", {}),
+            ("show news", {}),
+            ("get news", {}),
+            ("get me the news about technology", {"topic": "technology"}),
+            ("show me the news about sports", {"topic": "sports"}),
+            ("get me news about politics", {"topic": "politics"}),
+            ("show me news about science", {"topic": "science"}),
+            ("get the news about technology", {"topic": "technology"}),
+            ("show the news about sports", {"topic": "sports"}),
+            ("what's in the news", {}),
+            ("what's in the news about cheese", {"topic": "cheese"}),
+            ("what is in the news", {}),
+            ("what is in the news about python", {"topic": "python"}),
+            ("what is the news today", {}),
+            ("what is the news about technology today", {"topic": "technology"}),
+        ]
+
+        for text, expected in parameters:
+            with self.subTest(text=text, expected=expected):
+                entities = extract_entities(text, intent)
+                self.assertEqual(entities, expected)
 
 
 class TestSelectSkill(unittest.TestCase):

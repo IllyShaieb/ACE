@@ -5,6 +5,7 @@ from datetime import datetime
 from unittest.mock import patch
 
 from dotenv import load_dotenv
+from newsapi.newsapi_exception import NewsAPIException
 from requests import exceptions as requests_exceptions
 from weatherapi.rest import ApiException
 
@@ -434,6 +435,134 @@ class TestSkillTodo(unittest.TestCase):
             with self.subTest(error=error, expected_response=expected_response):
                 with patch("ace.skills.add_todo", side_effect=error):
                     self.assertEqual(self.skill(entities), expected_response)
+
+
+class TestSkillNews(unittest.TestCase):
+    def setUp(self):
+        self.skill = skills_dict["NEWS_SKILL"]
+
+    @patch("ace.skills.get_news")
+    def test_news_skill(self, mock_get_news):
+        parameters = [
+            (
+                {"topic": "technology"},
+                [
+                    {"title": "Tech News 1", "description": "Description 1"},
+                ],
+                "Here are the latest technology news articles:\n- Tech News 1: Description 1",
+            ),
+            (
+                {},
+                [
+                    {"title": "Top News 1", "description": "Description 1"},
+                ],
+                "Here are the latest top news articles:\n- Top News 1: Description 1",
+            ),
+            (
+                {"topic": "technology"},
+                [
+                    {"title": "Tech News 1", "description": "Description 1"},
+                    {"title": "Tech News 2", "description": "Description 2"},
+                ],
+                "Here are the latest technology news articles:\n- Tech News 1: Description 1\n\n- Tech News 2: Description 2",
+            ),
+            (
+                {},
+                [
+                    {"title": "Top News 1", "description": "Description 1"},
+                    {"title": "Top News 2", "description": "Description 2"},
+                ],
+                "Here are the latest top news articles:\n- Top News 1: Description 1\n\n- Top News 2: Description 2",
+            ),
+            (
+                {"topic": "sports"},
+                [],
+                "Sorry, I couldn't find any news articles on 'sports'.",
+            ),
+            (
+                {},
+                [],
+                "Sorry, I couldn't find any news articles.",
+            ),
+        ]
+
+        for entities, mock_news, expected_response in parameters:
+            with self.subTest(entities=entities, expected_response=expected_response):
+                mock_get_news.return_value = mock_news
+                self.assertEqual(self.skill(entities), expected_response)
+
+    @patch("ace.skills.get_news")
+    def test_news_skill_api_errors(self, mock_get_news):
+        parameters = [
+            (
+                "apiKeyDisabled",
+                "Your API key has been disabled",
+                "Apologies, it appears your API key for the news service has been disabled.",
+            ),
+            (
+                "apiKeyExhausted",
+                "Your API key has no more requests available.",
+                "Apologies, your API key for the news service has reached its usage limit.",
+            ),
+            (
+                "apiKeyInvalid",
+                "Your API key hasn't been entered correctly. Double check it and try again.",
+                "Apologies, your API key doesn't seem to be in the correct format.",
+            ),
+            (
+                "apiKeyMissing",
+                "Your API key is missing from the request.",
+                "Apologies, it appears you haven't provided an API key for the news service.",
+            ),
+            (
+                "parameterInvalid",
+                "You've included a parameter in your request which is currently not supported.",
+                "Apologies, a parameter in your request is not supported.",
+            ),
+            (
+                "parametersMissing",
+                "Required parameters are missing from the request and it cannot be completed.",
+                "Apologies, there appears to be missing parameters in your request.",
+            ),
+            (
+                "rateLimited",
+                "You have been rate limited. Back off for a while before trying the request again.",
+                "Apologies, it seems you've been rate limited. Please try again later.",
+            ),
+            (
+                "sourcesTooMany",
+                "You have requested too many sources in a single request.",
+                "Apologies, you have requested news from too many sources. Please try again with fewer sources.",
+            ),
+            (
+                "sourceDoesNotExist",
+                "You have requested a source which does not exist.",
+                "Apologies, one of the sources you requested does not exist.",
+            ),
+            (
+                "unexpectedError",
+                "This shouldn't happen, and if it does then it's our fault, not yours.",
+                "Apologies, it seems there was an unexpected error with the news service. Please try again later.",
+            ),
+            (
+                "UNKNOWN_API_ERROR",
+                "Testing for an error not currently handled that may be added in the future.",
+                "Apologies, there was an error fetching news.",
+            ),
+        ]
+
+        entities = {"topic": "technology"}
+
+        for code, message, expected_response in parameters:
+            with self.subTest(
+                code=code,
+                message=message,
+                expected_response=expected_response,
+            ):
+                mock_get_news.side_effect = NewsAPIException(
+                    {"code": code, "status": "error", "message": message}
+                )
+                self.assertEqual(self.skill(entities), expected_response)
 
 
 if __name__ == "__main__":
