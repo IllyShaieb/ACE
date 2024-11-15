@@ -4,6 +4,7 @@ from datetime import datetime, timedelta
 from random import choice
 
 from dotenv import load_dotenv
+from newsapi.newsapi_exception import NewsAPIException
 from requests import exceptions as requests_exceptions
 from weatherapi.rest import ApiException as WeatherApiException
 
@@ -227,18 +228,34 @@ def news_skill(entities=None) -> str:
 
     try:
         news = get_news(topic)
-    except Exception:
-        return "Sorry, there was an error fetching news articles."
 
-    if news:
-        response_text = f"Here are the latest {topic or 'top'} news articles:\n"
-        response_text += "\n\n".join(
-            f"- {article['title']}: {article['description']}" for article in news
+        if news:
+            response_text = f"Here are the latest {topic or 'top'} news articles:\n"
+            response_text += "\n\n".join(
+                f"- {article['title']}: {article['description']}" for article in news
+            )
+            return response_text
+
+        return (
+            f"Sorry, I couldn't find any news articles on '{topic}'."
+            if topic
+            else "Sorry, I couldn't find any news articles."
         )
-        return response_text
 
-    return (
-        f"Sorry, I couldn't find any news articles on '{topic}'."
-        if topic
-        else "Sorry, I couldn't find any news articles."
-    )
+    except NewsAPIException as e:
+        error_code_map = {
+            "apiKeyDisabled": "Apologies, it appears your API key for the news service has been disabled.",
+            "apiKeyExhausted": "Apologies, your API key for the news service has reached its usage limit.",
+            "apiKeyInvalid": "Apologies, your API key doesn't seem to be in the correct format.",
+            "apiKeyMissing": "Apologies, it appears you haven't provided an API key for the news service.",
+            "parameterInvalid": "Apologies, a parameter in your request is not supported.",
+            "parametersMissing": "Apologies, there appears to be missing parameters in your request.",
+            "rateLimited": "Apologies, it seems you've been rate limited. Please try again later.",
+            "sourcesTooMany": "Apologies, you have requested news from too many sources. Please try again with fewer sources.",
+            "sourceDoesNotExist": "Apologies, one of the sources you requested does not exist.",
+            "unexpectedError": "Apologies, it seems there was an unexpected error with the news service. Please try again later.",
+        }
+
+        return error_code_map.get(
+            e.get_code(), "Apologies, there was an error fetching news."
+        )
