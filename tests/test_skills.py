@@ -436,5 +436,76 @@ class TestSkillTodo(unittest.TestCase):
                     self.assertEqual(self.skill(entities), expected_response)
 
 
+class TestSkillNews(unittest.TestCase):
+    def setUp(self):
+        self.skill = skills_dict["NEWS_SKILL"]
+
+    @patch("ace.skills.get_news")
+    def test_news_skill(self, mock_get_news):
+        parameters = [
+            (
+                {"topic": "technology"},
+                [
+                    {"title": "Tech News 1", "description": "Description 1"},
+                ],
+                "Here are the latest technology news articles:\n- Tech News 1: Description 1",
+            ),
+            (
+                {},
+                [
+                    {"title": "Top News 1", "description": "Description 1"},
+                ],
+                "Here are the latest top news articles:\n- Top News 1: Description 1",
+            ),
+            (
+                {"topic": "technology"},
+                [
+                    {"title": "Tech News 1", "description": "Description 1"},
+                    {"title": "Tech News 2", "description": "Description 2"},
+                ],
+                "Here are the latest technology news articles:\n- Tech News 1: Description 1\n\n- Tech News 2: Description 2",
+            ),
+            (
+                {},
+                [
+                    {"title": "Top News 1", "description": "Description 1"},
+                    {"title": "Top News 2", "description": "Description 2"},
+                ],
+                "Here are the latest top news articles:\n- Top News 1: Description 1\n\n- Top News 2: Description 2",
+            ),
+            (
+                {"topic": "sports"},
+                [],
+                "Sorry, I couldn't find any news articles on 'sports'.",
+            ),
+            (
+                {},
+                [],
+                "Sorry, I couldn't find any news articles.",
+            ),
+        ]
+
+        for entities, mock_news, expected_response in parameters:
+            with self.subTest(entities=entities, expected_response=expected_response):
+                mock_get_news.return_value = mock_news
+                self.assertEqual(self.skill(entities), expected_response)
+
+    @patch("ace.skills.get_news")
+    def test_news_skill_api_errors(self, mock_get_news):
+        parameters = [
+            (
+                Exception(),
+                "Sorry, there was an error fetching news articles.",
+            ),
+        ]
+
+        entities = {"topic": "technology"}
+
+        for error, expected_response in parameters:
+            with self.subTest(error=error, expected_response=expected_response):
+                mock_get_news.side_effect = error
+                self.assertEqual(self.skill(entities), expected_response)
+
+
 if __name__ == "__main__":
     unittest.main()

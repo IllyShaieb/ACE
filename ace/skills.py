@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from requests import exceptions as requests_exceptions
 from weatherapi.rest import ApiException as WeatherApiException
 
-from ace.utils import add_todo, get_todos, get_weather
+from ace.utils import add_todo, get_news, get_todos, get_weather
 
 load_dotenv()
 
@@ -219,3 +219,26 @@ def todo_skill(entities=None) -> str:
         return "Sorry, there was an error fetching your to-do list. Please try again later."
     except requests_exceptions.RequestException as e:
         return f"Sorry, there was an unexpected error with the to-do service:: {e}"
+
+
+def news_skill(entities=None) -> str:
+    """Get the latest news."""
+    topic = entities.get("topic", None)
+
+    try:
+        news = get_news(topic)
+    except Exception:
+        return "Sorry, there was an error fetching news articles."
+
+    if news:
+        response_text = f"Here are the latest {topic or 'top'} news articles:\n"
+        response_text += "\n\n".join(
+            f"- {article['title']}: {article['description']}" for article in news
+        )
+        return response_text
+
+    return (
+        f"Sorry, I couldn't find any news articles on '{topic}'."
+        if topic
+        else "Sorry, I couldn't find any news articles."
+    )
