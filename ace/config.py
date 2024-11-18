@@ -1,3 +1,32 @@
+"""
+This module defines configuration settings for the ACE digital assistant.
+
+It currently contains the `INTENT_PATTERNS` dictionary, which maps intent names to
+lists of regular expressions used for intent recognition and entity extraction.
+
+The keys in `INTENT_PATTERNS` represent the names of the intents, for example,
+"GET_WEATHER_SKILL" or "TELL_TIME_SKILL". The values are lists of regular expressions
+that match user input corresponding to that intent.
+
+Each regular expression can contain named capture groups, which are used to extract
+entities from the user input. Named capture groups are defined using the syntax
+`(?P<group_name>pattern)`, where `group_name` is the name of the entity and `pattern`
+is the regular expression to match the entity's value.
+
+Example:
+
+  INTENT_PATTERNS = {
+      "DUMMY_SKILL": [
+          r"run dummy skill with (?P<group1>.*) and (?P<group2>.*)",
+          r"run dummy skill with (?P<group1>.*)",
+           "run dummy skill",
+      ]
+  }
+
+In the future, this module can be extended to include other configuration
+settings for ACE, such as customisation options.
+"""
+
 INTENT_PATTERNS = {
     "DUMMY_SKILL": [
         r"run dummy skill with (?P<group1>.*) and (?P<group2>.*)",
