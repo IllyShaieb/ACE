@@ -21,7 +21,7 @@ from ace import skills_dict
 load_dotenv()
 
 
-class TestSkillDummy(unittest.TestCase):
+class TestDummySkill(unittest.TestCase):
     """Test the dummy skill to ensure it returns the expected responses.
 
     The dummy skill is used for testing purposes and does not perform any
@@ -50,7 +50,7 @@ class TestSkillDummy(unittest.TestCase):
         )
 
 
-class TestSkillGreeting(unittest.TestCase):
+class TestGreetingSkill(unittest.TestCase):
     """Test the greeting skill to ensure it returns the expected response.
 
     The greeting skill responds to the user's greeting with a friendly message.
@@ -69,7 +69,7 @@ class TestSkillGreeting(unittest.TestCase):
         self.assertIn(skills_dict["GREETING_SKILL"](), possible_responses)
 
 
-class TestSkillFarewell(unittest.TestCase):
+class TestFarewellSkill(unittest.TestCase):
     """Test the farewell skill to ensure it returns the expected response.
 
     The farewell skill responds to the user's farewell with a friendly message.
@@ -84,7 +84,7 @@ class TestSkillFarewell(unittest.TestCase):
         self.assertIn(skills_dict["FAREWELL_SKILL"](), possible_responses)
 
 
-class TestSkillWhoAreYou(unittest.TestCase):
+class TestWhoAreYouSkill(unittest.TestCase):
     """Test the skills that introduce ACE to ensure they return the expected responses.
 
     The skill introduces ACE to the user when they ask who ACE is or what ACE does.
@@ -100,7 +100,7 @@ class TestSkillWhoAreYou(unittest.TestCase):
         self.assertIn(skills_dict["WHO_ARE_YOU_SKILL"](), possible_responses)
 
 
-class TestSkillHowAreYou(unittest.TestCase):
+class TestHowAreYouSkill(unittest.TestCase):
     """Test the skills that respond to "how are you?" to ensure they return the expected responses.
 
     The skill responds to the user asking "how are you?" with a friendly message. The tests check that
@@ -117,7 +117,7 @@ class TestSkillHowAreYou(unittest.TestCase):
         self.assertIn(skills_dict["HOW_ARE_YOU_SKILL"](), possible_responses)
 
 
-class TestSkillGetWeather(unittest.TestCase):
+class TestGetWeatherSkill(unittest.TestCase):
     """Test the skill that gets the weather to ensure it returns the expected responses.
 
     The weather skill fetches the current weather or a forecast for a specific location,
@@ -326,7 +326,7 @@ class TestSkillGetWeather(unittest.TestCase):
                 self.assertEqual(self.skill(entities), expected_response)
 
 
-class TestSkillTellTime(unittest.TestCase):
+class TestTellTimeSkill(unittest.TestCase):
     """Test the skill that tells the time to ensure it returns the expected responses.
 
     The tell time skill provides the current time or the time after a specified duration.
@@ -408,7 +408,7 @@ class TestSkillTellTime(unittest.TestCase):
                 )
 
 
-class TestSkillTodo(unittest.TestCase):
+class TestTodoSkill(unittest.TestCase):
     """Test the skill that interacts with the to-do list to ensure it returns the expected responses.
 
     The to-do skill allows users to manage their tasks by adding, viewing, and completing tasks.
@@ -593,7 +593,7 @@ class TestSkillTodo(unittest.TestCase):
                     self.assertEqual(self.skill(entities), expected_response)
 
 
-class TestSkillNews(unittest.TestCase):
+class TestNewsSkill(unittest.TestCase):
     """Test the skill that gets news updates to ensure it returns the expected responses.
 
     The news skill fetches the latest news articles based on a specific topic or category
