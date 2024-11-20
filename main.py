@@ -1,19 +1,31 @@
+"""
+This file is the main entry point for the ACE digital assistant.
+
+It runs the main processing loop that interacts with the user,
+processes their input, and executes the appropriate skills.
+"""
+
 from ace import brain
 
 
 def main() -> None:
-    """Run the ACE program."""
+    """Runs the main processing loop for the ACE digital assistant."""
+
+    # Display a welcome message
     print(" Welcome to ACE! ".center(80, "-"))
     print("Type 'q' to quit the program.\n")
 
     while True:
+        # Get user input and process it
         user_input = brain.get_user_input()
         processed_input = brain.process_user_input(user_input)
 
+        # Check if the user wants to quit
         if processed_input == "q":
             print("ACE: Goodbye!")
             break
 
+        # Recognise the intent, extract entities, and select the appropriate skill
         intent = brain.recognise_intent(processed_input)
 
         if intent:
