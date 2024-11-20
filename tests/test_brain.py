@@ -1,14 +1,6 @@
 """
 This module contains unit tests for the `brain` module of the ACE digital assistant.
 
-It includes test cases for the following functions:
-
-- `get_user_input`: Tests the function that gets user input.
-- `process_user_input`: Tests the function that processes user input.
-- `recognise_intent`: Tests the function that recognises intents from user input.
-- `extract_entities`: Tests the function that extracts entities from user input.
-- `select_skill`: Tests the function that selects the appropriate skill based on the intent.
-
 These tests ensure that the core logic of the ACE brain is functioning correctly
 and can effectively handle user input, recognise intents, extract entities,
 and select the appropriate skills.
@@ -62,8 +54,8 @@ class TestRecogniseIntent(unittest.TestCase):
     correctly recognise the intent of the user input based on the given input.
     """
 
-    def test_recognise_intent_DUMMY(self):
-        """Test the `recognise_intent` function for the DUMMY intent."""
+    def test_recognise_intent_DUMMY_SKILL(self):
+        """Test the `recognise_intent` function for the DUMMY_SKILL intent."""
 
         # Set up the example sentences
         parameters = ["run dummy skill"]
@@ -74,8 +66,8 @@ class TestRecogniseIntent(unittest.TestCase):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "DUMMY_SKILL")
 
-    def test_recognise_intent_GREETING(self):
-        """Test the `recognise_intent` function for the GREETING intent."""
+    def test_recognise_intent_GREETING_SKILL(self):
+        """Test the `recognise_intent` function for the GREETING_SKILL intent."""
 
         # Set up the example sentences
         parameters = [
@@ -93,8 +85,8 @@ class TestRecogniseIntent(unittest.TestCase):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "GREETING_SKILL")
 
-    def test_recognise_intent_FAREWELL(self):
-        """Test the `recognise_intent` function for the FAREWELL intent."""
+    def test_recognise_intent_FAREWELL_SKILL(self):
+        """Test the `recognise_intent` function for the FAREWELL_SKILL intent."""
 
         # Set up the example sentences
         parameters = ["goodbye", "bye", "good bye"]
@@ -104,8 +96,7 @@ class TestRecogniseIntent(unittest.TestCase):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "FAREWELL_SKILL")
 
-    # TODO: Rename to be in the format as "test_recognise_intent_<INTENT_NAME>"
-    def test_who_are_you_skill(self):
+    def test_recognise_intent_WHO_ARE_YOU_SKILL(self):
         """Test the `recognise_intent` function for the WHO_ARE_YOU_SKILL intent."""
 
         # Set up the example sentences
@@ -117,8 +108,7 @@ class TestRecogniseIntent(unittest.TestCase):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "WHO_ARE_YOU_SKILL")
 
-    # TODO: Rename to be in the format as "test_recognise_intent_<INTENT_NAME>"
-    def test_how_are_you_skill(self):
+    def test_recognise_intent_HOW_ARE_YOU_SKILL(self):
         """Test the `recognise_intent` function for the HOW_ARE_YOU_SKILL intent."""
 
         # Set up the example sentences
@@ -130,8 +120,7 @@ class TestRecogniseIntent(unittest.TestCase):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "HOW_ARE_YOU_SKILL")
 
-    # TODO: Rename to be in the format as "test_recognise_intent_<INTENT_NAME>"
-    def test_get_weather_skill(self):
+    def test_recognise_intent_GET_WEATHER_SKILL(self):
         """Test the `recognise_intent` function for the GET_WEATHER_SKILL intent."""
 
         # Set up the example sentences
@@ -165,8 +154,7 @@ class TestRecogniseIntent(unittest.TestCase):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "GET_WEATHER_SKILL")
 
-    # TODO: Rename to be in the format as "test_recognise_intent_<INTENT_NAME>"
-    def test_tell_time_skill(self):
+    def test_recognise_intent_TELL_TIME_SKILL(self):
         """Test the `recognise_intent` function for the TELL_TIME_SKILL intent."""
 
         # Set up the example sentences
@@ -186,8 +174,7 @@ class TestRecogniseIntent(unittest.TestCase):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "TELL_TIME_SKILL")
 
-    # TODO: Rename to be in the format as "test_recognise_intent_<INTENT_NAME>"
-    def test_todo_skill(self):
+    def test_recognise_intent_TODO_SKILL(self):
         """Test the `recognise_intent` function for the TODO_SKILL intent."""
 
         # Set up the example sentences
@@ -230,8 +217,7 @@ class TestRecogniseIntent(unittest.TestCase):
                         intent = recognise_intent(text)
                         self.assertEqual(intent, "TODO_SKILL")
 
-    # TODO: Rename to be in the format as "test_recognise_intent_<INTENT_NAME>"
-    def test_news_skill(self):
+    def test_recognise_intent_NEWS_SKILL(self):
         """Test the `recognise_intent` function for the NEWS_SKILL intent."""
 
         # Set up the example sentences
