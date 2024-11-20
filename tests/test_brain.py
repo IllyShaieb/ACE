@@ -1,14 +1,6 @@
 """
 This module contains unit tests for the `brain` module of the ACE digital assistant.
 
-It includes test cases for the following functions:
-
-- `get_user_input`: Tests the function that gets user input.
-- `process_user_input`: Tests the function that processes user input.
-- `recognise_intent`: Tests the function that recognises intents from user input.
-- `extract_entities`: Tests the function that extracts entities from user input.
-- `select_skill`: Tests the function that selects the appropriate skill based on the intent.
-
 These tests ensure that the core logic of the ACE brain is functioning correctly
 and can effectively handle user input, recognise intents, extract entities,
 and select the appropriate skills.
