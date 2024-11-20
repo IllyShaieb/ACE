@@ -1,20 +1,8 @@
 """
 This module contains unit tests for the skills in the ACE digital assistant.
 
-It includes test cases for the following skills:
-
-- `dummy_skill`: Tests the dummy skill.
-- `greeting_skill`: Tests the greeting skill.
-- `farewell_skill`: Tests the farewell skill.
-- `who_are_you_skill`: Tests the skill that introduces ACE.
-- `how_are_you_skill`: Tests the skill that responds to "how are you?".
-- `get_weather_skill`: Tests the skill that gets the weather.
-- `tell_time_skill`: Tests the skill that tells the time.
-- `todo_skill`: Tests the skill that interacts with the to-do list.
-- `news_skill`: Tests the skill that gets news updates.
-
-These tests ensure that the skills are functioning correctly and
-providing the expected responses based on user input and entities.
+These tests ensure that the skills are functioning correctly and providing
+the expected responses based on user input and entities.
 """
 
 import os
