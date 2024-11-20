@@ -61,7 +61,15 @@ class TestSkillDummy(unittest.TestCase):
             "This dummy skill has the following entities: ['TEST']",
         )
 
-    # TODO: Move this to it's own class
+
+class TestSkillGreeting(unittest.TestCase):
+    """Test the greeting skill to ensure it returns the expected response.
+
+    The greeting skill responds to the user's greeting with a friendly message.
+    The tests check that the skill returns the correct responses based on the
+    user input and any variations in the greeting message.
+    """
+
     def test_greeting_skill(self):
         """Test the greeting skill to ensure it returns the expected responses."""
 
@@ -72,14 +80,29 @@ class TestSkillDummy(unittest.TestCase):
         ]
         self.assertIn(skills_dict["GREETING_SKILL"](), possible_responses)
 
-    # TODO: Move this to it's own class
+
+class TestSkillFarewell(unittest.TestCase):
+    """Test the farewell skill to ensure it returns the expected response.
+
+    The farewell skill responds to the user's farewell with a friendly message.
+    The tests check that the skill returns the correct responses based on the
+    user input and any variations in the farewell message.
+    """
+
     def test_farewell_skill(self):
         """Test the farewell skill to ensure it returns the expected responses."""
 
         possible_responses = ["Goodbye!", "Bye! See you later.", "See you soon!"]
         self.assertIn(skills_dict["FAREWELL_SKILL"](), possible_responses)
 
-    # TODO: Move this to it's own class
+
+class TestSkillWhoAreYou(unittest.TestCase):
+    """Test the skills that introduce ACE to ensure they return the expected responses.
+
+    The skill introduces ACE to the user when they ask who ACE is or what ACE does.
+    The tests check that the skill returns a friendly introduction to ACE.
+    """
+
     def test_who_are_you_skill(self):
         """Test the skill that introduces ACE to ensure it returns the expected responses."""
 
@@ -88,7 +111,15 @@ class TestSkillDummy(unittest.TestCase):
         ]
         self.assertIn(skills_dict["WHO_ARE_YOU_SKILL"](), possible_responses)
 
-    # TODO: Move this to it's own class
+
+class TestSkillHowAreYou(unittest.TestCase):
+    """Test the skills that respond to "how are you?" to ensure they return the expected responses.
+
+    The skill responds to the user asking "how are you?" with a friendly message. The tests check that
+    the skill returns a response in a friendly manner, informing the user that ACE is a digital assistant
+    and does not have feelings but is ready to help the user with their requests.
+    """
+
     def test_how_are_you_skill(self):
         """Test the skill that responds to "how are you?" to ensure it returns the expected responses."""
 
