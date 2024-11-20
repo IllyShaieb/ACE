@@ -1,3 +1,22 @@
+"""
+This module contains unit tests for the skills in the ACE digital assistant.
+
+It includes test cases for the following skills:
+
+- `dummy_skill`: Tests the dummy skill.
+- `greeting_skill`: Tests the greeting skill.
+- `farewell_skill`: Tests the farewell skill.
+- `who_are_you_skill`: Tests the skill that introduces ACE.
+- `how_are_you_skill`: Tests the skill that responds to "how are you?".
+- `get_weather_skill`: Tests the skill that gets the weather.
+- `tell_time_skill`: Tests the skill that tells the time.
+- `todo_skill`: Tests the skill that interacts with the to-do list.
+- `news_skill`: Tests the skill that gets news updates.
+
+These tests ensure that the skills are functioning correctly and
+providing the expected responses based on user input and entities.
+"""
+
 import os
 import random
 import unittest
@@ -15,20 +34,37 @@ load_dotenv()
 
 
 class TestSkillDummy(unittest.TestCase):
+    """Test the dummy skill to ensure it returns the expected responses.
+
+    The dummy skill is used for testing purposes and does not perform any
+    actions. It is used to test the skill handler and ensure that the
+    skills are functioning correctly.
+    """
+
     def setUp(self):
+        """Provide the setup for the test case.
+
+        Set up the test case by initialising the dummy skill and setting
+        the random seed for reproducibility.
+        """
         self.skill = skills_dict["DUMMY_SKILL"]
-        random.seed(42)  # Set random seed for reproducibility
+        random.seed(42)
 
     def test_dummy_skill_no_entities(self):
+        """Test the dummy skill with no entities."""
         self.assertEqual(self.skill(), "This is a dummy skill. It does nothing.")
 
     def test_dummy_skill_with_entities(self):
+        """Test the dummy skill with entities."""
         self.assertEqual(
             self.skill(entities=["TEST"]),
             "This dummy skill has the following entities: ['TEST']",
         )
 
+    # TODO: Move this to it's own class
     def test_greeting_skill(self):
+        """Test the greeting skill to ensure it returns the expected responses."""
+
         possible_responses = [
             "Hello! How can I help you?",
             "Hi there! What can I do for you?",
@@ -36,17 +72,26 @@ class TestSkillDummy(unittest.TestCase):
         ]
         self.assertIn(skills_dict["GREETING_SKILL"](), possible_responses)
 
+    # TODO: Move this to it's own class
     def test_farewell_skill(self):
+        """Test the farewell skill to ensure it returns the expected responses."""
+
         possible_responses = ["Goodbye!", "Bye! See you later.", "See you soon!"]
         self.assertIn(skills_dict["FAREWELL_SKILL"](), possible_responses)
 
+    # TODO: Move this to it's own class
     def test_who_are_you_skill(self):
+        """Test the skill that introduces ACE to ensure it returns the expected responses."""
+
         possible_responses = [
             "I'm ACE, your Artificial Consciousness Engine. I'm here to help with things and tell you what's going on. You can ask me to do stuff for you, or just chat with me!"
         ]
         self.assertIn(skills_dict["WHO_ARE_YOU_SKILL"](), possible_responses)
 
+    # TODO: Move this to it's own class
     def test_how_are_you_skill(self):
+        """Test the skill that responds to "how are you?" to ensure it returns the expected responses."""
+
         possible_responses = [
             "As an Artificial Consciousness Engine, I don't have feelings, but I'm ready to help you out. What can I do for you today?"
         ]
@@ -54,11 +99,25 @@ class TestSkillDummy(unittest.TestCase):
 
 
 class TestSkillGetWeather(unittest.TestCase):
+    """Test the skill that gets the weather to ensure it returns the expected responses.
+
+    The weather skill fetches the current weather or a forecast for a specific location,
+    and returns the weather information to the user. The tests check that the skill
+    returns the correct responses based on the weather data and any errors that may occur.
+    """
+
     def setUp(self):
+        """Provide the setup for the test case.
+
+        Set up the test case by initialising the get weather skill.
+        """
         self.skill = skills_dict["GET_WEATHER_SKILL"]
 
     @patch("ace.skills.get_weather")
     def test_get_current_weather_with_location(self, mock_call_weather_api):
+        """Test the skill that gets the current weather for a specific location."""
+
+        # Setup the test by mocking the API response
         mock_api_response = {
             "current": {
                 "temp_c": 15.5,
@@ -70,6 +129,8 @@ class TestSkillGetWeather(unittest.TestCase):
             "location": {"name": "London"},
         }
         mock_call_weather_api.return_value = mock_api_response
+
+        # Test the skill with the location entity
         entities = {"location": "London"}
         expected_response = (
             "The weather in London is currently Partly cloudy. "
@@ -81,7 +142,10 @@ class TestSkillGetWeather(unittest.TestCase):
 
     @patch("ace.skills.get_weather")
     def test_get_current_weather_no_location(self, mock_call_weather_api):
-        # The default location is set in the .env file
+        """Test the skill that gets the current weather for the default location."""
+
+        # Setup the test by getting the default location from the environment
+        # and mocking the API response
         home_location = os.environ.get("ACE_HOME_LOCATION", "London")
         mock_api_response = {
             "current": {
@@ -95,6 +159,8 @@ class TestSkillGetWeather(unittest.TestCase):
         }
 
         mock_call_weather_api.return_value = mock_api_response
+
+        # Test the skill without the location entity
         entities = {"timeframe": "current"}
         expected_response = (
             f"The weather in {home_location} is currently Partly cloudy. "
@@ -106,6 +172,9 @@ class TestSkillGetWeather(unittest.TestCase):
 
     @patch("ace.skills.get_weather")
     def test_get_current_weather_with_errors(self, mock_call_weather_api):
+        """Test the skill that gets the current weather with API errors."""
+
+        # Setup the test by defining the parameters for the API exceptions
         parameters = [
             (
                 ApiException(status=400),
@@ -126,6 +195,7 @@ class TestSkillGetWeather(unittest.TestCase):
             ),
         ]
 
+        # Test the skill with the different API errors
         entities = {"timeframe": "current"}
 
         for error, expected_response in parameters:
@@ -135,6 +205,9 @@ class TestSkillGetWeather(unittest.TestCase):
 
     @patch("ace.skills.get_weather")
     def test_get_future_weather_with_location(self, mock_call_weather_api):
+        """Test the skill that gets the weather forecast for a specific location."""
+
+        # Setup the test by mocking the API response
         mock_api_response = {
             "forecast": {
                 "forecastday": [
@@ -153,8 +226,9 @@ class TestSkillGetWeather(unittest.TestCase):
             "location": {"name": "London"},
         }
         mock_call_weather_api.return_value = mock_api_response
-        entities = {"timeframe": "tomorrow", "location": "London"}
 
+        # Test the skill with the location entity
+        entities = {"timeframe": "tomorrow", "location": "London"}
         expected_response = (
             "The weather in London tomorrow is forecast to be Partly cloudy. "
             "With a high of 20.5°C and a low of 15.5°C. "
@@ -165,7 +239,9 @@ class TestSkillGetWeather(unittest.TestCase):
 
     @patch("ace.skills.get_weather")
     def test_get_future_weather_no_location(self, mock_call_weather_api):
-        # The default location is set in the .env file
+        """Test the skill that gets the weather forecast for the default location."""
+
+        # Setup the test by getting the default location from the environment
         home_location = os.environ.get("ACE_HOME_LOCATION", "London")
         mock_api_response = {
             "forecast": {
@@ -186,6 +262,8 @@ class TestSkillGetWeather(unittest.TestCase):
         }
 
         mock_call_weather_api.return_value = mock_api_response
+
+        # Test the skill without the location entity
         entities = {"timeframe": "tomorrow"}
         expected_response = (
             f"The weather in {home_location} tomorrow is forecast to be Partly cloudy. "
@@ -197,6 +275,9 @@ class TestSkillGetWeather(unittest.TestCase):
 
     @patch("ace.skills.get_weather")
     def test_get_future_weather_with_errors(self, mock_call_weather_api):
+        """Test the skill that gets the weather forecast with API errors."""
+
+        # Setup the test by defining the parameters for the API exceptions
         parameters = [
             (
                 ApiException(status=400),
@@ -217,6 +298,7 @@ class TestSkillGetWeather(unittest.TestCase):
             ),
         ]
 
+        # Test the skill with the different API errors
         entities = {"timeframe": "tomorrow"}
 
         for error, expected_response in parameters:
@@ -226,14 +308,30 @@ class TestSkillGetWeather(unittest.TestCase):
 
 
 class TestSkillTellTime(unittest.TestCase):
+    """Test the skill that tells the time to ensure it returns the expected responses.
+
+    The tell time skill provides the current time or the time after a specified duration.
+    The tests check that the skill returns the correct responses based on the current time
+    and the time units provided by the user, and any errors that may occur.
+    """
+
     def setUp(self):
+        """Provide the setup for the test case.
+
+        Set up the test case by initialising the tell time skill and setting the random
+        seed for reproducibility.
+        """
         self.skill = skills_dict["TELL_TIME_SKILL"]
         random.seed(42)
 
     @patch("ace.skills.datetime")
     def test_tell_time_now(self, mock_datetime):
+        """Test the skill that tells the current time."""
+
+        # Setup the test by mocking the current time
         mock_datetime.now.return_value = datetime(2021, 8, 1, 12, 0, 0)
 
+        # Test the skill with no entities
         possible_responses = [
             "The current time is 12:00 PM",
             "It's 12:00 PM now",
@@ -247,8 +345,11 @@ class TestSkillTellTime(unittest.TestCase):
 
     @patch("ace.skills.datetime")
     def test_tell_time_future(self, mock_datetime):
-        mock_datetime.now.return_value = datetime(2021, 8, 1, 12, 0, 0)
+        """Test the skill that tells the time after a specified duration."""
 
+        # Setup the test by mocking the current time and setting up
+        # the parameters for the different time units
+        mock_datetime.now.return_value = datetime(2021, 8, 1, 12, 0, 0)
         parameters = [
             (
                 {"timevalue": "1", "timeunit": "hour"},
@@ -279,6 +380,7 @@ class TestSkillTellTime(unittest.TestCase):
             ),
         ]
 
+        # Test the skill with the different time units
         for entities, expected_responses in parameters:
             with self.subTest(entities=entities, expected_responses=expected_responses):
                 actual_response = self.skill(entities)
@@ -288,12 +390,27 @@ class TestSkillTellTime(unittest.TestCase):
 
 
 class TestSkillTodo(unittest.TestCase):
+    """Test the skill that interacts with the to-do list to ensure it returns the expected responses.
+
+    The to-do skill allows users to manage their tasks by adding, viewing, and completing tasks.
+    The tests check that the skill returns the correct responses based on the to-do list data
+    and any errors that may occur when interacting with the to-do manager.
+    """
+
     def setUp(self):
+        """Provide the setup for the test case.
+
+        Set up the test case by initialising the to-do skill and setting the random seed for
+        reproducibility.
+        """
         self.skill = skills_dict["TODO_SKILL"]
         random.seed(42)
 
     @patch("ace.skills.get_todos")
     def test_todo_skill_show_list(self, mock_get_todos):
+        """Test the skill that shows the to-do list to ensure it returns the expected responses."""
+
+        # Setup the test by mocking the to-do list and defining the parameters
         mock_get_todos.return_value = [
             {"id": 1, "content": "Task 1", "due": None, "labels": []},
             {"id": 2, "content": "Task 2", "due": None, "labels": []},
@@ -309,6 +426,7 @@ class TestSkillTodo(unittest.TestCase):
             {"action": "give"},
         ]
 
+        # Test the skill with the different parameters
         expected_response = "Here are your tasks for today:\n- Task 1\n- Task 2"
 
         for entities in parameters:
@@ -317,6 +435,9 @@ class TestSkillTodo(unittest.TestCase):
 
     @patch("ace.skills.get_todos")
     def test_todo_skill_empty_list(self, mock_get_todos):
+        """Test the skill that shows an empty to-do list to ensure it returns the expected responses."""
+
+        # Setup the test by mocking an empty to-do list and defining the parameters
         mock_get_todos.return_value = []
 
         parameters = [
@@ -329,6 +450,7 @@ class TestSkillTodo(unittest.TestCase):
             {"action": "give"},
         ]
 
+        # Test the skill with the different parameters
         possible_responses = [
             "You don't have any tasks due today.",
             "You're all caught up! No tasks due today.",
@@ -341,6 +463,9 @@ class TestSkillTodo(unittest.TestCase):
 
     @patch("ace.skills.add_todo")
     def test_todo_skill_add_task(self, mock_add_todo):
+        """Test the skill that adds a task to the to-do list to ensure it returns the expected responses."""
+
+        # Setup the test by mocking the API response and defining the parameters
         mock_add_todo.return_value = {
             "id": 3,
             "content": "Task 3",
@@ -354,6 +479,7 @@ class TestSkillTodo(unittest.TestCase):
             {"action": "add task", "task": "Task 3"},
         ]
 
+        # Test the skill with the different parameters
         expected_response = "Added 'Task 3' to your list."
 
         for entities in parameters:
@@ -361,12 +487,15 @@ class TestSkillTodo(unittest.TestCase):
                 self.assertEqual(self.skill(entities), expected_response)
 
     def test_todo_skill_invalid_todo_manager(self):
+        """Test the skill to ensure it raises an error when the to-do manager is invalid."""
+
+        # Setup the test by defining the parameters and mocking the API responses
+        # for the valid to-do managers
         parameters = [
             ({"action": "show"}),
             ({"action": "add", "task": "Task 4"}),
         ]
 
-        # Need to mock any installed todo apis
         mock_todoist_api = patch("ace.skills.TodoistAPI.add_task")
         mock_todoist_api.return_value = {
             "id": 4,
@@ -375,7 +504,7 @@ class TestSkillTodo(unittest.TestCase):
             "labels ": [],
         }
 
-        # Mock the environment variable to an invalid value
+        # Test the skill with the different parameters
         with patch.dict("os.environ", {"ACE_TODO_MANAGER": "invalid"}):
             for entities in parameters:
                 with self.subTest(entities=entities):
@@ -383,6 +512,9 @@ class TestSkillTodo(unittest.TestCase):
                         self.skill(entities)
 
     def test_todo_skill_show_list_api_errors(self):
+        """Test the skill that shows the to-do list with API errors to ensure it returns the expected responses."""
+
+        # Setup the test by defining the parameters for the different API errors
         parameters = [
             (
                 requests_exceptions.ConnectionError(),
@@ -402,6 +534,7 @@ class TestSkillTodo(unittest.TestCase):
             ),
         ]
 
+        # Test the skill with the different API errors
         entities = {"action": "show"}
 
         for error, expected_response in parameters:
@@ -410,6 +543,9 @@ class TestSkillTodo(unittest.TestCase):
                     self.assertEqual(self.skill(entities), expected_response)
 
     def test_todo_skill_add_task_api_errors(self):
+        """Test the skill that adds a task with API errors to ensure it returns the expected responses."""
+
+        # Setup the test by defining the parameters for the different API errors
         parameters = [
             (
                 requests_exceptions.ConnectionError("Testing: Connection error"),
@@ -429,6 +565,7 @@ class TestSkillTodo(unittest.TestCase):
             ),
         ]
 
+        # Test the skill with the different API errors
         entities = {"action": "add", "task": "Task 5"}
 
         for error, expected_response in parameters:
@@ -438,11 +575,25 @@ class TestSkillTodo(unittest.TestCase):
 
 
 class TestSkillNews(unittest.TestCase):
+    """Test the skill that gets news updates to ensure it returns the expected responses.
+
+    The news skill fetches the latest news articles based on a specific topic or category
+    and returns the news updates to the user. The tests check that the skill returns the
+    correct responses based on the news data and any errors that may occur.
+    """
+
     def setUp(self):
+        """Provide the setup for the test case.
+
+        Set up the test case by initialising the news skill.
+        """
         self.skill = skills_dict["NEWS_SKILL"]
 
     @patch("ace.skills.get_news")
     def test_news_skill(self, mock_get_news):
+        """Test the skill that gets news updates to ensure it returns the expected responses."""
+
+        # Setup the test by defining the parameters for the different news articles
         parameters = [
             (
                 {"topic": "technology"},
@@ -486,6 +637,7 @@ class TestSkillNews(unittest.TestCase):
             ),
         ]
 
+        # Test the skill with the different parameters
         for entities, mock_news, expected_response in parameters:
             with self.subTest(entities=entities, expected_response=expected_response):
                 mock_get_news.return_value = mock_news
@@ -493,6 +645,9 @@ class TestSkillNews(unittest.TestCase):
 
     @patch("ace.skills.get_news")
     def test_news_skill_api_errors(self, mock_get_news):
+        """Test the skill that gets news updates with API errors to ensure it returns the expected responses."""
+
+        # Setup the test by defining the parameters for the different API errors
         parameters = [
             (
                 "apiKeyDisabled",
@@ -551,6 +706,7 @@ class TestSkillNews(unittest.TestCase):
             ),
         ]
 
+        # Test the skill with the different API errors
         entities = {"topic": "technology"}
 
         for code, message, expected_response in parameters:

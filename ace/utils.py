@@ -1,3 +1,16 @@
+"""
+This module contains utility functions for the ACE digital assistant.
+
+These functions provide common functionalities that are used by multiple skills
+or modules within ACE. They include:
+- Getting weather data from a weather API
+- Interacting with a to-do list service
+- Fetching news updates from a news API
+
+These utility functions are designed to be reusable and modular, promoting
+code organisation and maintainability.
+"""
+
 import os
 import re
 from datetime import date, timedelta
@@ -10,7 +23,22 @@ from todoist_api_python.api import TodoistAPI
 
 @cached(cache=TTLCache(maxsize=60, ttl=300))
 def get_weather(location: str, future_days: int = 0) -> dict:
-    """Get the weather for a location."""
+    """Gets weather data for a given location.
+
+    This function retrieves weather information from the WeatherAPI for the
+    specified location. It can fetch either the current weather or the
+    forecast for a future date.
+
+    Note: The results are cached for 5 minutes to reduce API calls.
+
+    Args:
+        location: The name of the location (city, zip code, etc.).
+        future_days: (optional) The number of days into the future
+                     for which to fetch the forecast. Defaults to 0 (current weather).
+
+    Returns:
+        A dictionary containing the weather information.
+    """
     # Setup the WeatherAPI configuration
     weatherapi_config = weatherapi.Configuration()
     weatherapi_config.api_key["key"] = os.environ.get("ACE_WEATHER_API_KEY")
@@ -27,7 +55,19 @@ def get_weather(location: str, future_days: int = 0) -> dict:
 
 
 def get_todos(project: str, task_filter: str = None) -> list[dict[str, str]]:
-    """Get the user's todo list."""
+    """Gets the user's to-do list.
+
+    This function retrieves the user's to-do list from a to-do list service
+    (currently only Todoist is supported). It filters the tasks based on
+    the provided filter string.
+
+    Args:
+        project: The name of the project (if applicable).
+        task_filter: (optional) A filter string to apply to the tasks.
+
+    Returns:
+        A list of dictionaries, where each dictionary represents a task.
+    """
     todo_manager = os.environ.get("ACE_TODO_MANAGER", "todoist").lower()
 
     if todo_manager == "todoist":
@@ -40,8 +80,7 @@ def get_todos(project: str, task_filter: str = None) -> list[dict[str, str]]:
         tasks.append(
             {
                 "id": task.id,
-                # Need to remove urls markdown links from the content
-                # Want to keep the bit of text that is not a link around the square brackets
+                # Remove URL markdown links from the content
                 "content": re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", task.content),
                 "due": task.due.date,
                 "labels": task.labels,
@@ -52,7 +91,18 @@ def get_todos(project: str, task_filter: str = None) -> list[dict[str, str]]:
 
 
 def add_todo(content: str, project: str = None) -> dict:
-    """Add a task to the user's todo list."""
+    """Adds a task to the user's to-do list.
+
+    This function adds a new task with the given content to the user's
+    to-do list (currently only Todoist is supported).
+
+    Args:
+        content: The content of the task to be added.
+        project: (optional) The name of the project to add the task to.
+
+    Returns:
+        A dictionary representing the added task.
+    """
     todo_manager = os.environ.get("ACE_TODO_MANAGER", "todoist").lower()
     if todo_manager == "todoist":
         api = TodoistAPI(os.environ.get("ACE_TODO_MANAGER_API_KEY"))
@@ -63,7 +113,23 @@ def add_todo(content: str, project: str = None) -> dict:
 
 @cached(cache=TTLCache(maxsize=100, ttl=86400))
 def get_news(topic: str = None, limit: int = 5) -> list[dict[str, str]]:
-    """Get the latest news on a topic."""
+    """Gets the latest news on a topic.
+
+    This function retrieves news articles from the News API. It can fetch
+    top headlines or articles on a specific topic. The results are cached
+    to reduce API calls.
+
+    Note: The results are cached for 24 hours to reduce API calls.
+
+    Args:
+        topic: (optional) The topic or category of news to fetch.
+        limit: (optional) The maximum number of articles to return.
+               Defaults to 5.
+
+    Returns:
+        A list of dictionaries, where each dictionary represents a news article.
+    """
+    # Setup the NewsAPI configuration
     news_api = NewsApiClient(api_key=os.environ.get("ACE_NEWS_API_KEY"))
     possible_categories = [
         "business",
