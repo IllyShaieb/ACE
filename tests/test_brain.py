@@ -1,3 +1,19 @@
+"""
+This module contains unit tests for the `brain` module of the ACE digital assistant.
+
+It includes test cases for the following functions:
+
+- `get_user_input`: Tests the function that gets user input.
+- `process_user_input`: Tests the function that processes user input.
+- `recognise_intent`: Tests the function that recognises intents from user input.
+- `extract_entities`: Tests the function that extracts entities from user input.
+- `select_skill`: Tests the function that selects the appropriate skill based on the intent.
+
+These tests ensure that the core logic of the ACE brain is functioning correctly
+and can effectively handle user input, recognise intents, extract entities,
+and select the appropriate skills.
+"""
+
 import unittest
 from unittest.mock import patch
 
@@ -12,28 +28,56 @@ from ace.brain import (
 
 
 class TestGetInput(unittest.TestCase):
+    """Tests for retrieving user input.
+
+    The purpose of these tests is to ensure that the various functions that
+    allow the ACE digital assistant to receive user input are working correctly.
+    """
+
     def test_get_user_input(self):
+        """Test the `get_user_input` function returns the words given by the user."""
+
+        # Need to mock the built-in `input` function to simulate user input
         with patch("builtins.input", return_value="This is a dummy user input."):
             self.assertEqual(get_user_input(), "This is a dummy user input.")
 
 
 class TestProcessInput(unittest.TestCase):
+    """Tests for processing user input.
+
+    The purpose of these tests is to ensure that various functions that
+    allow the ACE digital assistant to process user input are working correctly.
+    """
+
     def test_process_user_input(self):
+        """Test the `process_user_input` function correctly returns the processed input."""
         processed = process_user_input("This is a dummy user input.")
         self.assertEqual(processed, "this is a dummy user input.")
 
 
 class TestRecogniseIntent(unittest.TestCase):
+    """Tests for recognising user intent.
+
+    The purpose of these tests is to ensure that the ACE digital assistant can
+    correctly recognise the intent of the user input based on the given input.
+    """
 
     def test_recognise_intent_DUMMY(self):
+        """Test the `recognise_intent` function for the DUMMY intent."""
+
+        # Set up the example sentences
         parameters = ["run dummy skill"]
 
+        # Loop through the examples sentences and check the intent
         for parameter in parameters:
             with self.subTest(parameter=parameter):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "DUMMY_SKILL")
 
     def test_recognise_intent_GREETING(self):
+        """Test the `recognise_intent` function for the GREETING intent."""
+
+        # Set up the example sentences
         parameters = [
             "hi",
             "hello",
@@ -43,12 +87,16 @@ class TestRecogniseIntent(unittest.TestCase):
             "good evening",
         ]
 
+        # Loop through the examples sentences and check the intent
         for parameter in parameters:
             with self.subTest(parameter=parameter):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "GREETING_SKILL")
 
     def test_recognise_intent_FAREWELL(self):
+        """Test the `recognise_intent` function for the FAREWELL intent."""
+
+        # Set up the example sentences
         parameters = ["goodbye", "bye", "good bye"]
 
         for parameter in parameters:
@@ -56,23 +104,37 @@ class TestRecogniseIntent(unittest.TestCase):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "FAREWELL_SKILL")
 
+    # TODO: Rename to be in the format as "test_recognise_intent_<INTENT_NAME>"
     def test_who_are_you_skill(self):
+        """Test the `recognise_intent` function for the WHO_ARE_YOU_SKILL intent."""
+
+        # Set up the example sentences
         parameters = ["who are you", "what are you"]
 
+        # Loop through the examples sentences and check the intent
         for parameter in parameters:
             with self.subTest(parameter=parameter):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "WHO_ARE_YOU_SKILL")
 
+    # TODO: Rename to be in the format as "test_recognise_intent_<INTENT_NAME>"
     def test_how_are_you_skill(self):
+        """Test the `recognise_intent` function for the HOW_ARE_YOU_SKILL intent."""
+
+        # Set up the example sentences
         parameters = ["how are you"]
 
+        # Loop through the examples sentences and check the intent
         for parameter in parameters:
             with self.subTest(parameter=parameter):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "HOW_ARE_YOU_SKILL")
 
+    # TODO: Rename to be in the format as "test_recognise_intent_<INTENT_NAME>"
     def test_get_weather_skill(self):
+        """Test the `recognise_intent` function for the GET_WEATHER_SKILL intent."""
+
+        # Set up the example sentences
         parameters = [
             "what is the current weather",
             "what is the weather today",
@@ -97,12 +159,17 @@ class TestRecogniseIntent(unittest.TestCase):
             "weather tomorrow at -44.10435,146.847",
         ]
 
+        # Loop through the examples sentences and check the intent
         for parameter in parameters:
             with self.subTest(parameter=parameter):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "GET_WEATHER_SKILL")
 
+    # TODO: Rename to be in the format as "test_recognise_intent_<INTENT_NAME>"
     def test_tell_time_skill(self):
+        """Test the `recognise_intent` function for the TELL_TIME_SKILL intent."""
+
+        # Set up the example sentences
         parameters = [
             "what time is it",
             "tell me the time",
@@ -113,12 +180,17 @@ class TestRecogniseIntent(unittest.TestCase):
             "give me the time in 10 seconds",
         ]
 
+        # Loop through the examples sentences and check the intent
         for parameter in parameters:
             with self.subTest(parameter=parameter):
                 intent = recognise_intent(parameter)
                 self.assertEqual(intent, "TELL_TIME_SKILL")
 
+    # TODO: Rename to be in the format as "test_recognise_intent_<INTENT_NAME>"
     def test_todo_skill(self):
+        """Test the `recognise_intent` function for the TODO_SKILL intent."""
+
+        # Set up the example sentences
         list_name_singular = ["todo", "task", "to-do", "to do"]
         list_name_plural = ["todos", "tasks", "to-dos", "to dos"]
 
@@ -149,6 +221,7 @@ class TestRecogniseIntent(unittest.TestCase):
             ],
         ]
 
+        # Loop through the examples sentences and check the intent
         for task, lists in parameters:
             for list_name in lists:
                 for list_name in lists:
@@ -157,7 +230,11 @@ class TestRecogniseIntent(unittest.TestCase):
                         intent = recognise_intent(text)
                         self.assertEqual(intent, "TODO_SKILL")
 
+    # TODO: Rename to be in the format as "test_recognise_intent_<INTENT_NAME>"
     def test_news_skill(self):
+        """Test the `recognise_intent` function for the NEWS_SKILL intent."""
+
+        # Set up the example sentences
         parameters = [
             "show me the news",
             "get me the news",
@@ -179,6 +256,7 @@ class TestRecogniseIntent(unittest.TestCase):
             "what is the news about technology today",
         ]
 
+        # Loop through the examples sentences and check the intent
         for parameter in parameters:
             with self.subTest(parameter=parameter):
                 intent = recognise_intent(parameter)
@@ -186,7 +264,16 @@ class TestRecogniseIntent(unittest.TestCase):
 
 
 class TestExtractEntities(unittest.TestCase):
+    """Tests for extracting entities from user input.
+
+    The purpose of these tests is to ensure that the ACE digital assistant can
+    correctly extract entities from the user input based on the given intent.
+    """
+
     def test_extract_entities_DUMMY_SKILL(self):
+        """Test the `extract_entities` function for the DUMMY_SKILL intent."""
+
+        # Set up the example sentences
         parameters = [
             ("run dummy skill", "DUMMY_SKILL", {}),
             ("run dummy skill with 1", "DUMMY_SKILL", {"group1": "1"}),
@@ -197,12 +284,16 @@ class TestExtractEntities(unittest.TestCase):
             ),
         ]
 
+        # Loop through the examples sentences and check the entities
         for text, intent, expected in parameters:
             with self.subTest(text=text, intent=intent, expected=expected):
                 entities = extract_entities(text, intent)
                 self.assertEqual(entities, expected)
 
     def test_extract_entities_GET_WEATHER_SKILL(self):
+        """Test the `extract_entities` function for the GET_WEATHER_SKILL intent."""
+
+        # Set up the example sentences
         intent = "GET_WEATHER_SKILL"
         parameters = [
             ("current weather", {"timeframe": "current"}),
@@ -273,6 +364,7 @@ class TestExtractEntities(unittest.TestCase):
             ),
         ]
 
+        # Loop through the examples sentences and check the entities
         for text, expected in parameters:
             with self.subTest(text=text, expected=expected):
                 entities = extract_entities(text, intent)
@@ -280,7 +372,11 @@ class TestExtractEntities(unittest.TestCase):
                 self.assertEqual(entities, expected)
 
     def test_extract_entities_TELL_TIME_SKILL(self):
+        """Test the `extract_entities` function for the TELL_TIME_SKILL intent."""
+
+        # Set the intent and example sentences
         intent = "TELL_TIME_SKILL"
+
         parameters = [
             (
                 "what time will it be in 5 minutes",
@@ -300,12 +396,16 @@ class TestExtractEntities(unittest.TestCase):
             ),
         ]
 
+        # Loop through the examples sentences and check the entities
         for text, expected in parameters:
             with self.subTest(text=text, expected=expected):
                 entities = extract_entities(text, intent)
                 self.assertEqual(entities, expected)
 
     def test_extract_entities_TODO_SKILL(self):
+        """Test the `extract_entities` function for the TODO_SKILL intent."""
+
+        # Set the intent and example sentences
         intent = "TODO_SKILL"
 
         list_name_singular = ["todo", "task", "to-do", "to do"]
@@ -382,6 +482,7 @@ class TestExtractEntities(unittest.TestCase):
             ),
         ]
 
+        # Loop through the examples sentences and check the entities
         for text, lists, expected in parameters:
             for list_name in lists:
                 text = text.format(list_name)
@@ -390,7 +491,11 @@ class TestExtractEntities(unittest.TestCase):
                     self.assertEqual(entities, expected)
 
     def test_extract_entities_NEWS_SKILL(self):
+        """Test the `extract_entities` function for the NEWS_SKILL intent."""
+
+        # Set the intent and example sentences
         intent = "NEWS_SKILL"
+
         parameters = [
             ("show me the news", {}),
             ("get me the news", {}),
@@ -412,6 +517,7 @@ class TestExtractEntities(unittest.TestCase):
             ("what is the news about technology today", {"topic": "technology"}),
         ]
 
+        # Loop through the examples sentences and check the entities
         for text, expected in parameters:
             with self.subTest(text=text, expected=expected):
                 entities = extract_entities(text, intent)
@@ -419,7 +525,17 @@ class TestExtractEntities(unittest.TestCase):
 
 
 class TestSelectSkill(unittest.TestCase):
+    """Tests for selecting the appropriate skill.
+
+    The purpose of these tests is to ensure that the ACE digital assistant can
+    correctly select the appropriate skill based on the intent recognised from
+    the user input.
+    """
+
     def test_select_skill(self):
+        """Test the `select_skill` function by using the DUMMY_SKILL, which
+        should always be available in the skills dictionary
+        """
         skill = select_skill("DUMMY_SKILL")
         self.assertEqual(skill, skills_dict["DUMMY_SKILL"])
 
