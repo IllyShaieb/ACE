@@ -16,9 +16,11 @@ from newsapi.newsapi_exception import NewsAPIException
 from requests import exceptions as requests_exceptions
 from weatherapi.rest import ApiException
 
-from ace import skills_dict
+from ace import disable_logging, skills_dict
 
 load_dotenv()
+
+disable_logging("ERROR")
 
 
 class TestDummySkill(unittest.TestCase):

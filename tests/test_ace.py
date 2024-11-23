@@ -8,10 +8,13 @@ that it follows the correct format (YYYY.MM.PATCH).
 import re
 import unittest
 
-from ace import __version__
+from ace import __version__, disable_logging
+
+disable_logging("ERROR")
 
 
 class TestVersion(unittest.TestCase):
+
     def test_version_format(self):
         """Test that the `__version__` attribute follows the correct format.
 
