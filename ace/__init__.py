@@ -8,6 +8,7 @@ user's intent.
 """
 
 from ace import skills
+from ace.utils import create_logger, disable_logging  # noqa: F401
 
 # Define the version of the ACE program. Must be in the format YYYY.MM.PATCH.
 __version__ = "2024.11.0"

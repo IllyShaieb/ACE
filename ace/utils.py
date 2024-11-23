@@ -11,6 +11,7 @@ These utility functions are designed to be reusable and modular, promoting
 code organisation and maintainability.
 """
 
+import logging
 import os
 import re
 from datetime import date, timedelta
@@ -19,6 +20,13 @@ import weatherapi
 from cachetools import TTLCache, cached
 from newsapi import NewsApiClient
 from todoist_api_python.api import TodoistAPI
+
+from ace.config import (
+    CONSOLE_LOG_FORMATTER,
+    FILE_LOG_FORMATTER,
+    LOG_LEVEL_MAP,
+    LOG_PATH,
+)
 
 
 @cached(cache=TTLCache(maxsize=60, ttl=300))
@@ -165,3 +173,65 @@ def get_news(topic: str = None, limit: int = 5) -> list[dict[str, str]]:
     ]
 
     return news_articles[:limit]
+
+
+def create_logger(logger_name: str, level: int | str = "DEBUG") -> logging.Logger:
+    """Creates and configures a logger object.
+
+    This function creates a new logger object with the specified name and
+    logging level. It also configures the logger to write logs to a file
+    and display logs on the console.
+
+    Args:
+        logger_name: The name of the logger to configure.
+        level: The logging level to set for the logger (either integer
+                or string). Defaults to "DEBUG".
+
+    Returns:
+        The configured logger object.
+    """
+    logger = logging.getLogger(logger_name)
+
+    # Need to check if provided logger level is a string or an integer and ensure
+    # level is correct
+    logger_level = (
+        level
+        if isinstance(level, int)
+        else LOG_LEVEL_MAP.get(level.upper(), logging.INFO)
+    )
+
+    logger.setLevel(logger_level)
+
+    # Setup the handlers in a dictionary for easier configuration
+    handlers = {
+        "file": {
+            "class": logging.FileHandler(LOG_PATH, mode="a", encoding="utf-8"),
+            "formatter": FILE_LOG_FORMATTER,
+            "level": logging.INFO,
+        },
+        "console": {
+            "class": logging.StreamHandler(),
+            "formatter": CONSOLE_LOG_FORMATTER,
+            "level": logging.ERROR,
+        },
+    }
+
+    for handler in handlers.values():
+        handler_instance = handler["class"]
+        handler_instance.setFormatter(handler["formatter"])
+        handler_instance.setLevel(handler["level"])
+        logger.addHandler(handler_instance)
+
+    return logger
+
+
+def disable_logging(log_level: int | str = "CRITICAL") -> None:
+    """Disables logging for the module.
+
+    This function disables logging by setting the logging level to a specified level.
+    By default, it sets the level to "CRITICAL" to disable all logging.
+
+    Args:
+        log_level: The logging level to set to disable logging. Defaults to "CRITICAL".#
+    """
+    logging.disable(LOG_LEVEL_MAP.get(log_level.upper(), logging.CRITICAL))
