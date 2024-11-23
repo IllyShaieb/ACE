@@ -23,9 +23,30 @@ Example:
       ]
   }
 
-In the future, this module can be extended to include other configuration
-settings for ACE, such as customisation options.
+This module also contains configuration settings for the logger and methods to
+configure the logger with the specified logging level and handlers.
 """
+
+import logging
+from datetime import datetime
+
+LOG_LEVEL_MAP = {
+    "DEBUG": logging.DEBUG,
+    "INFO": logging.INFO,
+    "WARNING": logging.WARNING,
+    "ERROR": logging.ERROR,
+}
+LOG_PATH = f"logs/ace_{datetime.now().strftime('%Y-%m-%d')}.log"
+UNIT_TEST_LOG_PATH = f"tests/logs/ace_{datetime.now().strftime('%Y-%m-%d')}.log"
+FILE_LOG_FORMATTER = logging.Formatter(
+    "{asctime} | {name:<15} | {levelname:<8} | {message}",
+    style="{",
+    datefmt="%Y-%m-%d %H:%M:%S",
+)
+CONSOLE_LOG_FORMATTER = logging.Formatter(
+    "{levelname:<8} | {message}", style="{", datefmt="%H:%M:%S"
+)
+
 
 INTENT_PATTERNS = {
     "DUMMY_SKILL": [
