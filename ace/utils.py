@@ -207,7 +207,7 @@ def create_logger(logger_name: str, level: int | str = "DEBUG") -> logging.Logge
         "file": {
             "class": logging.FileHandler(LOG_PATH, mode="a", encoding="utf-8"),
             "formatter": FILE_LOG_FORMATTER,
-            "level": logging.INFO,
+            "level": logger_level,
         },
         "console": {
             "class": logging.StreamHandler(),
