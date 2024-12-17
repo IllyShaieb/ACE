@@ -28,6 +28,7 @@ configure the logger with the specified logging level and handlers.
 """
 
 import logging
+import os
 from datetime import datetime
 
 LOG_LEVEL_MAP = {
@@ -46,7 +47,7 @@ FILE_LOG_FORMATTER = logging.Formatter(
 CONSOLE_LOG_FORMATTER = logging.Formatter(
     "{levelname:<8} | {message}", style="{", datefmt="%H:%M:%S"
 )
-
+ACE_LOGGING_LEVEL = os.getenv("ACE_LOGGING_LEVEL", "INFO")
 
 INTENT_PATTERNS = {
     "DUMMY_SKILL": [

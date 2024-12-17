@@ -11,13 +11,12 @@ configured using the `ACE_LOGGING_LEVEL` environment variable (default
 is INFO).
 """
 
-import os
-
 from dotenv import load_dotenv
 
 load_dotenv(override=True)
 
 from ace import skills  # noqa: E402
+from ace.config import ACE_LOGGING_LEVEL  # noqa: F401, E402
 from ace.utils import create_logger, disable_logging  # noqa: F401, E402
 
 # Define the version of the ACE program. Must be in the format YYYY.MM.PATCH.
@@ -30,6 +29,3 @@ skills_dict = {
     for attr in dir(skills)
     if callable(getattr(skills, attr)) and attr.endswith("skill")
 }
-
-# Define the logging level for the ACE program.
-ACE_LOGGING_LEVEL = os.getenv("ACE_LOGGING_LEVEL", "INFO")
