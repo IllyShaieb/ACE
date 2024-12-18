@@ -232,6 +232,6 @@ def disable_logging(log_level: int | str = "CRITICAL") -> None:
     By default, it sets the level to "CRITICAL" to disable all logging.
 
     Args:
-        log_level: The logging level to set to disable logging. Defaults to "CRITICAL".#
+        log_level: The logging level to set to disable logging. Defaults to "CRITICAL".
     """
     logging.disable(LOG_LEVEL_MAP.get(log_level.upper(), logging.CRITICAL))
