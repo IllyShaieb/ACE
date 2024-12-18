@@ -33,9 +33,13 @@ from newsapi.newsapi_exception import NewsAPIException
 from requests import exceptions as requests_exceptions
 from weatherapi.rest import ApiException as WeatherApiException
 
-from ace.utils import add_todo, get_news, get_todos, get_weather
+from ace.config import ACE_LOGGING_LEVEL
+from ace.utils import add_todo, create_logger, get_news, get_todos, get_weather
 
 load_dotenv()
+
+# Logger must be created here to ensure that it can be used in all functions
+logger = create_logger(__name__, ACE_LOGGING_LEVEL)
 
 
 def dummy_skill(entities: dict[str] = None) -> str:
@@ -51,6 +55,7 @@ def dummy_skill(entities: dict[str] = None) -> str:
     Returns:
         A string indicating the skill's action.
     """
+    logger.debug(f"Running the `dummy` skill with entities: {entities}")
     if entities:
         return f"This dummy skill has the following entities: {entities}"
     return "This is a dummy skill. It does nothing."
@@ -69,6 +74,7 @@ def greeting_skill(entities: dict[str] = None) -> str:
     Returns:
         A string containing a greeting message.
     """
+    logger.debug(f"Running the `greeting` skill with entities: {entities}")
     responses = [
         "Hello! How can I help you?",
         "Hi there! What can I do for you?",
@@ -90,6 +96,7 @@ def farewell_skill(entities: dict[str] = None) -> str:
     Returns:
         A string containing a farewell message.
     """
+    logger.debug(f"Running the `farewell` skill with entities: {entities}")
     responses = ["Goodbye!", "Bye! See you later.", "See you soon!"]
     return choice(responses)
 
@@ -107,6 +114,7 @@ def who_are_you_skill(entities: dict[str] = None) -> str:
     Returns:
         A string containing the introduction message.
     """
+    logger.debug(f"Running the `who_are_you` skill with entities: {entities}")
     lines = [
         "I'm ACE, your Artificial Consciousness Engine.",
         "I'm here to help with things and tell you what's going on.",
@@ -127,6 +135,7 @@ def how_are_you_skill(entities: dict[str] = None) -> str:
     Returns:
         A string containing a response to the user's inquiry.
     """
+    logger.debug(f"Running the `how_are_you` skill with entities: {entities}")
     lines = [
         "As an Artificial Consciousness Engine, I don't have feelings,",
         "but I'm ready to help you out. What can I do for you today?",
@@ -153,6 +162,8 @@ def get_weather_skill(entities: dict[str] = None) -> str:
         A string containing the weather forecast information,  or an error
         message if the request fails.
     """
+    logger.debug(f"Running the `get_weather` skill with entities: {entities}")
+
     # Unpack the entities from the dictionary
     location = entities.get("location", os.environ.get("ACE_HOME_LOCATION", "London"))
     timeframe = entities.get("timeframe", "current")
@@ -168,6 +179,8 @@ def get_weather_skill(entities: dict[str] = None) -> str:
     # Call the weather API to get the weather data
     try:
         api_response = get_weather(location, future_days=future_days)
+
+        logger.debug(f"API response: {api_response}")
 
         # Extract the relevant weather information from the API response
         if future_days == 0:  # Current weather
@@ -203,6 +216,7 @@ def get_weather_skill(entities: dict[str] = None) -> str:
         return response
 
     except WeatherApiException as e:
+        logger.warning(f"Error fetching weather data: {e}", exc_info=True)
         if e.status == 400:
             return f"Sorry, the location provided ({location}) is invalid."
         elif e.status == 401:
@@ -215,6 +229,7 @@ def get_weather_skill(entities: dict[str] = None) -> str:
             return "Sorry, there was an error fetching weather information."
 
     except KeyError:
+        logger.warning("Error parsing weather data", exc_info=True)
         return "Sorry, there was an error processing the weather data."
 
 
@@ -236,6 +251,8 @@ def tell_time_skill(entities: dict[str] = None) -> str:
     Returns:
         A string containing the current or future time based on the request.
     """
+    logger.debug(f"Running the `tell_time` skill with entities: {entities}")
+
     # Unpack the entities from the dictionary
     time_value = entities.get("timevalue", 0)
     time_unit = entities.get("timeunit", None)
@@ -302,6 +319,8 @@ def todo_skill(entities: dict[str] = None) -> str:
         A string containing the response to the user's request, or an error
         message if the request fails.
     """
+    logger.debug(f"Running the `todo` skill with entities: {entities}")
+
     # Unpack the entities from the dictionary and set default values
     action = entities.get("action", "show")
     project = None
@@ -326,6 +345,8 @@ def todo_skill(entities: dict[str] = None) -> str:
                     "No tasks due today. Time to relax!",
                 ]
                 return choice(possible_responses)
+
+            logger.debug(f"Tasks due today: {todos}")
 
             response_text = "Here are your tasks for today:"
             for todo in todos:
@@ -354,12 +375,16 @@ def todo_skill(entities: dict[str] = None) -> str:
         return "Sorry, I didn't understand that. Please try again."
 
     except requests_exceptions.ConnectionError:
+        logger.warning("Connection error with the to-do service", exc_info=True)
         return "Sorry, I can't connect to the to-do service. Please check your internet connection."
     except requests_exceptions.Timeout:
+        logger.warning("Timeout error with the to-do service", exc_info=True)
         return "Sorry, the to-do service is taking too long to respond. Please try again later."
     except requests_exceptions.HTTPError:
+        logger.warning("HTTP error with the to-do service", exc_info=True)
         return "Sorry, there was an error fetching your to-do list. Please try again later."
     except requests_exceptions.RequestException as e:
+        logger.warning(f"Request error with the to-do service: {e}", exc_info=True)
         return f"Sorry, there was an unexpected error with the to-do service:: {e}"
 
 
@@ -377,6 +402,8 @@ def news_skill(entities: dict[str] = None) -> str:
     Returns:
         A string containing the latest news articles based on the request.
     """
+    logger.debug(f"Running the `news` skill with entities: {entities}")
+
     # Unpack the entities from the dictionary
     topic = entities.get("topic", None)
 
@@ -386,6 +413,8 @@ def news_skill(entities: dict[str] = None) -> str:
 
         # Extract the relevant news information from the API response
         if news:
+            logger.debug(f"News data: {news}")
+
             response_text = f"Here are the latest {topic or 'top'} news articles:\n"
             response_text += "\n\n".join(
                 f"- {article['title']}: {article['description']}" for article in news
@@ -412,6 +441,10 @@ def news_skill(entities: dict[str] = None) -> str:
             "unexpectedError": "Apologies, it seems there was an unexpected error with the news service. Please try again later.",
         }
 
-        return error_code_map.get(
+        error_message = error_code_map.get(
             e.get_code(), "Apologies, there was an error fetching news."
         )
+
+        logger.warning(error_message, exc_info=True)
+
+        return error_message
