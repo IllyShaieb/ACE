@@ -55,7 +55,7 @@ def dummy_skill(entities: dict[str] = None) -> str:
     Returns:
         A string indicating the skill's action.
     """
-    logger.debug(f"Running the `dummy` skill with entities: {entities}")
+    logger.info(f"Running the `dummy` skill with entities: {entities}")
     if entities:
         return f"This dummy skill has the following entities: {entities}"
     return "This is a dummy skill. It does nothing."
@@ -74,7 +74,7 @@ def greeting_skill(entities: dict[str] = None) -> str:
     Returns:
         A string containing a greeting message.
     """
-    logger.debug(f"Running the `greeting` skill with entities: {entities}")
+    logger.info(f"Running the `greeting` skill with entities: {entities}")
     responses = [
         "Hello! How can I help you?",
         "Hi there! What can I do for you?",
@@ -96,7 +96,7 @@ def farewell_skill(entities: dict[str] = None) -> str:
     Returns:
         A string containing a farewell message.
     """
-    logger.debug(f"Running the `farewell` skill with entities: {entities}")
+    logger.info(f"Running the `farewell` skill with entities: {entities}")
     responses = ["Goodbye!", "Bye! See you later.", "See you soon!"]
     return choice(responses)
 
@@ -114,7 +114,7 @@ def who_are_you_skill(entities: dict[str] = None) -> str:
     Returns:
         A string containing the introduction message.
     """
-    logger.debug(f"Running the `who_are_you` skill with entities: {entities}")
+    logger.info(f"Running the `who_are_you` skill with entities: {entities}")
     lines = [
         "I'm ACE, your Artificial Consciousness Engine.",
         "I'm here to help with things and tell you what's going on.",
@@ -135,7 +135,7 @@ def how_are_you_skill(entities: dict[str] = None) -> str:
     Returns:
         A string containing a response to the user's inquiry.
     """
-    logger.debug(f"Running the `how_are_you` skill with entities: {entities}")
+    logger.info(f"Running the `how_are_you` skill with entities: {entities}")
     lines = [
         "As an Artificial Consciousness Engine, I don't have feelings,",
         "but I'm ready to help you out. What can I do for you today?",
@@ -162,7 +162,7 @@ def get_weather_skill(entities: dict[str] = None) -> str:
         A string containing the weather forecast information,  or an error
         message if the request fails.
     """
-    logger.debug(f"Running the `get_weather` skill with entities: {entities}")
+    logger.info(f"Running the `get_weather` skill with entities: {entities}")
 
     # Unpack the entities from the dictionary
     location = entities.get("location", os.environ.get("ACE_HOME_LOCATION", "London"))
@@ -251,7 +251,7 @@ def tell_time_skill(entities: dict[str] = None) -> str:
     Returns:
         A string containing the current or future time based on the request.
     """
-    logger.debug(f"Running the `tell_time` skill with entities: {entities}")
+    logger.info(f"Running the `tell_time` skill with entities: {entities}")
 
     # Unpack the entities from the dictionary
     time_value = entities.get("timevalue", 0)
@@ -319,7 +319,7 @@ def todo_skill(entities: dict[str] = None) -> str:
         A string containing the response to the user's request, or an error
         message if the request fails.
     """
-    logger.debug(f"Running the `todo` skill with entities: {entities}")
+    logger.info(f"Running the `todo` skill with entities: {entities}")
 
     # Unpack the entities from the dictionary and set default values
     action = entities.get("action", "show")
@@ -402,7 +402,7 @@ def news_skill(entities: dict[str] = None) -> str:
     Returns:
         A string containing the latest news articles based on the request.
     """
-    logger.debug(f"Running the `news` skill with entities: {entities}")
+    logger.info(f"Running the `news` skill with entities: {entities}")
 
     # Unpack the entities from the dictionary
     topic = entities.get("topic", None)
