@@ -45,7 +45,7 @@ FILE_LOG_FORMATTER = logging.Formatter(
     datefmt="%Y-%m-%d %H:%M:%S",
 )
 CONSOLE_LOG_FORMATTER = logging.Formatter(
-    "{levelname:<8} | {message}", style="{", datefmt="%H:%M:%S"
+    "ACE: {message}", style="{", datefmt="%H:%M:%S"
 )
 ACE_LOGGING_LEVEL = os.getenv("ACE_LOGGING_LEVEL", "INFO")
 
