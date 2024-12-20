@@ -250,7 +250,7 @@ def create_logger(logger_name: str, level: int | str = "DEBUG") -> logging.Logge
     return logger
 
 
-def disable_logging(log_level: int | str = "CRITICAL") -> None:
+def disable_logging(log_level: int | str = "CRITICAL", reason: str = None) -> None:
     """Disables logging for the module.
 
     This function disables logging by setting the logging level to a specified level.
@@ -258,5 +258,12 @@ def disable_logging(log_level: int | str = "CRITICAL") -> None:
 
     Args:
         log_level: The logging level to set to disable logging. Defaults to "CRITICAL".
+        reason: (optional) The reason for disabling logging. Outputs the log message
+                in the format: "Disabling logging with level: {log_level} ({reason})".
     """
+    logger = create_logger(__name__, ACE_LOGGING_LEVEL)
+
+    reason = f"({reason})" if reason else ""
+    logger.info(f"Disabling logging with level: {log_level} {reason}".strip())
+
     logging.disable(LOG_LEVEL_MAP.get(log_level.upper(), logging.CRITICAL))
