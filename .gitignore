@@ -5,9 +5,3 @@ __pycache__/
 
 # Development
 .vscode/
-
-# Environment
-.env
-
-# Logs
-*.log
