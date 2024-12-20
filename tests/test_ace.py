@@ -10,7 +10,7 @@ import unittest
 
 from ace import __version__, disable_logging
 
-disable_logging("ERROR")
+disable_logging("ERROR", "Prevent logging during test_ace.py")
 
 
 class TestVersion(unittest.TestCase):

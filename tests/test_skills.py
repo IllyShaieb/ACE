@@ -20,7 +20,7 @@ from ace import disable_logging, skills_dict
 
 load_dotenv()
 
-disable_logging("ERROR")
+disable_logging("ERROR", "Prevent logging during test_skills.py")
 
 
 class TestDummySkill(unittest.TestCase):

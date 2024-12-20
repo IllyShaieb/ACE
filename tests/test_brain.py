@@ -18,7 +18,7 @@ from ace.brain import (
     select_skill,
 )
 
-disable_logging("ERROR")
+disable_logging("ERROR", "Prevent logging during test_brain.py")
 
 
 class TestGetInput(unittest.TestCase):
