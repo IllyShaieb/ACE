@@ -49,6 +49,7 @@ _Note: This project is developed and tested on Python 3.10.2, in Windows 10. It 
     ACE_TODO_MANAGER_API_KEY=your_api_key_here
     ACE_NEWS_API_KEY=your_api_key_here
     ACE_NEWS_SOURCES=your_news_sources_here (comma-separated)
+    ACE_LOGGING_LEVEL=INFO
     ```
 
 See the [Setting up APIs and Skills](#setting-up-apis-and-skills) section for more information on setting up the APIs.
@@ -128,6 +129,13 @@ ACE uses external APIs and services to provide some of its functionality. You'll
   3.  In your `.env` file:
       - Set the `ACE_NEWS_API_KEY` variable to your NewsAPI key.
       - Set the `ACE_NEWS_SOURCES` variable to the news sources you want to get news from (e.g., "bbc-news, cnn").
+
+- **Logging:**
+
+  _Note: You can control the logging level of ACE by setting the `ACE_LOGGING_LEVEL` variable in your `.env` file._
+
+  - Set the `ACE_LOGGING_LEVEL` variable to the desired logging level to control the verbosity of the logs (e.g., "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL").
+  - Logs will be written to the `ace_<YYYY-MM-DD>.log` file in the `logs` directory, where `<YYYY-MM-DD>` is the current date.
 
 ## Contributing
 

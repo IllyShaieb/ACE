@@ -5,9 +5,19 @@ It initialises the `skills_dict` dictionary, which maps intent names
 to their corresponding skill functions. This dictionary is used by the
 `brain` module to select and execute the appropriate skill based on the
 user's intent.
+
+It also defines the logging level for the ACE program, which can be
+configured using the `ACE_LOGGING_LEVEL` environment variable (default
+is INFO).
 """
 
-from ace import skills
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
+
+from ace import skills  # noqa: E402
+from ace.config import ACE_LOGGING_LEVEL  # noqa: F401, E402
+from ace.utils import create_logger, disable_logging  # noqa: F401, E402
 
 # Define the version of the ACE program. Must be in the format YYYY.MM.PATCH.
 __version__ = "2024.11.0"

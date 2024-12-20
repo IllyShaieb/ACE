@@ -11,6 +11,7 @@ These utility functions are designed to be reusable and modular, promoting
 code organisation and maintainability.
 """
 
+import logging
 import os
 import re
 from datetime import date, timedelta
@@ -19,6 +20,14 @@ import weatherapi
 from cachetools import TTLCache, cached
 from newsapi import NewsApiClient
 from todoist_api_python.api import TodoistAPI
+
+from ace.config import (
+    ACE_LOGGING_LEVEL,
+    CONSOLE_LOG_FORMATTER,
+    FILE_LOG_FORMATTER,
+    LOG_LEVEL_MAP,
+    LOG_PATH,
+)
 
 
 @cached(cache=TTLCache(maxsize=60, ttl=300))
@@ -39,6 +48,9 @@ def get_weather(location: str, future_days: int = 0) -> dict:
     Returns:
         A dictionary containing the weather information.
     """
+    logger = create_logger(__name__, ACE_LOGGING_LEVEL)
+    logger.debug(f"Calling get_weather(location={location}, future_days={future_days})")
+
     # Setup the WeatherAPI configuration
     weatherapi_config = weatherapi.Configuration()
     weatherapi_config.api_key["key"] = os.environ.get("ACE_WEATHER_API_KEY")
@@ -47,11 +59,14 @@ def get_weather(location: str, future_days: int = 0) -> dict:
 
     if future_days >= 1:
         forecast_date = date.today() + timedelta(days=future_days)
-        return weatherapi_instance.forecast_weather(
+        weather_data = weatherapi_instance.forecast_weather(
             q=location, dt=forecast_date.strftime("%Y-%m-%d"), days=future_days
         )
     else:
-        return weatherapi_instance.realtime_weather(q=location)
+        weather_data = weatherapi_instance.realtime_weather(q=location)
+
+    logger.debug(f"Weather data: {weather_data}")
+    return weather_data
 
 
 def get_todos(project: str, task_filter: str = None) -> list[dict[str, str]]:
@@ -68,12 +83,18 @@ def get_todos(project: str, task_filter: str = None) -> list[dict[str, str]]:
     Returns:
         A list of dictionaries, where each dictionary represents a task.
     """
+    logger = create_logger(__name__, ACE_LOGGING_LEVEL)
+    logger.debug(f"Calling get_todos(project={project}, task_filter={task_filter})")
+
     todo_manager = os.environ.get("ACE_TODO_MANAGER", "todoist").lower()
+    logger.debug(f"Using todo manager: {todo_manager}")
 
     if todo_manager == "todoist":
         api = TodoistAPI(os.environ.get("ACE_TODO_MANAGER_API_KEY"))
     else:
         raise ValueError(f"Unknown todo manager: {todo_manager}")
+
+    logger.debug(f"Received API object: {api}")
 
     tasks = []
     for task in api.get_tasks(project=project, filter=task_filter):
@@ -103,9 +124,16 @@ def add_todo(content: str, project: str = None) -> dict:
     Returns:
         A dictionary representing the added task.
     """
+    logger = create_logger(__name__, ACE_LOGGING_LEVEL)
+    logger.debug(f"Calling add_todo(content={content}, project={project})")
+
     todo_manager = os.environ.get("ACE_TODO_MANAGER", "todoist").lower()
+    logger.debug(f"Using todo manager: {todo_manager}")
+
     if todo_manager == "todoist":
         api = TodoistAPI(os.environ.get("ACE_TODO_MANAGER_API_KEY"))
+        logger.debug(f"Received API object: {api}")
+
         return api.add_task(content, project=project)
     else:
         raise ValueError(f"Unknown todo manager: {todo_manager}")
@@ -129,6 +157,9 @@ def get_news(topic: str = None, limit: int = 5) -> list[dict[str, str]]:
     Returns:
         A list of dictionaries, where each dictionary represents a news article.
     """
+    logger = create_logger(__name__, ACE_LOGGING_LEVEL)
+    logger.debug(f"Calling get_news(topic={topic}, limit={limit})")
+
     # Setup the NewsAPI configuration
     news_api = NewsApiClient(api_key=os.environ.get("ACE_NEWS_API_KEY"))
     possible_categories = [
@@ -152,6 +183,8 @@ def get_news(topic: str = None, limit: int = 5) -> list[dict[str, str]]:
     else:
         news = news_api.get_top_headlines(language="en")
 
+    logger.debug(f"News data: {news}")
+
     # Standardise the news article format
     news_articles = [
         {
@@ -165,3 +198,72 @@ def get_news(topic: str = None, limit: int = 5) -> list[dict[str, str]]:
     ]
 
     return news_articles[:limit]
+
+
+def create_logger(logger_name: str, level: int | str = "DEBUG") -> logging.Logger:
+    """Creates and configures a logger object.
+
+    This function creates a new logger object with the specified name and
+    logging level. It also configures the logger to write logs to a file
+    and display logs on the console.
+
+    Args:
+        logger_name: The name of the logger to configure.
+        level: The logging level to set for the logger (either integer
+                or string). Defaults to "DEBUG".
+
+    Returns:
+        The configured logger object.
+    """
+    logger = logging.getLogger(logger_name)
+
+    # Need to check if provided logger level is a string or an integer and ensure
+    # level is correct
+    logger_level = (
+        level
+        if isinstance(level, int)
+        else LOG_LEVEL_MAP.get(level.upper(), logging.INFO)
+    )
+
+    logger.setLevel(logger_level)
+
+    # Setup the handlers in a dictionary for easier configuration
+    handlers = {
+        "file": {
+            "class": logging.FileHandler(LOG_PATH, mode="a", encoding="utf-8"),
+            "formatter": FILE_LOG_FORMATTER,
+            "level": logger_level,
+        },
+        "console": {
+            "class": logging.StreamHandler(),
+            "formatter": CONSOLE_LOG_FORMATTER,
+            "level": logging.ERROR,
+        },
+    }
+
+    for handler in handlers.values():
+        handler_instance = handler["class"]
+        handler_instance.setFormatter(handler["formatter"])
+        handler_instance.setLevel(handler["level"])
+        logger.addHandler(handler_instance)
+
+    return logger
+
+
+def disable_logging(log_level: int | str = "CRITICAL", reason: str = None) -> None:
+    """Disables logging for the module.
+
+    This function disables logging by setting the logging level to a specified level.
+    By default, it sets the level to "CRITICAL" to disable all logging.
+
+    Args:
+        log_level: The logging level to set to disable logging. Defaults to "CRITICAL".
+        reason: (optional) The reason for disabling logging. Outputs the log message
+                in the format: "Disabling logging with level: {log_level} ({reason})".
+    """
+    logger = create_logger(__name__, ACE_LOGGING_LEVEL)
+
+    reason = f"({reason})" if reason else ""
+    logger.info(f"Disabling logging with level: {log_level} {reason}".strip())
+
+    logging.disable(LOG_LEVEL_MAP.get(log_level.upper(), logging.CRITICAL))

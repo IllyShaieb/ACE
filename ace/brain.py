@@ -14,8 +14,11 @@ orchestrating the interaction between the user and the various skills.
 
 import re
 
-from ace import skills_dict
+from ace import ACE_LOGGING_LEVEL, create_logger, skills_dict
 from ace.config import INTENT_PATTERNS
+
+# Logger must be created here to ensure that it can be used in all functions
+logger = create_logger(__name__, ACE_LOGGING_LEVEL)
 
 
 def get_user_input() -> str:
@@ -30,11 +33,14 @@ def get_user_input() -> str:
     Returns:
         A string containing the user input.
     """
-    return input("User: ")
+    logger.debug("Getting user input from the console.")
+    user_input = input("User: ")
+    logger.debug(f"Received user input: {user_input}")
+    return user_input
 
 
 def process_user_input(user_input: str) -> str:
-    """Standardises user input for passing through the system.
+    """Standardizes user input for passing through the system.
 
     This function performs basic preprocessing on the user input, including:
     - Converting the input to lowercase
@@ -46,6 +52,8 @@ def process_user_input(user_input: str) -> str:
     Returns:
         A string containing the processed user input.
     """
+    logger.debug(f"Processing user input: {user_input}")  # Log before processing
+
     # Convert to lowercase and remove unwanted characters
     processed_input = user_input.lower()
     processed_input = re.sub(r"[^\w\s\.,-]", "", processed_input)
@@ -69,7 +77,9 @@ def recognise_intent(processed_input: str) -> str:
     for intent, patterns in INTENT_PATTERNS.items():
         for pattern in patterns:
             if re.search(pattern, processed_input):
+                logger.debug(f"Intent recognised: {intent}")
                 return intent
+    logger.debug("No intent recognised.")
     return None
 
 
@@ -100,7 +110,12 @@ def extract_entities(processed_input: str, intent: str) -> dict:
                     for i, value in enumerate(match.groups()):
                         if i + 1 not in entities:
                             entities[i + 1] = value
+
+                logger.debug(f"Extracted entities: {entities}")
                 break
+    else:
+        logger.debug("No entities extracted.")
+
     return entities
 
 
@@ -118,4 +133,9 @@ def select_skill(intent: str) -> callable:
         A callable function representing the skill to be executed
         based on the intent.
     """
-    return skills_dict[intent]
+    if skill := skills_dict.get(intent):
+        logger.debug(f"Selected skill: {skill.__name__}")
+    else:
+        logger.warning(f"Unable to find skill for intent: {intent}")
+
+    return skill

@@ -9,7 +9,7 @@ and select the appropriate skills.
 import unittest
 from unittest.mock import patch
 
-from ace import skills_dict
+from ace import disable_logging, skills_dict
 from ace.brain import (
     extract_entities,
     get_user_input,
@@ -17,6 +17,8 @@ from ace.brain import (
     recognise_intent,
     select_skill,
 )
+
+disable_logging("ERROR", "Prevent logging during test_brain.py")
 
 
 class TestGetInput(unittest.TestCase):
