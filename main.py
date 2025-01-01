@@ -11,23 +11,24 @@ If you haven't installed `uv` yet, you can do so using pip:
 """
 from brain import __version__
 from brain.input import text_input
+from brain.output import text_output
 
 ACE_ID: str = "ACE"
 USER_ID: str = "YOU"
 EXIT_COMMAND: str = "exit"
 
 def main():
-    print(f" ACE v{__version__} ".center(80, "="), end="\n\n")
-    print(f"To exit the program, type '{EXIT_COMMAND}' and press Enter.".center(80, " "), end="\n\n")
-    print(f"{ACE_ID}: Hello! I am ACE, how can I help you?")
+    text_output(f" ACE v{__version__} ".center(80, "="), line_end="\n\n")
+    text_output(f"To exit the program, type '{EXIT_COMMAND}' and press Enter.".center(80, " "), line_end="\n\n")
+    text_output(f"{ACE_ID}: Hello! I am ACE, how can I help you?")
 
     while True:
         user_input = text_input(f"{USER_ID}: ")
         if user_input.lower() == EXIT_COMMAND:
-            print(f"{ACE_ID}: Goodbye!")
+            text_output(f"{ACE_ID}: Goodbye!")
             break
         else:
-            print(f"{ACE_ID}: Sorry, I don't understand.")
+            text_output(f"{ACE_ID}: Sorry, I don't understand.")
 
 if __name__ == "__main__":
     main()
