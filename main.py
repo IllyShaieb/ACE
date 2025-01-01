@@ -10,6 +10,7 @@ If you haven't installed `uv` yet, you can do so using pip:
     $ pip install uv
 """
 from brain import __version__
+from brain.input import text_input
 
 ACE_ID: str = "ACE"
 USER_ID: str = "YOU"
@@ -21,12 +22,12 @@ def main():
     print(f"{ACE_ID}: Hello! I am ACE, how can I help you?")
 
     while True:
-        user_input = input(f"{USER_ID}: ").strip().lower()
+        user_input = text_input(f"{USER_ID}: ")
         if user_input.lower() == EXIT_COMMAND:
             print(f"{ACE_ID}: Goodbye!")
             break
         else:
-            print(f"{ACE_ID}: Sorry, I don't understand that command.")
+            print(f"{ACE_ID}: Sorry, I don't understand.")
 
 if __name__ == "__main__":
     main()
