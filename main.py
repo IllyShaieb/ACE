@@ -9,17 +9,24 @@ To run the program, simply execute this file using `uv`:
 If you haven't installed `uv` yet, you can do so using pip:
     $ pip install uv
 """
+
 from brain import __version__
 from brain.input import text_input
 from brain.output import text_output
+from brain.models import ACEModel
 
 ACE_ID: str = "ACE"
 USER_ID: str = "YOU"
 EXIT_COMMAND: str = "exit"
 
+
 def main():
     text_output(f" ACE v{__version__} ".center(80, "="), line_end="\n\n")
-    text_output(f"To exit the program, type '{EXIT_COMMAND}' and press Enter.".center(80, " "), line_end="\n\n")
+    ace_model = ACEModel()
+    text_output(
+        f"To exit the program, type '{EXIT_COMMAND}' and press Enter.".center(80, " "),
+        line_end="\n\n",
+    )
     text_output(f"{ACE_ID}: Hello! I am ACE, how can I help you?")
 
     while True:
@@ -27,8 +34,10 @@ def main():
         if user_input.lower() == EXIT_COMMAND:
             text_output(f"{ACE_ID}: Goodbye!")
             break
-        else:
-            text_output(f"{ACE_ID}: Sorry, I don't understand.")
+
+        response = ace_model.query(user_input)
+        text_output(f"{ACE_ID}: {response}")
+
 
 if __name__ == "__main__":
     main()
