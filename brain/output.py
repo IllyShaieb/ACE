@@ -7,6 +7,7 @@ functions:
 - text_output: Handles text output to the user.
 """
 
+
 def text_output(message: str, line_end: str = None) -> None:
     """Handles text output to the user.
 
