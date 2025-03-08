@@ -1,20 +1,20 @@
-"""test_models.py: Tests for the models module in the ACE program.
+"""test_agents.py: Tests for the agents module in the ACE program.
 
-Ensures that the models in the ACE program work as expected, and that
+Ensures that the agents in the ACE program work as expected, and that
 the responses generated are correct.
 """
 
 import unittest
 
-from brain.models import ACEModel
+from brain.agent import ACEAgent
 
 
-class TestACEModel(unittest.TestCase):
-    """Tests for the ACEModel class in the models module."""
+class TestACEAgent(unittest.TestCase):
+    """Tests for the ACEAgent class in the agents module."""
 
     def test_query(self):
-        """Test the query method of the ACEModel class."""
-        ace_model = ACEModel()
+        """Test the query method of the ACEAgents class."""
+        ace_model = ACEAgent()
 
         scenarios = [
             ("", "Sorry, I don't understand.", "Check for empty input"),

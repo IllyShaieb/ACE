@@ -13,7 +13,7 @@ If you haven't installed `uv` yet, you can do so using pip:
 from brain import __version__, database as db
 from brain.input import text_input, InvalidInputError
 from brain.output import text_output
-from brain.models import ACEModel
+from brain.agent import ACEAgent
 
 ACE_ID: str = "ACE"
 USER_ID: str = "YOU"
@@ -36,7 +36,7 @@ def main():
         text_output(f"Error creating database: {e}")
 
     text_output(f" ACE v{__version__} ".center(80, "="), line_end="\n\n")
-    ace_model = ACEModel()
+    ace_model = ACEAgent()
     text_output(f"Type '{EXIT_COMMAND}' to exit.".center(80, " "), "\n\n")
 
     # Start the conversation
