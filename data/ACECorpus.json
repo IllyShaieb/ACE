@@ -1,0 +1,38 @@
+{
+  "metadata": {
+    "versions": [
+      {
+        "version": "2025.03.0",
+        "notes": "Initial version"
+      }
+    ],
+    "authors": ["Illias Shaieb"],
+    "description": "Dataset for the ACE virtual assistant."
+  },
+  "intents": [
+    {
+      "intent": "greeting",
+      "utterances": [
+        "hello",
+        "hello there",
+        "hi",
+        "hi there",
+        "hey",
+        "good morning",
+        "good evening",
+        "good afternoon"
+      ]
+    },
+    {
+      "intent": "goodbye",
+      "utterances": [
+        "goodbye",
+        "see you later",
+        "bye",
+        "good bye",
+        "catch you later",
+        "later"
+      ]
+    }
+  ]
+}
