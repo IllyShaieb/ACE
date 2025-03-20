@@ -1,4 +1,4 @@
-"""test_text.py: Tests for the text module in the ACE program.
+"""test_preprocessing.py: Tests for the preprocessing functions.
 
 Ensures that the text processing functions work as expected.
 """
@@ -13,31 +13,52 @@ from brain.text import preprocessing
 nlp = spacy.load("en_core_web_md")
 
 
-class TestPreprocessing(unittest.TestCase):
-    """Tests for the preprocessing module."""
+class TestTokenize(unittest.TestCase):
+    """Tests for the tokenize function."""
 
-    def test_tokenize(self):
-        """Test the tokenize function with lowercase option."""
+    def test_tokenize_default(self):
+        """Test the tokenize function with default parameters."""
         test_cases = [
-            ("Hello, world!", True, ["hello", ",", "world", "!"]),
-            ("Hello, world!", False, ["Hello", ",", "world", "!"]),
-            ("This is a test.", True, ["this", "is", "a", "test", "."]),
-            ("This is a test.", False, ["This", "is", "a", "test", "."]),
+            ("Hello, world!", ["hello", ",", "world", "!"]),
+            ("This is a test.", ["this", "is", "a", "test", "."]),
             (
                 "  leading and trailing spaces  ",
-                True,
                 ["leading", "and", "trailing", "spaces"],
             ),
-            ("", True, []),
-            ("123 456", True, ["123", "456"]),
-            ("Hello! How are you?", True, ["hello", "!", "how", "are", "you", "?"]),
-            ("this cost £100", True, ["this", "cost", "£", "100"]),
+            ("", []),
+            ("123 456", ["123", "456"]),
+            ("Hello! How are you?", ["hello", "!", "how", "are", "you", "?"]),
+            ("this cost £100", ["this", "cost", "£", "100"]),
         ]
 
-        for text, lowercase, expected_tokens in test_cases:
-            with self.subTest(text=text, lowercase=lowercase):
-                tokens = preprocessing.tokenize(text, lowercase=lowercase)
-                self.assertEqual(tokens, expected_tokens)
+        for text, expected in test_cases:
+            with self.subTest(text=text):
+                result = preprocessing.tokenize(text)
+                self.assertEqual(result, expected)
+
+    def test_tokenize_lowercase_false(self):
+        """Test the tokenize function with lowercase=False."""
+        test_cases = [
+            ("Hello, world!", ["Hello", ",", "world", "!"]),
+            ("This is a test.", ["This", "is", "a", "test", "."]),
+            (
+                "  leading and trailing spaces  ",
+                ["leading", "and", "trailing", "spaces"],
+            ),
+            ("", []),
+            ("123 456", ["123", "456"]),
+            ("Hello! How are you?", ["Hello", "!", "How", "are", "you", "?"]),
+            ("this cost £100", ["this", "cost", "£", "100"]),
+        ]
+
+        for text, expected in test_cases:
+            with self.subTest(text=text):
+                result = preprocessing.tokenize(text, lowercase=False)
+                self.assertEqual(result, expected)
+
+
+class TestBuildVocab(unittest.TestCase):
+    """Tests for the build_vocab function."""
 
     def test_build_vocab(self):
         """Test the build_vocab function."""
@@ -82,6 +103,10 @@ class TestPreprocessing(unittest.TestCase):
                 vocab = preprocessing.build_vocab(tokens)
                 self.assertEqual(vocab, expected_vocab)
 
+
+class TestVectorize(unittest.TestCase):
+    """Tests for the vectorize function."""
+
     def test_vectorize(self):
         """Test the vectorize function."""
         vocab = {"<PAD>": 0, "<UNK>": 1, "hello": 2, "world": 3, "!": 4}
@@ -98,32 +123,6 @@ class TestPreprocessing(unittest.TestCase):
             with self.subTest(tokens=tokens, max_length=max_length):
                 vector = preprocessing.vectorize(tokens, vocab, max_length)
                 self.assertEqual(vector, expected_vector)
-
-    def test_build_embedding_vocab(self):
-        """Test the build_embedding_vocab function."""
-        tokenized_texts = [["hello", "world"], ["another", "sentence", "!"]]
-        vocab = preprocessing.build_embedding_vocab(tokenized_texts)
-
-        self.assertEqual(len(vocab), 5)  # 5 unique tokens
-        self.assertTrue(all(isinstance(v, torch.Tensor) for v in vocab.values()))
-        self.assertEqual(next(iter(vocab.values())).shape[0], nlp.vocab.vectors_length)
-
-    def test_vectorize_embeddings(self):
-        """Test the vectorize_embeddings function."""
-        tokenized_texts = [["hello", "world"], ["another", "sentence", "!"]]
-        vocab = preprocessing.build_embedding_vocab(tokenized_texts)
-        max_length = 4
-        token_list = ["hello", "world", "unknown", "sentence"]
-        vectorized = preprocessing.vectorize_embeddings(token_list, vocab, max_length)
-
-        self.assertIsInstance(vectorized, torch.Tensor)
-        self.assertEqual(vectorized.shape, (max_length, nlp.vocab.vectors_length))
-        self.assertTrue(
-            torch.all(vectorized[2] == torch.zeros(nlp.vocab.vectors_length))
-        )  # Test out of vocab vector.
-        self.assertTrue(
-            torch.all(vectorized[0] == vocab["hello"])
-        )  # test in vocab vector.
 
     def test_vectorize_missing_tokens(self):
         """Test the vectorize function with missing tokens."""
@@ -144,6 +143,40 @@ class TestPreprocessing(unittest.TestCase):
             with self.subTest(vocab=vocab, error=error, reason=reason):
                 with self.assertRaises(error, msg=reason):
                     preprocessing.vectorize(["hello"], vocab)
+
+
+class TestBuildEmbeddingVocab(unittest.TestCase):
+    """Tests for the build_embedding_vocab function."""
+
+    def test_build_embedding_vocab(self):
+        """Test the build_embedding_vocab function."""
+        tokenized_texts = [["hello", "world"], ["another", "sentence", "!"]]
+        vocab = preprocessing.build_embedding_vocab(tokenized_texts)
+
+        self.assertEqual(len(vocab), 5)  # 5 unique tokens
+        self.assertTrue(all(isinstance(v, torch.Tensor) for v in vocab.values()))
+        self.assertEqual(next(iter(vocab.values())).shape[0], nlp.vocab.vectors_length)
+
+
+class TestVectorizeEmbeddings(unittest.TestCase):
+    """Tests for the vectorize_embeddings function."""
+
+    def test_vectorize_embeddings(self):
+        """Test the vectorize_embeddings function."""
+        tokenized_texts = [["hello", "world"], ["another", "sentence", "!"]]
+        vocab = preprocessing.build_embedding_vocab(tokenized_texts)
+        max_length = 4
+        token_list = ["hello", "world", "unknown", "sentence"]
+        vectorized = preprocessing.vectorize_embeddings(token_list, vocab, max_length)
+
+        self.assertIsInstance(vectorized, torch.Tensor)
+        self.assertEqual(vectorized.shape, (max_length, nlp.vocab.vectors_length))
+        self.assertTrue(
+            torch.all(vectorized[2] == torch.zeros(nlp.vocab.vectors_length))
+        )  # Test out of vocab vector.
+        self.assertTrue(
+            torch.all(vectorized[0] == vocab["hello"])
+        )  # test in vocab vector.
 
 
 if __name__ == "__main__":
