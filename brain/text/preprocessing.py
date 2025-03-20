@@ -68,6 +68,12 @@ def vectorize(
     Returns:
         list[int]: A list of integers representing the vectorized text.
     """
+    if "<PAD>" not in vocab:
+        raise ValueError("Vocabulary must contain a '<PAD>' token for padding.")
+
+    if "<UNK>" not in vocab:
+        raise ValueError("Vocabulary must contain a '<UNK>' token for unknown words.")
+
     vector = [vocab.get(token, vocab["<UNK>"]) for token in tokenized_text]
     padding = [vocab["<PAD>"]] * (max_length - len(vector))
     return vector[:max_length] + padding
@@ -101,7 +107,7 @@ def vectorize_embeddings(
     return torch.stack(vectors)
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     # Provide some examples to see each of the functions
     from pprint import pprint
 

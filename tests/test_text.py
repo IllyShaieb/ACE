@@ -125,6 +125,26 @@ class TestPreprocessing(unittest.TestCase):
             torch.all(vectorized[0] == vocab["hello"])
         )  # test in vocab vector.
 
+    def test_vectorize_missing_tokens(self):
+        """Test the vectorize function with missing tokens."""
+        test_cases = [
+            (
+                {"<UNK>": 0},
+                ValueError,
+                "Raise exception when vocab does not contains <UNK>",
+            ),
+            (
+                {"<PAD>": 0},
+                ValueError,
+                "Raise exception when vocab does not contains <PAD>",
+            ),
+        ]
+
+        for vocab, error, reason in test_cases:
+            with self.subTest(vocab=vocab, error=error, reason=reason):
+                with self.assertRaises(error, msg=reason):
+                    preprocessing.vectorize(["hello"], vocab)
+
 
 if __name__ == "__main__":
     unittest.main()
