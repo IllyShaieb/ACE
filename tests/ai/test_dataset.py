@@ -69,10 +69,11 @@ class TestIntentDataset(unittest.TestCase):
     def test_get_item_method(self):
         """Test the __getitem__ method of IntentDataset."""
         dataset = IntentDataset("test_corpus.json")
-        sample, label = dataset[0]
+        sample, label, length = dataset[0]
         self.assertIsInstance(sample, torch.Tensor)
         self.assertIsInstance(label, torch.Tensor)
-        self.assertEqual(sample.shape[0], 20)  # test max length is being used.
+        self.assertIsInstance(length, torch.Tensor)
+        self.assertEqual(sample.shape[0], 20)
 
     def test_intent_labels(self):
         """Test that intent labels are correctly created."""
@@ -132,10 +133,12 @@ class TestIntentDataset(unittest.TestCase):
     def test_data_types(self):
         """Test that the data types returned by __getitem__ are correct."""
         dataset = IntentDataset("test_corpus.json")
-        sample, label = dataset[0]
+        sample, label, length = dataset[0]
         self.assertIsInstance(sample, torch.Tensor)
         self.assertIsInstance(label, torch.Tensor)
+        self.assertIsInstance(length, torch.Tensor)
         self.assertEqual(label.dtype, torch.long)
+        self.assertEqual(length.dtype, torch.long)
 
 
 if __name__ == "__main__":

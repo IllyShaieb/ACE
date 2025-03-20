@@ -68,6 +68,9 @@ class IntentDataset(Dataset):
 
         # Vectorize the tokenized data using the selected vectorizer.
         self.data = self._vectorize_data(tokenized_data)
+        self.data_with_lengths = [
+            (item[0], item[1], len(item[0])) for item in self.data
+        ]  # Store lengths
 
     def __len__(self) -> int:
         """Returns the number of items in the dataset."""
@@ -80,9 +83,11 @@ class IntentDataset(Dataset):
             idx: The index of the item to return.
 
         Returns:
-            A tuple containing the vectorized utterance and the intent index.
+            A tuple containing the vectorized utterance, the intent index, and the
+            length of the original sequence.
         """
-        return self.data[idx]
+        sample, label, length = self.data_with_lengths[idx]
+        return sample, label, torch.tensor(length, dtype=torch.long)
 
     def _load_corpus(self, corpus_path: str) -> dict:
         """Loads the corpus from the given path.
