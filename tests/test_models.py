@@ -6,7 +6,7 @@ the responses generated are correct.
 
 import unittest
 
-from brain.models import ACEModel
+from core.models import ACEModel
 
 
 class TestACEModel(unittest.TestCase):

@@ -10,10 +10,10 @@ If you haven't installed `uv` yet, you can do so using pip:
     $ pip install uv
 """
 
-from brain import __version__, database as db
-from brain.input import text_input, InvalidInputError
-from brain.output import text_output
-from brain.models import ACEModel
+from core import __version__, database as db
+from core.input import text_input, InvalidInputError
+from core.output import text_output
+from core.models import ACEModel
 
 ACE_ID: str = "ACE"
 USER_ID: str = "YOU"
