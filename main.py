@@ -13,7 +13,7 @@ If you haven't installed `uv` yet, you can do so using pip:
 from core import __version__, database as db
 from core.input import text_input, InvalidInputError
 from core.output import text_output
-from core.models import ACEModel
+from core.model import ACEModel
 
 ACE_ID: str = "ACE"
 USER_ID: str = "YOU"
@@ -56,7 +56,7 @@ def main():
                 db.add_message(ACE_DATABASE, chat_id, ACE_ID, "Goodbye!")
                 break
 
-            response = ace_model.query(user_input)
+            response = ace_model(user_input)
             db.add_message(ACE_DATABASE, chat_id, ACE_ID, response)
             text_output(f"{ACE_ID}: {response}")
 
