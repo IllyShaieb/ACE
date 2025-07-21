@@ -7,7 +7,7 @@ expected, and that the data is retrieved and updated correctly.
 import unittest
 import os
 
-from brain import database as db
+from core import database as db
 
 
 class TestDatabase(unittest.TestCase):
