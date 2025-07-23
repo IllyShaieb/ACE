@@ -1,29 +1,26 @@
-"""test_models.py: Tests for the models module in the ACE program.
-
-Ensures that the models in the ACE program work as expected, and that
-the responses generated are correct.
-"""
+"""test_model.py: Unit tests for the model class."""
 
 import unittest
-
-from brain.models import ACEModel
+from core.model import ACEModel
 
 
 class TestACEModel(unittest.TestCase):
-    """Tests for the ACEModel class in the models module."""
+    """Test cases for the ACEModel class."""
+
+    def setUp(self):
+        self.ace_model = ACEModel()
 
     def test_query(self):
         """Test the query method of the ACEModel class."""
-        ace_model = ACEModel()
-
-        scenarios = [
+        test_cases = [
             ("", "Sorry, I don't understand.", "Check for empty input"),
             (" ", "Sorry, I don't understand.", "Check for whitespace input"),
         ]
 
-        for user_input, expected_response, scenario_desc in scenarios:
+        # Create subTests
+        for user_input, expected_response, scenario_desc in test_cases:
             with self.subTest(scenario_desc):
-                response = ace_model.query(user_input)
+                response = self.ace_model(user_input)
                 self.assertEqual(response, expected_response)
 
 
