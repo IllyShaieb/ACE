@@ -249,7 +249,7 @@ class TestACEPresenter(unittest.TestCase):
                 call(TEST_ACE_DATABASE, "test_chat_id_error", USER_ID, EXIT_COMMAND),
                 call(TEST_ACE_DATABASE, "test_chat_id_error", ACE_ID, GOODBYE_MESSAGE),
             ],
-            any_order=True,
+            any_order=False,
         )
 
 
