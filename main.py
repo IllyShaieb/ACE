@@ -12,13 +12,17 @@ from core.presenter import ACEPresenter
 
 def main():
     """Main function to start the ACE application."""
-    # Initialise MVP layers
-    model = ACEModel()
-    view = ConsoleView()
-    presenter = ACEPresenter(model, view)
+    try:
+        # Initialise MVP layers
+        model = ACEModel()
+        view = ConsoleView()
+        presenter = ACEPresenter(model, view)
 
-    # Start the application
-    presenter.run()
+        # Start the application
+        presenter.run()
+
+    except KeyboardInterrupt:
+        print("\n\nApplication terminated by user.")
 
 
 if __name__ == "__main__":
