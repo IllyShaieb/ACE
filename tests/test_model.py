@@ -13,15 +13,16 @@ class TestACEModel(unittest.TestCase):
     def test_unrecognised_query(self):
         """Test that the model returns the default response in response to an unknown query."""
         test_cases = [
-            ("", "Sorry, I don't understand.", "Check for empty input"),
-            (" ", "Sorry, I don't understand.", "Check for whitespace input"),
+            ("", "Check for empty input"),
+            (" ", "Check for whitespace input"),
+            ("random gibberish", "Check for random input"),
         ]
 
         # Create subTests
-        for user_input, expected_response, scenario_desc in test_cases:
+        for user_input, scenario_desc in test_cases:
             with self.subTest(scenario_desc):
                 response = self.ace_model(user_input)
-                self.assertEqual(response, expected_response)
+                self.assertEqual(response, "Sorry, I don't understand.")
 
 
 if __name__ == "__main__":
