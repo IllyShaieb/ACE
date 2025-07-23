@@ -10,8 +10,8 @@ class TestACEModel(unittest.TestCase):
     def setUp(self):
         self.ace_model = ACEModel()
 
-    def test_query(self):
-        """Test the query method of the ACEModel class."""
+    def test_unrecognised_query(self):
+        """Test that the model returns the default response in response to an unknown query."""
         test_cases = [
             ("", "Sorry, I don't understand.", "Check for empty input"),
             (" ", "Sorry, I don't understand.", "Check for whitespace input"),
