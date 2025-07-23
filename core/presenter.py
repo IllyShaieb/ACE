@@ -44,10 +44,6 @@ class ACEPresenter:
         except Exception as e:
             error_message = f"Failed to initialise database: {e}"
             self.view.show_error(error_message)
-            if self.chat_id is not None:
-                add_message(
-                    ACE_DATABASE, self.chat_id, ACE_ID, f"[ERROR] {error_message}"
-                )
             self.view.show_info(NO_DB_MESSAGE)
             return False  # Indicate failure
 
