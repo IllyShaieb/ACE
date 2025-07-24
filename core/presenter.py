@@ -28,6 +28,13 @@ class ACEPresenter:
         self.model = model
         self.view = view
         self.chat_id = None
+        self.action_handlers = {
+            "GREET": self._handle_greet,
+            "IDENTIFY": self._handle_identify,
+            "CREATOR": self._handle_creator,
+            "GET_TIME": self._handle_get_time,
+            "GET_DATE": self._handle_get_date,
+        }
 
     def run(self):
         """Runs the main ACE application loop."""
@@ -100,7 +107,7 @@ class ACEPresenter:
                 continue
 
     def _execute_action(self, action: str) -> str:
-        """Executes a given action and returns the corresponding response string.
+        """Executes a given action by dispatching it to the appropriate handler.
 
         ### Args
             action (str): The action to execute, which corresponds to an intent.
@@ -108,19 +115,34 @@ class ACEPresenter:
         ### Returns
             str: The response string for the executed action.
         """
+        handler = self.action_handlers.get(action, self._handle_unknown)
+        return handler()
+
+    def _handle_unknown(self) -> str:
+        """Handles the UNKNOWN action."""
+        return UNKNOWN_ACTION_MESSAGE
+
+    def _handle_greet(self) -> str:
+        """Handles the GREET action."""
+        return "Hello! How can I assist you today?"
+
+    def _handle_identify(self) -> str:
+        """Handles the IDENTIFY action."""
+        return "I am ACE, your personal assistant."
+
+    def _handle_creator(self) -> str:
+        """Handles the CREATOR action."""
+        return "I was created by Illy Shaieb."
+
+    def _handle_get_time(self) -> str:
+        """Handles the GET_TIME action."""
+        return f"The current time is {datetime.now().strftime('%H:%M')}."
+
+    def _handle_get_date(self) -> str:
+        """Handles the GET_DATE action."""
         now = datetime.now()
         day = now.day
-        if 11 <= day <= 13:
-            suffix = "th"
-        else:
-            suffix = {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
-
-        actions = {
-            "GREET": "Hello! How can I assist you today?",
-            "IDENTIFY": "I am ACE, your personal assistant.",
-            "CREATOR": "I was created by Illy Shaieb.",
-            "GET_TIME": f"The current time is {now.strftime('%H:%M')}.",
-            "GET_DATE": f"Today's date is {now.strftime(f'%A {day}{suffix} %B %Y')}.",
-        }
-
-        return actions.get(action, UNKNOWN_ACTION_MESSAGE)
+        suffix = (
+            "th" if 11 <= day <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+        )
+        return f"Today's date is {now.strftime(f'%A {day}{suffix} %B %Y')}."
