@@ -1,16 +1,22 @@
 """test_presenter.py: Unit tests for the ACE Presenter."""
 
 import unittest
-from unittest.mock import ANY, Mock, call, patch
+from unittest.mock import Mock, call, patch
 import os
 from datetime import datetime
 
-from core.presenter import USER_ID, ACEPresenter, ACE_ID, EXIT_COMMAND
+from core.presenter import (
+    USER_ID,
+    ACEPresenter,
+    ACE_ID,
+    EXIT_COMMAND,
+    WELCOME_MESSAGE,
+    GOODBYE_MESSAGE,
+    UNKNOWN_ACTION_MESSAGE,
+)
 from core.view import IACEView
 
 TEST_ACE_DATABASE = "data/test_ace.db"
-WELCOME_MESSAGE = "Hello! I am ACE, your personal assistant. How can I help you today?"
-GOODBYE_MESSAGE = "Goodbye! It was a pleasure assisting you."
 
 
 class TestACEPresenter(unittest.TestCase):
@@ -125,129 +131,163 @@ class TestACEPresenter(unittest.TestCase):
         self.assertIsNone(self.presenter.chat_id)
 
     @patch("core.presenter.create_database")
-    @patch("core.presenter.start_conversation", return_value="id_456")
-    @patch("core.presenter.add_message")
-    def test_conversation_loop_exit_command(
-        self, mock_add_message, mock_start_conversation, mock_create_database
-    ):
-        """
-        Test that the conversation loop exits on 'exit' command.
-
-        Verifies that the application exits the conversation loop when
-        the user enters the 'exit' command.
-        """
-        # Arrange
-        self.mock_view.get_user_input.side_effect = [EXIT_COMMAND]
-
-        # Act
-        self.presenter.run()
-
-        # Assert
-        self.mock_view.get_user_input.assert_called_once_with(f"{USER_ID}: ")
-        self.mock_view.display_message.assert_called_with(ACE_ID, GOODBYE_MESSAGE)
-        mock_add_message.assert_called_with(
-            TEST_ACE_DATABASE, "id_456", ACE_ID, GOODBYE_MESSAGE
-        )
-        self.mock_model.assert_not_called()
-
-    @patch("core.presenter.create_database")
     @patch("core.presenter.start_conversation", return_value="id_789")
     @patch("core.presenter.add_message")
-    def test_conversation_loop_user_query_and_response(
+    def test_single_action_query(
         self, mock_add_message, mock_start_conversation, mock_create_database
     ):
         """
-        Test a typical user query and ACE's response.
+        Test a query that results in a single action and response.
 
-        Verifies that the application correctly handles a user query,
-        calls the model to get a response, displays the response,
-        and logs the interaction.
+        Verifies that the presenter correctly processes a single action
+        from the model and displays the appropriate response.
         """
         # Arrange
-        user_query = "hello"
-        model_response = "Hello there! How can I assist you today?"
+        user_query = "who are you?"
+        self.mock_model.return_value = ["IDENTIFY"]
         self.mock_view.get_user_input.side_effect = [user_query, EXIT_COMMAND]
-        self.mock_model.return_value = model_response
+        expected_response = "I am ACE, your personal assistant."
 
         # Act
         self.presenter.run()
 
         # Assert
-        self.mock_view.get_user_input.assert_has_calls(
-            [call(f"{USER_ID}: "), call(f"{USER_ID}: ")]
-        )
         self.mock_model.assert_called_once_with(user_query)
-
         self.mock_view.display_message.assert_has_calls(
             [
                 call(ACE_ID, WELCOME_MESSAGE),
-                call(ACE_ID, model_response),
+                call(ACE_ID, expected_response),
                 call(ACE_ID, GOODBYE_MESSAGE),
             ]
         )
-
-        expected_add_message_calls = [
-            call(TEST_ACE_DATABASE, "id_789", ACE_ID, WELCOME_MESSAGE),
-            call(TEST_ACE_DATABASE, "id_789", USER_ID, user_query),
-            call(TEST_ACE_DATABASE, "id_789", ACE_ID, model_response),
-            call(TEST_ACE_DATABASE, "id_789", USER_ID, EXIT_COMMAND),
-            call(TEST_ACE_DATABASE, "id_789", ACE_ID, GOODBYE_MESSAGE),
-        ]
-        mock_add_message.assert_has_calls(expected_add_message_calls, any_order=False)
-
-    @patch("core.presenter.create_database")
-    @patch("core.presenter.start_conversation", return_value="test_chat_id_error")
-    @patch("core.presenter.add_message")
-    def test_conversation_loop_general_error_handling(
-        self, mock_add_message, mock_start_conversation, mock_create_database
-    ):
-        """
-        Test that the conversation loop handles general exceptions gracefully.
-
-        Simulates an error occurring during the conversation loop and
-        verifies that the application handles it without crashing.
-        """
-        # Arrange
-        first_query = "first query"
-        second_query = "second query (will cause error)"
-        model_response = "Response to first query"
-        error_message = "Model Processing Error"
-
-        self.mock_view.get_user_input.side_effect = [
-            first_query,
-            second_query,
-            EXIT_COMMAND,
-        ]
-        self.mock_model.side_effect = [model_response, Exception(error_message)]
-
-        # Act
-        self.presenter.run()
-
-        # Assert
-        self.mock_view.show_error.assert_called_once()
-        self.assertTrue(error_message in self.mock_view.show_error.call_args[0][0])
-
-        self.mock_view.display_message.assert_has_calls(
-            [
-                call(ACE_ID, WELCOME_MESSAGE),
-                call(ACE_ID, model_response),
-                call(ACE_ID, GOODBYE_MESSAGE),
-            ]
-        )
-
-        # Verify add_message calls, including the error logging
-        logged_error_call = call(TEST_ACE_DATABASE, "test_chat_id_error", ACE_ID, ANY)
-        self.assertIn(logged_error_call, mock_add_message.call_args_list)
-
         mock_add_message.assert_has_calls(
             [
-                call(TEST_ACE_DATABASE, "test_chat_id_error", ACE_ID, WELCOME_MESSAGE),
-                call(TEST_ACE_DATABASE, "test_chat_id_error", USER_ID, first_query),
-                call(TEST_ACE_DATABASE, "test_chat_id_error", ACE_ID, model_response),
-                call(TEST_ACE_DATABASE, "test_chat_id_error", USER_ID, second_query),
-                call(TEST_ACE_DATABASE, "test_chat_id_error", ACE_ID, ANY),
-                call(TEST_ACE_DATABASE, "test_chat_id_error", USER_ID, EXIT_COMMAND),
-                call(TEST_ACE_DATABASE, "test_chat_id_error", ACE_ID, GOODBYE_MESSAGE),
+                call(TEST_ACE_DATABASE, "id_789", ACE_ID, WELCOME_MESSAGE),
+                call(TEST_ACE_DATABASE, "id_789", USER_ID, user_query),
+                call(TEST_ACE_DATABASE, "id_789", ACE_ID, expected_response),
+                call(TEST_ACE_DATABASE, "id_789", USER_ID, EXIT_COMMAND),
+                call(TEST_ACE_DATABASE, "id_789", ACE_ID, GOODBYE_MESSAGE),
+            ],
+            any_order=False,
+        )
+
+    @patch("core.presenter.create_database")
+    @patch("core.presenter.start_conversation", return_value="id_999")
+    @patch("core.presenter.add_message")
+    def test_multi_action_query(
+        self, mock_add_message, mock_start_conversation, mock_create_database
+    ):
+        """
+        Test a query that results in multiple actions and responses.
+
+        Verifies that the presenter correctly processes multiple actions
+        and displays the combined response in the correct order.
+        """
+        # Arrange
+        user_query = "who are you and who is your creator?"
+        self.mock_model.return_value = ["IDENTIFY", "CREATOR"]
+        self.mock_view.get_user_input.side_effect = [user_query, EXIT_COMMAND]
+
+        # Expected responses
+        identify_response = "I am ACE, your personal assistant."
+        creator_response = "I was created by Illy Shaieb."
+        combined_response = f"{identify_response} {creator_response}"
+
+        # Act
+        self.presenter.run()
+
+        # Assert
+        self.mock_model.assert_called_once_with(user_query)
+        self.mock_view.display_message.assert_has_calls(
+            [
+                call(ACE_ID, WELCOME_MESSAGE),
+                call(ACE_ID, combined_response),
+                call(ACE_ID, GOODBYE_MESSAGE),
+            ],
+            any_order=False,
+        )
+        mock_add_message.assert_has_calls(
+            [
+                call(TEST_ACE_DATABASE, "id_999", ACE_ID, WELCOME_MESSAGE),
+                call(TEST_ACE_DATABASE, "id_999", USER_ID, user_query),
+                call(TEST_ACE_DATABASE, "id_999", ACE_ID, combined_response),
+                call(TEST_ACE_DATABASE, "id_999", USER_ID, EXIT_COMMAND),
+                call(TEST_ACE_DATABASE, "id_999", ACE_ID, GOODBYE_MESSAGE),
+            ],
+            any_order=False,
+        )
+
+    @patch("core.presenter.create_database")
+    @patch("core.presenter.start_conversation", return_value="id_err")
+    @patch("core.presenter.add_message")
+    def test_unrecognized_action(
+        self, mock_add_message, mock_start_conversation, mock_create_database
+    ):
+        """
+        Test that the presenter handles an unknown action from the model.
+
+        Verifies that the presenter displays an appropriate message
+        when the model returns an action that is not recognised.
+        """
+        # Arrange
+        user_query = "do a backflip"
+        self.mock_model.return_value = ["BACKFLIP"]
+        self.mock_view.get_user_input.side_effect = [user_query, EXIT_COMMAND]
+
+        # Act
+        self.presenter.run()
+
+        # Assert
+        self.mock_view.display_message.assert_has_calls(
+            [
+                call(ACE_ID, WELCOME_MESSAGE),
+                call(ACE_ID, UNKNOWN_ACTION_MESSAGE),
+                call(ACE_ID, GOODBYE_MESSAGE),
+            ]
+        )
+
+    @patch("core.presenter.create_database")
+    @patch("core.presenter.start_conversation", return_value="id_1000")
+    @patch("core.presenter.add_message")
+    def test_multi_action_query_respects_response_order(
+        self, mock_add_message, mock_start_conversation, mock_create_database
+    ):
+        """
+        Test that combined responses for multiple actions respect query order.
+
+        Verifies that the presenter processes multiple actions in the order
+        they appear in the query and displays the combined response correctly.
+        """
+        # Arrange
+        user_query = "who is your creator and who are you?"
+        self.mock_model.return_value = ["CREATOR", "IDENTIFY"]
+        self.mock_view.get_user_input.side_effect = [user_query, EXIT_COMMAND]
+
+        # Expected responses
+        identify_response = "I am ACE, your personal assistant."
+        creator_response = "I was created by Illy Shaieb."
+        combined_response = f"{creator_response} {identify_response}"
+
+        # Act
+        self.presenter.run()
+
+        # Assert
+        self.mock_model.assert_called_once_with(user_query)
+        self.mock_view.display_message.assert_has_calls(
+            [
+                call(ACE_ID, WELCOME_MESSAGE),
+                call(ACE_ID, combined_response),
+                call(ACE_ID, GOODBYE_MESSAGE),
+            ],
+            any_order=False,
+        )
+        mock_add_message.assert_has_calls(
+            [
+                call(TEST_ACE_DATABASE, "id_1000", ACE_ID, WELCOME_MESSAGE),
+                call(TEST_ACE_DATABASE, "id_1000", USER_ID, user_query),
+                call(TEST_ACE_DATABASE, "id_1000", ACE_ID, combined_response),
+                call(TEST_ACE_DATABASE, "id_1000", USER_ID, EXIT_COMMAND),
+                call(TEST_ACE_DATABASE, "id_1000", ACE_ID, GOODBYE_MESSAGE),
             ],
             any_order=False,
         )

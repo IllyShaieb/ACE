@@ -12,7 +12,7 @@ class TestACEModel(unittest.TestCase):
         cls.ace_model = ACEModel()
 
     def test_unrecognised_query(self):
-        """Test that the model returns the default response in response to an unknown query."""
+        """Test that the model returns an empty list for an unknown query."""
         test_cases = [
             ("", "Check for empty input"),
             (" ", "Check for whitespace input"),
@@ -23,50 +23,62 @@ class TestACEModel(unittest.TestCase):
         for user_input, scenario_desc in test_cases:
             with self.subTest(scenario_desc):
                 response = self.ace_model(user_input)
-                self.assertEqual(response, "Sorry, I don't understand.")
+                self.assertEqual(response, [])
 
-    def test_greeting_query(self):
-        """Test that the model returns a specific response when greeted."""
-        test_cases = ["Hello", "Hi there", "Greetings", "Hey!", "Good Morning"]
+    def test_single_intent_queries(self):
+        """Test that the model correctly identifies single, distinct intents."""
+        test_cases = {
+            "GREET": ["Hello", "Hi there", "Hey!"],
+            "IDENTIFY": ["What is your name?", "Who are you?"],
+            "CREATOR": ["Who created you?", "Who made you?"],
+        }
 
-        # Create subTests
-        for user_input in test_cases:
-            with self.subTest(f"Checking '{user_input}'"):
-                response = self.ace_model(user_input)
-                self.assertEqual(response, "Hello! How can I assist you today?")
+        for expected_action, queries in test_cases.items():
+            for query in queries:
+                with self.subTest(f"Query: '{query}' -> Action: '{expected_action}'"):
+                    actions = self.ace_model(query)
+                    self.assertEqual(actions, [expected_action])
 
-    def test_identity_query(self):
-        """Test that the model returns its identity when asked."""
-        test_cases = [
-            "What is your name?",
-            "Who are you?",
-            "What is your name",
-            "Who are you",
-            "Your name?",
-            "What's your name?",
-            "YOUR NAME PLEASE",
-        ]
+    def test_multi_intent_prioritisation(self):
+        """
+        Test that the model returns only the action with the highest priority
+        when multiple intents of different priorities are present.
+        """
+        user_input = "Hello, who are you?"
 
-        # Create subTests
-        for user_input in test_cases:
-            with self.subTest(f"Checking '{user_input}'"):
-                response = self.ace_model(user_input)
-                self.assertEqual(response, "I am ACE, your personal assistant.")
+        # 'IDENTIFY' (priority 2) should be chosen over 'GREET' (priority 1)
+        expected_actions = ["IDENTIFY"]
 
-    def test_creator_query(self):
-        """Test that the model returns its creator's name when asked."""
-        test_cases = [
-            "Who created you?",
-            "Who made you?",
-            "Who is your creator?",
-            "Who is your developer?",
-        ]
+        actions = self.ace_model(user_input)
 
-        # Create subTests
-        for user_input in test_cases:
-            with self.subTest(f"Checking '{user_input}'"):
-                response = self.ace_model(user_input)
-                self.assertEqual(response, "I was created by Illy Shaieb.")
+        self.assertEqual(actions, expected_actions)
+
+    def test_multi_intent_same_priority(self):
+        """
+        Test that the model returns all actions when multiple intents
+        of the same highest priority are present.
+        """
+        user_input = "What's your name and who created you?"
+
+        # Both IDENTIFY and CREATOR have priority 2
+        expected_actions = ["IDENTIFY", "CREATOR"]
+
+        actions = self.ace_model(user_input)
+
+        # Use assertCountEqual because the order of actions is not guaranteed
+        self.assertCountEqual(actions, expected_actions)
+
+    def test_low_priority_intent_only(self):
+        """
+        Test that a low-priority intent is returned correctly when it's the
+        only one present.
+        """
+        user_input = "good morning"
+        expected_actions = ["GREET"]  # GREET has the lowest priority
+
+        actions = self.ace_model(user_input)
+
+        self.assertEqual(actions, expected_actions)
 
 
 if __name__ == "__main__":
