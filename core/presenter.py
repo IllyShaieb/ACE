@@ -39,6 +39,7 @@ class ACEPresenter:
             "HELP": self._handle_help,
             "JOKE": self._handle_joke,
             "FLIP_COIN": self._handle_coin_flip,
+            "ROLL_DIE": self._handle_roll_die,
         }
 
     def run(self):
@@ -168,3 +169,7 @@ class ACEPresenter:
     def _handle_coin_flip(self) -> str:
         """Handles the COIN_FLIP action."""
         return random.choice(["Heads", "Tails"])
+
+    def _handle_roll_die(self) -> str:
+        """Handles the ROLL_DIE action."""
+        return str(random.randint(1, 6))

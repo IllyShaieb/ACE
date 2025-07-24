@@ -111,5 +111,18 @@
     ],
     "action": "FLIP_COIN",
     "priority": 3
+  },
+  {
+    "name": "RollDie",
+    "patterns": [
+      [
+        { "LOWER": "roll" },
+        { "LOWER": { "IN": ["a", "the"] }, "OP": "?" },
+        { "LOWER": { "IN": ["die", "dice"] } }
+      ],
+      [{ "LOWER": { "IN": ["die", "dice"] } }, { "LOWER": "roll" }]
+    ],
+    "action": "ROLL_DIE",
+    "priority": 3
   }
 ]
