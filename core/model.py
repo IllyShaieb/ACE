@@ -54,6 +54,20 @@ class ACEModel:
                 ],
                 "response": "Hello! How can I assist you today?",
             },
+            {
+                "name": "Identity",
+                "patterns": [
+                    [
+                        {"LOWER": "what"},
+                        {"LOWER": "is"},
+                        {"LOWER": "your"},
+                        {"LOWER": "name"},
+                    ],
+                    [{"LOWER": "who"}, {"LOWER": "are"}, {"LOWER": "you"}],
+                    [{"LOWER": "your"}, {"LOWER": "name"}],
+                ],
+                "response": "I am ACE, your personal assistant.",
+            },
         ]
 
         # Add patterns to the matcher
