@@ -34,6 +34,7 @@ class ACEPresenter:
             "CREATOR": self._handle_creator,
             "GET_TIME": self._handle_get_time,
             "GET_DATE": self._handle_get_date,
+            "HELP": self._handle_help,
         }
 
     def run(self):
@@ -146,3 +147,7 @@ class ACEPresenter:
             "th" if 11 <= day <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
         )
         return f"Today's date is {now.strftime(f'%A {day}{suffix} %B %Y')}."
+
+    def _handle_help(self) -> str:
+        """Handles the HELP action."""
+        return "I can assist you with various tasks. Try asking me about the time, date, or anything else!"
