@@ -31,6 +31,12 @@ class TestACEModel(unittest.TestCase):
             "GREET": ["Hello", "Hi there", "Hey!"],
             "IDENTIFY": ["What is your name?", "Who are you?"],
             "CREATOR": ["Who created you?", "Who made you?"],
+            "HELP": ["Can you help me?", "I need assistance"],
+            "JOKE": ["Tell me a joke", "Make me laugh"],
+            "GET_TIME": ["What time is it?", "Tell me the time"],
+            "GET_DATE": ["What is the date today?", "Tell me today's date"],
+            "FLIP_COIN": ["Flip a coin", "Toss a coin"],
+            "ROLL_DIE": ["Roll a die", "Roll a dice"],
         }
 
         for expected_action, queries in test_cases.items():
