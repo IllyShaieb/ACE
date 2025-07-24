@@ -1,6 +1,7 @@
 """model.py: Contains the core model for the ACE program."""
 
 from typing import List
+import json
 
 import spacy
 from spacy.matcher import Matcher
@@ -60,94 +61,14 @@ class ACEModel:
         return list(dict.fromkeys(action for action, _, _ in found_actions))
 
     def _define_intents(self):
-        """Defines the intents and their corresponding patterns and responses."""
-        self.intents = [
-            {
-                "name": "Greeting",
-                "patterns": [
-                    [{"LOWER": "hello"}],
-                    [{"LOWER": "hi"}],
-                    [{"LOWER": "hey"}],
-                    [{"LOWER": "greetings"}],
-                    [{"LOWER": "good"}, {"LOWER": "morning"}],
-                    [{"LOWER": "good"}, {"LOWER": "afternoon"}],
-                    [{"LOWER": "good"}, {"LOWER": "evening"}],
-                ],
-                "action": "GREET",
-                "priority": 1,
-            },
-            {
-                "name": "Identity",
-                "patterns": [
-                    [
-                        {"LOWER": "what"},
-                        {"LOWER": "is"},
-                        {"LOWER": "your"},
-                        {"LOWER": "name"},
-                    ],
-                    [{"LOWER": "who"}, {"LOWER": "are"}, {"LOWER": "you"}],
-                    [{"LOWER": "your"}, {"LOWER": "name"}],
-                ],
-                "action": "IDENTIFY",
-                "priority": 2,
-            },
-            {
-                "name": "Creator",
-                "patterns": [
-                    [
-                        {"LOWER": "who"},
-                        {"LOWER": {"IN": ["created", "made"]}},
-                        {"LOWER": "you"},
-                    ],
-                    [
-                        {"LOWER": "who"},
-                        {"LOWER": "is"},
-                        {"LOWER": "your"},
-                        {"LOWER": {"IN": ["creator", "developer"]}},
-                    ],
-                ],
-                "action": "CREATOR",
-                "priority": 2,
-            },
-            {
-                "name": "GetTime",
-                "patterns": [
-                    [
-                        {"LOWER": "what"},
-                        {"LOWER": "time"},
-                        {"LOWER": "is"},
-                        {"LOWER": "it"},
-                    ],
-                    [
-                        {"LOWER": "what"},
-                        {"LOWER": "is"},
-                        {"LOWER": "the"},
-                        {"LOWER": "time"},
-                    ],
-                    [{"LOWER": "current"}, {"LOWER": "time"}],
-                    [{"LOWER": "time"}],
-                ],
-                "action": "GET_TIME",
-                "priority": 3,
-            },
-            {
-                "name": "GetDate",
-                "patterns": [
-                    [
-                        {"LOWER": "the"},
-                        {"LOWER": "date"},
-                    ],
-                    [
-                        {"LOWER": "today's"},
-                        {"LOWER": "date"},
-                    ],
-                    [{"LOWER": "current"}, {"LOWER": "date"}],
-                    [{"LOWER": "date"}],
-                ],
-                "action": "GET_DATE",
-                "priority": 3,
-            },
-        ]
+        """Loads intent definitions from a JSON file and adds them to the matcher."""
+        intents_file_path = "data/intents.json"
+        try:
+            with open(intents_file_path, "r") as f:
+                self.intents = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError) as e:
+            print(f"Error loading intents file: {e}")
+            self.intents = []
 
         # Add patterns to the matcher
         for intent in self.intents:
