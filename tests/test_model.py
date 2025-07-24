@@ -7,8 +7,9 @@ from core.model import ACEModel
 class TestACEModel(unittest.TestCase):
     """Test cases for the ACEModel class."""
 
-    def setUp(self):
-        self.ace_model = ACEModel()
+    @classmethod
+    def setUpClass(cls):
+        cls.ace_model = ACEModel()
 
     def test_unrecognised_query(self):
         """Test that the model returns the default response in response to an unknown query."""
