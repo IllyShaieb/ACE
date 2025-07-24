@@ -17,6 +17,7 @@ WELCOME_MESSAGE: str = (
 GOODBYE_MESSAGE: str = "Goodbye! It was a pleasure assisting you."
 INITIALISING_MESSAGE: str = "Initialising ACE"
 NO_DB_MESSAGE: str = "[INFO] ACE cannot start without a functional database. Exiting."
+UNKNOWN_ACTION_MESSAGE: str = "I'm not sure how to do that."
 
 
 class ACEPresenter:
@@ -74,9 +75,18 @@ class ACEPresenter:
                     add_message(ACE_DATABASE, self.chat_id, ACE_ID, GOODBYE_MESSAGE)
                     break
 
-                response = self.model(user_input)
-                self.view.display_message(ACE_ID, response)
-                add_message(ACE_DATABASE, self.chat_id, ACE_ID, response)
+                actions = self.model(user_input)
+
+                if not actions:
+                    response = "Sorry, I don't understand."
+                    self.view.display_message(ACE_ID, response)
+                    add_message(ACE_DATABASE, self.chat_id, ACE_ID, response)
+                    continue
+
+                responses = [self._execute_action(action) for action in actions]
+                combined_response = " ".join(responses)
+                self.view.display_message(ACE_ID, combined_response)
+                add_message(ACE_DATABASE, self.chat_id, ACE_ID, combined_response)
 
             except Exception as e:
                 error_message = (
@@ -88,3 +98,20 @@ class ACEPresenter:
                         ACE_DATABASE, self.chat_id, ACE_ID, f"[ERROR] {error_message}"
                     )
                 continue
+
+    def _execute_action(self, action: str) -> str:
+        """Executes a given action and returns the corresponding response string.
+
+        ### Args
+            action (str): The action to execute, which corresponds to an intent.
+
+        ### Returns
+            str: The response string for the executed action.
+        """
+        actions = {
+            "GREET": "Hello! How can I assist you today?",
+            "IDENTIFY": "I am ACE, your personal assistant.",
+            "CREATOR": "I was created by Illy Shaieb.",
+        }
+
+        return actions.get(action, UNKNOWN_ACTION_MESSAGE)
