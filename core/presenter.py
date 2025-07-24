@@ -1,6 +1,7 @@
 """presenter.py: Contains the presenter logic for the ACE program."""
 
 from datetime import datetime
+import random
 import requests
 
 from core.database import add_message, create_database, start_conversation
@@ -37,6 +38,7 @@ class ACEPresenter:
             "GET_DATE": self._handle_get_date,
             "HELP": self._handle_help,
             "JOKE": self._handle_joke,
+            "FLIP_COIN": self._handle_coin_flip,
         }
 
     def run(self):
@@ -162,3 +164,7 @@ class ACEPresenter:
             return f"{joke_data['setup']} — {joke_data['punchline']}"
         except requests.RequestException as e:
             return f"Sorry, I couldn't fetch a joke right now. Error: {e}"
+
+    def _handle_coin_flip(self) -> str:
+        """Handles the COIN_FLIP action."""
+        return random.choice(["Heads", "Tails"])
