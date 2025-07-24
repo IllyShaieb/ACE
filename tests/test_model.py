@@ -53,6 +53,21 @@ class TestACEModel(unittest.TestCase):
                 response = self.ace_model(user_input)
                 self.assertEqual(response, "I am ACE, your personal assistant.")
 
+    def test_creator_query(self):
+        """Test that the model returns its creator's name when asked."""
+        test_cases = [
+            "Who created you?",
+            "Who made you?",
+            "Who is your creator?",
+            "Who is your developer?",
+        ]
+
+        # Create subTests
+        for user_input in test_cases:
+            with self.subTest(f"Checking '{user_input}'"):
+                response = self.ace_model(user_input)
+                self.assertEqual(response, "I was created by Illy Shaieb.")
+
 
 if __name__ == "__main__":
     unittest.main()
