@@ -24,6 +24,16 @@ class TestACEModel(unittest.TestCase):
                 response = self.ace_model(user_input)
                 self.assertEqual(response, "Sorry, I don't understand.")
 
+    def test_greeting_query(self):
+        """Test that the model returns a specific response when greeted."""
+        test_cases = ["Hello", "Hi there", "Greetings", "Hey!", "Good Morning"]
+
+        # Create subTests
+        for user_input in test_cases:
+            with self.subTest(f"Checking '{user_input}'"):
+                response = self.ace_model(user_input)
+                self.assertEqual(response, "Hello! How can I assist you today?")
+
 
 if __name__ == "__main__":
     unittest.main()
