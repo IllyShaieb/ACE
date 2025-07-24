@@ -35,6 +35,24 @@ class TestACEModel(unittest.TestCase):
                 response = self.ace_model(user_input)
                 self.assertEqual(response, "Hello! How can I assist you today?")
 
+    def test_identity_query(self):
+        """Test that the model returns its identity when asked."""
+        test_cases = [
+            "What is your name?",
+            "Who are you?",
+            "What is your name",
+            "Who are you",
+            "Your name?",
+            "What's your name?",
+            "YOUR NAME PLEASE",
+        ]
+
+        # Create subTests
+        for user_input in test_cases:
+            with self.subTest(f"Checking '{user_input}'"):
+                response = self.ace_model(user_input)
+                self.assertEqual(response, "I am ACE, your personal assistant.")
+
 
 if __name__ == "__main__":
     unittest.main()
