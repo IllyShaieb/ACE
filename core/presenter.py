@@ -1,6 +1,7 @@
 """presenter.py: Contains the presenter logic for the ACE program."""
 
 from datetime import datetime
+import requests
 
 from core.database import add_message, create_database, start_conversation
 from core.model import ACEModel
@@ -35,6 +36,7 @@ class ACEPresenter:
             "GET_TIME": self._handle_get_time,
             "GET_DATE": self._handle_get_date,
             "HELP": self._handle_help,
+            "JOKE": self._handle_joke,
         }
 
     def run(self):
@@ -151,3 +153,12 @@ class ACEPresenter:
     def _handle_help(self) -> str:
         """Handles the HELP action."""
         return "I can assist you with various tasks. Try asking me about the time, date, or anything else!"
+
+    def _handle_joke(self) -> str:
+        """Handles the JOKE action."""
+        try:
+            response = requests.get("https://official-joke-api.appspot.com/random_joke")
+            joke_data = response.json()
+            return f"{joke_data['setup']} — {joke_data['punchline']}"
+        except requests.RequestException as e:
+            return f"Sorry, I couldn't fetch a joke right now. Error: {e}"
