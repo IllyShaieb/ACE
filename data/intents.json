@@ -82,7 +82,7 @@
     "name": "Help",
     "patterns": [
       [{ "LOWER": "help" }],
-      [{ "LOWER": "assist" }],
+      [{ "LOWER": { "IN": ["assist", "assistance"] } }],
       [{ "LOWER": "support" }]
     ],
     "action": "HELP",
@@ -106,7 +106,11 @@
   {
     "name": "FlipCoin",
     "patterns": [
-      [{ "LOWER": "flip" }, { "LOWER": "a", "OP": "?" }, { "LOWER": "coin" }],
+      [
+        { "LOWER": { "IN": ["flip", "toss"] } },
+        { "LOWER": "a", "OP": "?" },
+        { "LOWER": "coin" }
+      ],
       [{ "LOWER": "heads" }, { "LOWER": "or" }, { "LOWER": "tails" }]
     ],
     "action": "FLIP_COIN",
