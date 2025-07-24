@@ -109,6 +109,44 @@ class ACEModel:
                 "action": "CREATOR",
                 "priority": 2,
             },
+            {
+                "name": "GetTime",
+                "patterns": [
+                    [
+                        {"LOWER": "what"},
+                        {"LOWER": "time"},
+                        {"LOWER": "is"},
+                        {"LOWER": "it"},
+                    ],
+                    [
+                        {"LOWER": "what"},
+                        {"LOWER": "is"},
+                        {"LOWER": "the"},
+                        {"LOWER": "time"},
+                    ],
+                    [{"LOWER": "current"}, {"LOWER": "time"}],
+                    [{"LOWER": "time"}],
+                ],
+                "action": "GET_TIME",
+                "priority": 3,
+            },
+            {
+                "name": "GetDate",
+                "patterns": [
+                    [
+                        {"LOWER": "the"},
+                        {"LOWER": "date"},
+                    ],
+                    [
+                        {"LOWER": "today's"},
+                        {"LOWER": "date"},
+                    ],
+                    [{"LOWER": "current"}, {"LOWER": "date"}],
+                    [{"LOWER": "date"}],
+                ],
+                "action": "GET_DATE",
+                "priority": 3,
+            },
         ]
 
         # Add patterns to the matcher
