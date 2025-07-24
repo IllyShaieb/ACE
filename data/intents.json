@@ -87,5 +87,20 @@
     ],
     "action": "HELP",
     "priority": 1
+  },
+  {
+    "name": "Joke",
+    "patterns": [
+      [
+        { "LOWER": "tell" },
+        { "LOWER": "me" },
+        { "LOWER": "a" },
+        { "LOWER": "joke" }
+      ],
+      [{ "LOWER": "joke" }],
+      [{ "LOWER": "make" }, { "LOWER": "me" }, { "LOWER": "laugh" }]
+    ],
+    "action": "JOKE",
+    "priority": 2
   }
 ]
