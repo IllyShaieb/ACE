@@ -108,10 +108,19 @@ class ACEPresenter:
         ### Returns
             str: The response string for the executed action.
         """
+        now = datetime.now()
+        day = now.day
+        if 11 <= day <= 13:
+            suffix = "th"
+        else:
+            suffix = {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
+
         actions = {
             "GREET": "Hello! How can I assist you today?",
             "IDENTIFY": "I am ACE, your personal assistant.",
             "CREATOR": "I was created by Illy Shaieb.",
+            "GET_TIME": f"The current time is {now.strftime('%H:%M')}.",
+            "GET_DATE": f"Today's date is {now.strftime(f'%A {day}{suffix} %B %Y')}.",
         }
 
         return actions.get(action, UNKNOWN_ACTION_MESSAGE)
