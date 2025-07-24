@@ -68,6 +68,23 @@ class ACEModel:
                 ],
                 "response": "I am ACE, your personal assistant.",
             },
+            {
+                "name": "Creator",
+                "patterns": [
+                    [
+                        {"LOWER": "who"},
+                        {"LOWER": {"IN": ["created", "made"]}},
+                        {"LOWER": "you"},
+                    ],
+                    [
+                        {"LOWER": "who"},
+                        {"LOWER": "is"},
+                        {"LOWER": "your"},
+                        {"LOWER": {"IN": ["creator", "developer"]}},
+                    ],
+                ],
+                "response": "I was created by Illy Shaieb.",
+            },
         ]
 
         # Add patterns to the matcher
