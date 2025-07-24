@@ -77,5 +77,15 @@
     ],
     "action": "GET_DATE",
     "priority": 3
+  },
+  {
+    "name": "Help",
+    "patterns": [
+      [{ "LOWER": "help" }],
+      [{ "LOWER": "assist" }],
+      [{ "LOWER": "support" }]
+    ],
+    "action": "HELP",
+    "priority": 1
   }
 ]
