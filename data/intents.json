@@ -1,0 +1,81 @@
+[
+  {
+    "name": "Greeting",
+    "patterns": [
+      [{ "LOWER": "hello" }],
+      [{ "LOWER": "hi" }],
+      [{ "LOWER": "hey" }],
+      [{ "LOWER": "greetings" }],
+      [{ "LOWER": "good" }, { "LOWER": "morning" }],
+      [{ "LOWER": "good" }, { "LOWER": "afternoon" }],
+      [{ "LOWER": "good" }, { "LOWER": "evening" }]
+    ],
+    "action": "GREET",
+    "priority": 1
+  },
+  {
+    "name": "Identity",
+    "patterns": [
+      [
+        { "LOWER": "what" },
+        { "LOWER": "is" },
+        { "LOWER": "your" },
+        { "LOWER": "name" }
+      ],
+      [{ "LOWER": "who" }, { "LOWER": "are" }, { "LOWER": "you" }],
+      [{ "LOWER": "your" }, { "LOWER": "name" }]
+    ],
+    "action": "IDENTIFY",
+    "priority": 2
+  },
+  {
+    "name": "Creator",
+    "patterns": [
+      [
+        { "LOWER": "who" },
+        { "LOWER": { "IN": ["created", "made"] } },
+        { "LOWER": "you" }
+      ],
+      [
+        { "LOWER": "who" },
+        { "LOWER": "is" },
+        { "LOWER": "your" },
+        { "LOWER": { "IN": ["creator", "developer"] } }
+      ]
+    ],
+    "action": "CREATOR",
+    "priority": 2
+  },
+  {
+    "name": "GetTime",
+    "patterns": [
+      [
+        { "LOWER": "what" },
+        { "LOWER": "time" },
+        { "LOWER": "is" },
+        { "LOWER": "it" }
+      ],
+      [
+        { "LOWER": "what" },
+        { "LOWER": "is" },
+        { "LOWER": "the" },
+        { "LOWER": "time" }
+      ],
+      [{ "LOWER": "current" }, { "LOWER": "time" }],
+      [{ "LOWER": "time" }]
+    ],
+    "action": "GET_TIME",
+    "priority": 3
+  },
+  {
+    "name": "GetDate",
+    "patterns": [
+      [{ "LOWER": "the" }, { "LOWER": "date" }],
+      [{ "LOWER": "today's" }, { "LOWER": "date" }],
+      [{ "LOWER": "current" }, { "LOWER": "date" }],
+      [{ "LOWER": "date" }]
+    ],
+    "action": "GET_DATE",
+    "priority": 3
+  }
+]
