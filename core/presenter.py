@@ -38,7 +38,7 @@ class ACEPresenter:
             "GET_DATE": self._handle_get_date,
             "HELP": self._handle_help,
             "JOKE": self._handle_joke,
-            "FLIP_COIN": self._handle_coin_flip,
+            "FLIP_COIN": self._handle_flip_coin,
             "ROLL_DIE": self._handle_roll_die,
         }
 
@@ -166,8 +166,8 @@ class ACEPresenter:
         except requests.RequestException as e:
             return f"Sorry, I couldn't fetch a joke right now. Error: {e}"
 
-    def _handle_coin_flip(self) -> str:
-        """Handles the COIN_FLIP action."""
+    def _handle_flip_coin(self) -> str:
+        """Handles the FLIP_COIN action."""
         return random.choice(["Heads", "Tails"])
 
     def _handle_roll_die(self) -> str:
