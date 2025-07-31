@@ -240,6 +240,8 @@ class DesktopPresenter:
             self.view.display_message(ACE_ID, GOODBYE_MESSAGE)
             if self.chat_id is not None:
                 add_message(ACE_DATABASE, self.chat_id, ACE_ID, GOODBYE_MESSAGE)
+                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                print(f"{timestamp} | {GOODBYE_MESSAGE}")
             self.view.close()
             return
 
