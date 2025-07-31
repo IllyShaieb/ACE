@@ -380,5 +380,8 @@ class DesktopView(IACEView):
                     self._input_handler(message)
 
             # Focus back on the input entry
-            self.input_entry.focus()
-            self.set_input_enabled(True)
+            try:
+                self.input_entry.focus()
+                self.set_input_enabled(True)
+            except tk.TclError:
+                pass
