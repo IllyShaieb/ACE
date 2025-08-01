@@ -2,6 +2,7 @@
 
 from datetime import datetime
 import random
+from typing import List
 import requests
 
 from core.database import add_message, create_database, start_conversation
@@ -108,22 +109,21 @@ def _execute_action(action: str) -> str:
     return handler()
 
 
-class ConsolePresenter:
-    """Orchestrates the interaction between the ACE model and console view."""
+class BasePresenter:
+    """Base class for orchestrating the interaction between the ACE model and the view."""
 
     def __init__(self, model: ACEModel, view: IACEView):
-        """Initialises the ConsolePresenter with the model and view."""
+        """Initialises the presenter with the model and view.
+
+        ### Args
+            model (ACEModel): The model instance that contains the business logic.
+            view (IACEView): The view instance that handles user interaction.
+        """
         self.model = model
         self.view = view
         self.chat_id = None
 
-    def run(self):
-        """Runs the main ACE application loop."""
-        if not self._initialise_ace():
-            return
-        self._conversation_loop()
-
-    def _initialise_ace(self):
+    def initialise(self):
         """Initialises the ACE application, including the database."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.view.show_info(f"{timestamp} | {INITIALISING_MESSAGE}")
@@ -131,8 +131,7 @@ class ConsolePresenter:
         try:
             create_database(ACE_DATABASE)
         except Exception as e:
-            error_message = f"Failed to initialise database: {e}"
-            self.view.show_error(error_message)
+            self.view.show_error(f"Failed to initialise database: {e}")
             self.view.show_info(NO_DB_MESSAGE)
             return False  # Indicate failure
 
@@ -145,79 +144,73 @@ class ConsolePresenter:
         add_message(ACE_DATABASE, self.chat_id, ACE_ID, WELCOME_MESSAGE)
         return True  # Indicate success
 
-    def _conversation_loop(self):
-        """Manages the continuous conversation loop with the user."""
-        while True:
-            try:
-                user_input = self.view.get_user_input(f"{USER_ID}: ")
-                if self.chat_id is not None:
-                    add_message(ACE_DATABASE, self.chat_id, USER_ID, user_input)
-                else:
-                    self.view.show_error(
-                        "Conversation ID is not set. Cannot log message."
-                    )
-                    continue
+    def process_user_input(self, user_input: str) -> bool:
+        """Processes the user input and generates a response.
 
-                if user_input.lower() == EXIT_COMMAND:
-                    self.view.display_message(ACE_ID, GOODBYE_MESSAGE)
-                    add_message(ACE_DATABASE, self.chat_id, ACE_ID, GOODBYE_MESSAGE)
-                    break
+        ### Args
+            user_input (str): The input provided by the user.
 
-                actions = self.model(user_input)
+        ### Returns
+            bool: True if the application should continue running, False if it should exit.
+        """
+        # Log the user input
+        if self.chat_id is not None:
+            add_message(ACE_DATABASE, self.chat_id, USER_ID, user_input)
+        else:
+            self.view.show_error("Conversation ID is not set. Cannot log message.")
 
-                if not actions:
-                    response = "Sorry, I don't understand."
-                    self.view.display_message(ACE_ID, response)
-                    add_message(ACE_DATABASE, self.chat_id, ACE_ID, response)
-                    continue
+        # Check for exit command
+        if user_input.lower() == EXIT_COMMAND:
+            self.view.display_message(ACE_ID, GOODBYE_MESSAGE)
+            if self.chat_id is not None:
+                add_message(ACE_DATABASE, self.chat_id, ACE_ID, GOODBYE_MESSAGE)
+            self.view.close()
+            return False  # Indicate exit
 
-                responses = [_execute_action(action) for action in actions]
-                combined_response = " ".join(responses)
-                self.view.display_message(ACE_ID, combined_response)
-                add_message(ACE_DATABASE, self.chat_id, ACE_ID, combined_response)
+        # Process the user input through the model
+        actions = self.model(user_input)
+        response = self._process_actions(actions)
+        self.view.display_message(ACE_ID, response)
+        if self.chat_id is not None:
+            add_message(ACE_DATABASE, self.chat_id, ACE_ID, response)
+        return True  # Continue running
 
-            except Exception as e:
-                error_message = (
-                    f"An unexpected error occurred: {e}. I'm sorry, please try again."
-                )
-                self.view.show_error(error_message)
-                if self.chat_id is not None:
-                    add_message(
-                        ACE_DATABASE, self.chat_id, ACE_ID, f"[ERROR] {error_message}"
-                    )
-                continue
+    def _process_actions(self, actions: List[str]) -> str:
+        """Processes the actions returned by the model and generates a response string.
+
+        ### Args
+            actions (List[str]): A list of actions to process.
+
+        ### Returns
+            str: A string containing the responses for the processed actions.
+        """
+        if not actions:
+            return UNKNOWN_ACTION_MESSAGE
+
+        responses = [_execute_action(action) for action in actions]
+        return " ".join(responses)
 
 
-class DesktopPresenter:
-    """Orchestrates the interaction between the ACE model and a desktop view."""
-
-    def __init__(self, model, view):
-        self.model = model
-        self.view = view
-        self.chat_id = None
+class ConsolePresenter(BasePresenter):
+    """Orchestrates the interaction between the ACE model and console view."""
 
     def run(self):
-        """
-        Run the desktop application.
-        """
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        print(f"{timestamp} | {INITIALISING_MESSAGE}")
-        try:
-            create_database(ACE_DATABASE)
-        except Exception as e:
-            self.view.show_error(f"Failed to initialise database: {e}")
-            self.view.show_info(
-                "[INFO] ACE cannot start without a functional database. Exiting."
-            )
+        """Runs the main ACE application loop."""
+        if not self.initialise():
             return
+        while True:
+            user_input = self.view.get_user_input(f"{USER_ID}: ")
+            if not self.process_user_input(user_input):
+                break
 
-        self.chat_id = start_conversation(ACE_DATABASE)
 
-        self.view.show_info(" ACE ".center(80, "="))
-        self.view.show_info("    Welcome to ACE! Type 'exit' to quit.\n\n")
+class DesktopPresenter(BasePresenter):
+    """Orchestrates the interaction between the ACE model and a desktop view."""
 
-        self.view.display_message(ACE_ID, WELCOME_MESSAGE)
-        add_message(ACE_DATABASE, self.chat_id, ACE_ID, WELCOME_MESSAGE)
+    def run(self):
+        """Run the desktop application."""
+        if not self.initialise():
+            return
 
         # Set the input handler so presenter gets user queries
         self.view.set_input_handler(self.handle_user_input)
@@ -225,36 +218,10 @@ class DesktopPresenter:
         # Start the event loop
         self.view.run()
 
-    def handle_user_input(self, user_input):
+    def handle_user_input(self, user_input: str):
         """Handle user input from the view.
 
         ### Args
             user_input (str): The input provided by the user.
         """
-        if self.chat_id is not None:
-            add_message(ACE_DATABASE, self.chat_id, USER_ID, user_input)
-        else:
-            self.view.show_error("Conversation ID is not set. Cannot log message.")
-
-        if user_input.lower() == EXIT_COMMAND:
-            self.view.display_message(ACE_ID, GOODBYE_MESSAGE)
-            if self.chat_id is not None:
-                add_message(ACE_DATABASE, self.chat_id, ACE_ID, GOODBYE_MESSAGE)
-                timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                print(f"{timestamp} | {GOODBYE_MESSAGE}")
-            self.view.close()
-            return
-
-        actions = self.model(user_input)
-        response = self._process_actions(actions)
-
-        self.view.display_message(ACE_ID, response)
-        if self.chat_id is not None:
-            add_message(ACE_DATABASE, self.chat_id, ACE_ID, response)
-
-    def _process_actions(self, actions) -> str:
-        if not actions:
-            return UNKNOWN_ACTION_MESSAGE
-
-        responses = [_execute_action(action) for action in actions]
-        return " ".join(responses)
+        self.process_user_input(user_input)
