@@ -6,20 +6,46 @@ Model-View-Presenter (MVP) architectural pattern.
 """
 
 from core.model import ACEModel
-from core.view import ConsoleView
-from core.presenter import ACEPresenter
+from core.view import DesktopView, ConsoleView
+from core.presenter import DesktopPresenter, ConsolePresenter
+
+# Define available applications with their models, views, and presenters
+APPS = {
+    "1": ("Desktop Application", ACEModel, DesktopView, DesktopPresenter),
+    "2": ("Console Application", ACEModel, ConsoleView, ConsolePresenter),
+}
+
+
+def select_app():
+    """Prompt the user to select an application mode."""
+    print("Select the application mode:")
+    for key, (description, *_) in APPS.items():
+        print(f"  {key}. {description}")
+
+    choice = input("Enter your choice: ").strip()
+    while choice not in APPS:
+        choice = input("Invalid choice. Please try again: ").strip()
+    return choice
 
 
 def main():
     """Main function to start the ACE application."""
+
     try:
-        # Initialise MVP layers
-        model = ACEModel()
-        view = ConsoleView()
-        presenter = ACEPresenter(model, view)
+        # Select the application mode
+        choice = select_app()
+        print(f"Starting {APPS[choice][0]}...")
+
+        # Instantiate selected app
+        model = APPS[choice][1]()
+        view = APPS[choice][2]()
+        presenter = APPS[choice][3](model, view)
 
         # Start the application
         presenter.run()
+
+        # Clean up and exit
+        print(f"Exiting {APPS[choice][0]}...")
 
     except KeyboardInterrupt:
         print("\n\nApplication terminated by user.")
