@@ -22,11 +22,10 @@ def select_app():
     for key, (description, *_) in APPS.items():
         print(f"  {key}. {description}")
 
-    while True:
-        choice = input("Enter your choice: ").strip()
-        if choice in APPS:
-            return choice
-        print("Invalid choice. Please try again.")
+    choice = input("Enter your choice: ").strip()
+    while choice not in APPS:
+        choice = input("Invalid choice. Please try again: ").strip()
+    return choice
 
 
 def main():
@@ -44,6 +43,9 @@ def main():
 
         # Start the application
         presenter.run()
+
+        # Clean up and exit
+        print(f"Exiting {APPS[choice][0]}...")
 
     except KeyboardInterrupt:
         print("\n\nApplication terminated by user.")
