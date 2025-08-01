@@ -126,6 +126,7 @@ class TestConsolePresenter(unittest.TestCase):
         expected_info_calls = [
             call("2025-07-21 10:00:00 | Initialising ACE"),
             call("[INFO] ACE cannot start without a functional database. Exiting."),
+            call("2025-07-21 10:00:00 | Terminating ACE"),
         ]
         self.mock_view.show_info.assert_has_calls(expected_info_calls, any_order=False)
 

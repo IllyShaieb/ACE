@@ -19,6 +19,7 @@ WELCOME_MESSAGE: str = (
 )
 GOODBYE_MESSAGE: str = "Goodbye! It was a pleasure assisting you."
 INITIALISING_MESSAGE: str = "Initialising ACE"
+TERMINATION_MESSAGE: str = "Terminating ACE"
 NO_DB_MESSAGE: str = "[INFO] ACE cannot start without a functional database. Exiting."
 UNKNOWN_ACTION_MESSAGE: str = "I'm not sure how to do that."
 
@@ -69,7 +70,20 @@ def _handle_joke() -> str:
         response = requests.get("https://official-joke-api.appspot.com/random_joke")
         response.raise_for_status()
         joke_data = response.json()
-        return f"{joke_data['setup']} — {joke_data['punchline']}"
+
+        setup = joke_data.get("setup", "")
+        punchline = joke_data.get("punchline", "")
+        sentence_stop = punchline.endswith((".", "!", "?"))
+
+        # Ensure the joke data is valid
+        if not setup or not punchline:
+            return (
+                "Sorry, I couldn't fetch a joke right now. The joke format is invalid."
+            )
+
+        # Return the joke in the format "setup — punchline"
+        return f"{setup} — {punchline}" if sentence_stop else f"{setup} — {punchline}."
+
     except (requests.exceptions.HTTPError, requests.RequestException) as e:
         return f"Sorry, I couldn't fetch a joke right now. Error: {e}"
 
@@ -190,18 +204,22 @@ class BasePresenter:
         responses = [_execute_action(action) for action in actions]
         return " ".join(responses)
 
+    def show_termination_message(self):
+        """Displays the termination message."""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.view.show_info(f"{timestamp} | {TERMINATION_MESSAGE}")
+
 
 class ConsolePresenter(BasePresenter):
     """Orchestrates the interaction between the ACE model and console view."""
 
     def run(self):
         """Runs the main ACE application loop."""
-        if not self.initialise():
-            return
-        while True:
-            user_input = self.view.get_user_input(f"{USER_ID}: ")
-            if not self.process_user_input(user_input):
-                break
+        if self.initialise():
+            while self.process_user_input(self.view.get_user_input(f"{USER_ID}: ")):
+                pass
+
+        self.show_termination_message()
 
 
 class DesktopPresenter(BasePresenter):
@@ -209,14 +227,11 @@ class DesktopPresenter(BasePresenter):
 
     def run(self):
         """Run the desktop application."""
-        if not self.initialise():
-            return
+        if self.initialise():
+            self.view.set_input_handler(self.handle_user_input)
+            self.view.run()
 
-        # Set the input handler so presenter gets user queries
-        self.view.set_input_handler(self.handle_user_input)
-
-        # Start the event loop
-        self.view.run()
+        self.show_termination_message()
 
     def handle_user_input(self, user_input: str):
         """Handle user input from the view.
