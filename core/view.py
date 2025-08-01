@@ -69,6 +69,13 @@ class IACEView(Protocol):
     def clear_input(self):
         """Clears the input field in the view."""
 
+    def close(self):
+        """Closes the view.
+
+        This method should clean up any resources used by the view, such as closing
+        GUI windows or terminating event loops.
+        """
+
 
 class ConsoleView(IACEView):
     """A concrete implementation of IACEView for console-based interaction.
@@ -142,6 +149,14 @@ class ConsoleView(IACEView):
 
         This method is not applicable for console-based interaction, as input
         is handled synchronously.
+        """
+        pass
+
+    def close(self):
+        """Closes the console view.
+
+        This method does nothing for console-based interaction, as there is no
+        GUI to close.
         """
         pass
 
