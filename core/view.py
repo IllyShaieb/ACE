@@ -221,7 +221,6 @@ class DesktopView(IACEView):
         if hasattr(self, "input_entry"):
             self.input_entry.delete(0, tk.END)
             self.input_entry.configure(state=tk.NORMAL)
-            self.set_input_enabled(True)
 
     def display_message(self, sender: str, message: str):
         """Displays a message in the chat window.
@@ -390,8 +389,9 @@ class DesktopView(IACEView):
             # Get the users response
             if hasattr(self, "_input_handler"):
                 self.set_input_enabled(False)
-                if self._input_handler:
-                    # Call the input handler with the user's message
+
+                # Call the input handler with the user's message
+                if self._input_handler and callable(self._input_handler):
                     self._input_handler(message)
 
             # Focus back on the input entry
