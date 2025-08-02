@@ -1,13 +1,12 @@
 """presenter.py: Contains the presenter logic for the ACE program."""
 
 from datetime import datetime
-import random
 from typing import List
-import requests
 
 from core.database import add_message, create_database, start_conversation
 from core.model import ACEModel
 from core.view import IACEView
+from core.actions import execute_action, UNKNOWN_ACTION_MESSAGE
 
 # Constants for ACE and user identification, and the exit command
 ACE_ID: str = "ACE"
@@ -21,106 +20,6 @@ GOODBYE_MESSAGE: str = "Goodbye! It was a pleasure assisting you."
 INITIALISING_MESSAGE: str = "Initialising ACE"
 TERMINATION_MESSAGE: str = "Terminating ACE"
 NO_DB_MESSAGE: str = "[INFO] ACE cannot start without a functional database. Exiting."
-UNKNOWN_ACTION_MESSAGE: str = "I'm not sure how to do that."
-
-
-def _handle_unknown() -> str:
-    """Handles the UNKNOWN action."""
-    return UNKNOWN_ACTION_MESSAGE
-
-
-def _handle_greet() -> str:
-    """Handles the GREET action."""
-    return "Hello! How can I assist you today?"
-
-
-def _handle_identify() -> str:
-    """Handles the IDENTIFY action."""
-    return "I am ACE, your personal assistant."
-
-
-def _handle_creator() -> str:
-    """Handles the CREATOR action."""
-    return "I was created by Illy Shaieb."
-
-
-def _handle_get_time() -> str:
-    """Handles the GET_TIME action."""
-    return f"The current time is {datetime.now().strftime('%H:%M')}."
-
-
-def _handle_get_date() -> str:
-    """Handles the GET_DATE action."""
-    now = datetime.now()
-    day = now.day
-    suffix = (
-        "th" if 11 <= day <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
-    )
-    return f"Today's date is {now.strftime(f'%A {day}{suffix} %B %Y')}."
-
-
-def _handle_help() -> str:
-    """Handles the HELP action."""
-    return "I can assist you with various tasks. Try asking me about the time, date, or anything else!"
-
-
-def _handle_joke() -> str:
-    """Handles the JOKE action."""
-    try:
-        response = requests.get("https://official-joke-api.appspot.com/random_joke")
-        response.raise_for_status()
-        joke_data = response.json()
-
-        setup = joke_data.get("setup", "")
-        punchline = joke_data.get("punchline", "")
-        sentence_stop = punchline.endswith((".", "!", "?"))
-
-        # Ensure the joke data is valid
-        if not setup or not punchline:
-            return (
-                "Sorry, I couldn't fetch a joke right now. The joke format is invalid."
-            )
-
-        # Return the joke in the format "setup — punchline"
-        return f"{setup} — {punchline}" if sentence_stop else f"{setup} — {punchline}."
-
-    except (requests.exceptions.HTTPError, requests.RequestException) as e:
-        return f"Sorry, I couldn't fetch a joke right now. Error: {e}"
-
-
-def _handle_flip_coin() -> str:
-    """Handles the FLIP_COIN action."""
-    return random.choice(["Heads", "Tails"])
-
-
-def _handle_roll_die() -> str:
-    """Handles the ROLL_DIE action."""
-    return str(random.randint(1, 6))
-
-
-def _execute_action(action: str) -> str:
-    """Executes a given action by dispatching it to the appropriate handler.
-
-    ### Args
-        action (str): The action to execute, which corresponds to an intent.
-
-    ### Returns
-        str: The response string for the executed action.
-    """
-    action_handlers = {
-        "GREET": _handle_greet,
-        "IDENTIFY": _handle_identify,
-        "CREATOR": _handle_creator,
-        "GET_TIME": _handle_get_time,
-        "GET_DATE": _handle_get_date,
-        "HELP": _handle_help,
-        "JOKE": _handle_joke,
-        "FLIP_COIN": _handle_flip_coin,
-        "ROLL_DIE": _handle_roll_die,
-    }
-
-    handler = action_handlers.get(action, _handle_unknown)
-    return handler()
 
 
 class BasePresenter:
@@ -201,7 +100,7 @@ class BasePresenter:
         if not actions:
             return UNKNOWN_ACTION_MESSAGE
 
-        responses = [_execute_action(action) for action in actions]
+        responses = [execute_action(action) for action in actions]
         return " ".join(responses)
 
     def show_termination_message(self):
