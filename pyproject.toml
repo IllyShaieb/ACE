@@ -7,5 +7,6 @@ requires-python = ">=3.10"
 dependencies = [
     "ctkmessagebox>=2.7",
     "customtkinter>=5.2.2",
+    "pip>=25.2",
     "spacy>=3.8.7",
 ]
