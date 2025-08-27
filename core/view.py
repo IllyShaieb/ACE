@@ -1,7 +1,8 @@
 """view.py: Contains the view interfaces and implementations for the ACE program."""
 
-from typing import List, Protocol, runtime_checkable
 import tkinter as tk
+from typing import List, Protocol, runtime_checkable
+
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
 
@@ -170,34 +171,27 @@ class DesktopView(IACEView):
     """
 
     SENDER_COLOURS = {
-        "ACE": "yellow",
-        "ERROR": "red",
-        "INFO": "cyan",
-        "YOU": "white",
+        "ACE": ("#1D1B20", "#FFFFFF"),  # (bg_color, fg_color)
+        "ERROR": ("#8C1D18", "white"),
+        "INFO": (None, "cyan"),  # No background for info messages
+        "YOU": ("#6750A4", "white"),
     }
 
     def __init__(self):
         self.root = ctk.CTk()
         self.root.title("ACE")
 
-        # Store the chat and message history
+        # Store the message history
         self._message_history = []
-        self._chat_history = []
+        self._message_widgets = []  # To store (widget, type) tuples
 
         # User actions
         self.query_response = None
 
         # Create the widgets and layout
         self._create_widgets()
-        self._setup_tags()
 
         self._input_handler = None
-
-    def _setup_tags(self):
-        """Sets up text tags for different sender colours in the chat textbox."""
-        for _, colour in self.SENDER_COLOURS.items():
-            tag_name = f"sender_{colour.lower()}"
-            self.chat_text.tag_config(tag_name, foreground=colour)
 
     def run(self):
         """Starts the GUI event loop."""
@@ -205,7 +199,11 @@ class DesktopView(IACEView):
 
     def close(self):
         """Closes the GUI window."""
-        self.root.destroy()
+        try:
+            self.root.update_idletasks()
+            self.root.destroy()
+        except tk.TclError:
+            pass
 
     def get_chat_history(self) -> List:
         """Returns the chat history as a list of strings."""
@@ -214,7 +212,11 @@ class DesktopView(IACEView):
     def clear_chat_history(self):
         """Clears the chat history."""
         self._message_history.clear()
-        self.chat_text.delete(1.0, tk.END)
+        self._message_widgets.clear()
+
+        # Destroy all message bubble widgets
+        for widget in self.chat_frame.winfo_children():
+            widget.destroy()
 
     def reset_input(self):
         """Resets the input entry field."""
@@ -223,31 +225,80 @@ class DesktopView(IACEView):
             self.input_entry.configure(state=tk.NORMAL)
 
     def display_message(self, sender: str, message: str):
-        """Displays a message in the chat window.
+        """Displays a message in the chat window as a bubble.
 
         ### Args
             sender (str): The name of the sender
             message (str): The message content.
-
-        #### Notes
-        - Possible special formatting for the following senders:
-            - "ACE": cyan
-            - "YOU": white
-            - "ERROR": red
-            - "INFO": blue
         """
-        colour = self.SENDER_COLOURS.get(sender.upper(), "white")
-        tag_name = f"sender_{colour}"
-
         # Format the message and add it to the history
         formatted_message = self._format_message(sender, message)
         self._message_history.append(formatted_message.strip())
 
-        # Insert the message into the textbox with the colored tag
-        self.chat_text.configure(state=tk.NORMAL)
-        self.chat_text.insert(tk.END, formatted_message, tag_name)
-        self.chat_text.see(tk.END)
-        self.chat_text.configure(state=tk.DISABLED)
+        # Get colours and alignment
+        bg_color, fg_color = self.SENDER_COLOURS.get(
+            sender.upper(), ("#333333", "white")
+        )
+        anchor = "e" if sender.upper() == "YOU" else "w"
+
+        # INFO and ERROR messages are displayed differently
+        if sender.upper() == "ERROR":
+            # Create a frame with a red background for the error message
+            error_frame = ctk.CTkFrame(
+                self.chat_frame, fg_color=bg_color, corner_radius=10
+            )
+            error_label = ctk.CTkLabel(
+                error_frame,
+                text=message,
+                text_color=fg_color,
+                wraplength=self.root.winfo_width() - 100,
+                justify=tk.LEFT,
+            )
+            error_label.pack(padx=10, pady=5)
+            error_frame.pack(fill="x", padx=10, pady=5, anchor="w")
+            self._message_widgets.append((error_label, "error"))
+
+            self.root.update_idletasks()
+            self._chat_scrollable_frame._parent_canvas.yview_moveto(1.0)
+            return
+
+        if sender.upper() == "INFO":
+            info_label = ctk.CTkLabel(
+                self.chat_frame,
+                text=formatted_message.strip(),
+                text_color=fg_color,
+                wraplength=self.root.winfo_width() - 100,
+            )
+            info_label.pack(fill="x", padx=10, pady=5, anchor="w")
+            self._message_widgets.append((info_label, sender.lower()))
+            self.root.update_idletasks()
+            self._chat_scrollable_frame._parent_canvas.yview_moveto(1.0)
+            return
+
+        # Create a bubble frame
+        bubble = ctk.CTkFrame(self.chat_frame, fg_color=bg_color, corner_radius=10)
+
+        # Create the message label inside the bubble
+        label = ctk.CTkLabel(
+            bubble,
+            text=message,
+            text_color=fg_color,
+            wraplength=int(self.root.winfo_width() * 0.7),
+            justify=tk.LEFT,
+            anchor="w",
+        )
+        label.pack(padx=10, pady=5)
+        self._message_widgets.append((label, "bubble"))
+
+        # Set the bubble's horizontal alignment
+        if anchor == "e":
+            bubble.pack(fill="none", padx=(100, 10), pady=5, anchor=anchor)
+        else:
+            bubble.pack(fill="none", padx=(10, 100), pady=5, anchor=anchor)
+
+        # Scroll to the bottom
+        self.root.update_idletasks()
+        self._chat_scrollable_frame._parent_canvas.yview_moveto(1.0)
 
     def _format_message(self, sender, message):
         """Formats the message for display in the chat window.
@@ -311,54 +362,69 @@ class DesktopView(IACEView):
 
         # Use grid layout
         self.root.grid_rowconfigure(0, weight=1)
-        self.root.grid_columnconfigure(1, weight=1)
+        self.root.grid_columnconfigure(0, weight=1)
 
         # Create all the GUI components
-        self._create_chat_area(self.root, row=0, column=0, col_span=2)
-        self._create_input_area(self.root, row=1, column=0, col_span=2)
+        self._create_chat_area(self.root, row=0, column=0)
+        self._create_input_area(self.root, row=1, column=0)
 
-    def _create_chat_area(self, parent, row=0, column=1, col_span=2):
+        # Bind the resize event
+        self.root.bind("<Configure>", self._on_resize)
+
+    def _on_resize(self, event=None):
+        """Callback function to handle window resize events."""
+        new_width = self.root.winfo_width()
+        info_wraplength = new_width - 100
+        bubble_wraplength = int(new_width * 0.7)
+        error_wraplength = new_width - 100
+
+        for widget, widget_type in self._message_widgets:
+            try:
+                if widget_type == "info":
+                    widget.configure(wraplength=info_wraplength)
+                elif widget_type == "error":
+                    widget.configure(wraplength=error_wraplength)
+                else:  # bubble
+                    widget.configure(wraplength=bubble_wraplength)
+            except tk.TclError:
+                # Ignore errors for widgets that might have been destroyed
+                pass
+
+    def _create_chat_area(self, parent, row=0, column=0):
         """Creates the chat display area.
 
         ### Args
             parent: The parent widget to place the chat area in.
             row (int): The row index for grid placement.
             column (int): The column index for grid placement.
-            col_span (int): The number of columns to span.
         """
-        self.chat_text = ctk.CTkTextbox(parent, wrap=tk.WORD)
-        self.chat_text.grid(
+        self._chat_scrollable_frame = ctk.CTkScrollableFrame(parent)
+        self._chat_scrollable_frame.grid(
             row=row,
             column=column,
-            columnspan=col_span,
             padx=20,
             pady=20,
             sticky="nsew",
         )
-        self.chat_text.configure(state=tk.DISABLED)
+        # This inner frame will hold the message bubbles
+        self.chat_frame = self._chat_scrollable_frame
 
-    def _create_input_area(self, parent, row=1, column=0, col_span=2):
+    def _create_input_area(self, parent, row=1, column=0):
         """Creates the input area for user messages.
 
         ### Args
             parent: The parent widget to place the input area in.
             row (int): The row index for grid placement.
             column (int): The column index for grid placement.
-            col_span (int): The number of columns to span.
         """
 
-        def focus_on_letter(event):
-            if event.char.isalpha() and self.root.focus_get() != self.input_entry:
-                self.input_entry.focus()
-
-        self.root.bind("<Key>", focus_on_letter)
+        self.root.bind("/", lambda event: self.input_entry.focus())
 
         # Configure a sub section for the input area
         self._input_area = ctk.CTkFrame(parent)
         self._input_area.grid(
             row=row,
             column=column,
-            columnspan=col_span,
             padx=20,
             pady=(0, 20),
             sticky="ew",
@@ -381,7 +447,6 @@ class DesktopView(IACEView):
         if message:
             self.display_message("YOU", message)
             self.input_entry.delete(0, tk.END)
-            self.chat_text.see(tk.END)
 
             # Force the GUI to update so the user's message appears immediately
             self.root.update_idletasks()

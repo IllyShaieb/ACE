@@ -2,8 +2,9 @@
 
 import random
 from datetime import datetime
-import requests
 from typing import Callable
+
+import requests
 
 UNKNOWN_ACTION_MESSAGE = "I'm not sure how to do that."
 

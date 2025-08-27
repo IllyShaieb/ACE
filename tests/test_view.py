@@ -1,12 +1,11 @@
 """test_view.py: Unit tests for the view module."""
 
-import unittest
-from unittest.mock import patch
 import io
 import tkinter as tk
+import unittest
+from unittest.mock import patch
 
-
-from core.view import IACEView, ConsoleView, DesktopView
+from core.view import ConsoleView, DesktopView, IACEView
 
 
 class TestConsoleView(unittest.TestCase):
@@ -148,6 +147,8 @@ class TestDesktopView(unittest.TestCase):
             ("show_info", "[INFO] Application starting...", "Application starting..."),
         ]
         for method, expected, msg in cases:
+            # Clear history for each case to test individually
+            self.desktop_view.clear_chat_history()
             getattr(self.desktop_view, method)(msg)
             self.assertMessageInHistory(expected)
 
