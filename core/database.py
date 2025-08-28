@@ -49,6 +49,9 @@ def start_conversation(database_name: str) -> int:
 
     Returns:
         int: The ID of the new conversation.
+
+    Raises:
+        sqlite3.Error: If the conversation ID cannot be retrieved.
     """
     # Connect to the database
     with sqlite3.connect(database_name) as connection:
@@ -58,11 +61,9 @@ def start_conversation(database_name: str) -> int:
         cursor.execute("""INSERT INTO conversations DEFAULT VALUES;""")
 
         # Get the conversation ID of the new conversation
-        cursor.execute(
-            """SELECT conversation_id FROM conversations
-                ORDER BY conversation_id DESC LIMIT 1;"""
-        )
         conversation_id = cursor.lastrowid
+        if conversation_id is None:
+            raise sqlite3.Error("Failed to retrieve conversation ID.")
 
         return conversation_id
 

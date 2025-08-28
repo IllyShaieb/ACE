@@ -5,6 +5,7 @@ expected, and that the data is retrieved and updated correctly.
 """
 
 import os
+import sqlite3
 import unittest
 
 from core import database as db
@@ -20,6 +21,11 @@ class TestDatabase(unittest.TestCase):
         """Test a new database is created."""
         db.create_database(self.mock_database)
         self.assertTrue(os.path.exists(self.mock_database))
+
+    def test_create_conversation_id_retrieval_failure(self):
+        """Test that an error is raised when there is an issue with retrieving the conversation ID."""
+        with self.assertRaises(sqlite3.Error):
+            db.start_conversation(self.mock_database)
 
     def test_start_conversation(self):
         """Test a new conversation is started."""
@@ -88,8 +94,8 @@ class TestDatabase(unittest.TestCase):
         remaining conversations are re-indexed."""
         db.create_database(self.mock_database)
         conversation_id_1 = db.start_conversation(self.mock_database)
-        conversation_id_2 = db.start_conversation(self.mock_database)
-        conversation_id_3 = db.start_conversation(self.mock_database)
+        _ = db.start_conversation(self.mock_database)
+        _ = db.start_conversation(self.mock_database)
 
         # Delete the first conversation
         db.delete_conversation(self.mock_database, conversation_id_1)
