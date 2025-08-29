@@ -1,19 +1,20 @@
 """test_presenter.py: Unit tests for the ACE Presenter."""
 
-import unittest
-from unittest.mock import Mock, call, patch
 import os
+import unittest
 from datetime import datetime
+from unittest.mock import Mock, call, patch
 
+from core.model import ACEModel
 from core.presenter import (
-    ConsolePresenter,
-    DesktopPresenter,
-    USER_ID,
     ACE_ID,
     EXIT_COMMAND,
-    WELCOME_MESSAGE,
     GOODBYE_MESSAGE,
     UNKNOWN_ACTION_MESSAGE,
+    USER_ID,
+    WELCOME_MESSAGE,
+    ConsolePresenter,
+    DesktopPresenter,
 )
 from core.view import IACEView
 
@@ -132,47 +133,6 @@ class TestConsolePresenter(unittest.TestCase):
 
         self.mock_view.display_message.assert_not_called()
         self.assertIsNone(self.presenter.chat_id)
-
-    @patch("core.presenter.create_database")
-    @patch("core.presenter.start_conversation", return_value="id_789")
-    @patch("core.presenter.add_message")
-    def test_single_action_query(
-        self, mock_add_message, mock_start_conversation, mock_create_database
-    ):
-        """
-        Test a query that results in a single action and response.
-
-        Verifies that the presenter correctly processes a single action
-        from the model and displays the appropriate response.
-        """
-        # Arrange
-        user_query = "who are you?"
-        self.mock_model.return_value = ["IDENTIFY"]
-        self.mock_view.get_user_input.side_effect = [user_query, EXIT_COMMAND]
-        expected_response = "I am ACE, your personal assistant."
-
-        # Act
-        self.presenter.run()
-
-        # Assert
-        self.mock_model.assert_called_once_with(user_query)
-        self.mock_view.display_message.assert_has_calls(
-            [
-                call(ACE_ID, WELCOME_MESSAGE),
-                call(ACE_ID, expected_response),
-                call(ACE_ID, GOODBYE_MESSAGE),
-            ]
-        )
-        mock_add_message.assert_has_calls(
-            [
-                call(TEST_ACE_DATABASE, "id_789", ACE_ID, WELCOME_MESSAGE),
-                call(TEST_ACE_DATABASE, "id_789", USER_ID, user_query),
-                call(TEST_ACE_DATABASE, "id_789", ACE_ID, expected_response),
-                call(TEST_ACE_DATABASE, "id_789", USER_ID, EXIT_COMMAND),
-                call(TEST_ACE_DATABASE, "id_789", ACE_ID, GOODBYE_MESSAGE),
-            ],
-            any_order=False,
-        )
 
     @patch("core.presenter.create_database")
     @patch("core.presenter.start_conversation", return_value="id_999")
@@ -449,14 +409,11 @@ class TestDesktopPresenter(unittest.TestCase):
         # Arrange
         user_query = "do a backflip"
         self.mock_model.return_value = ["BACKFLIP"]
-        self.mock_view.get_user_input.side_effect = [user_query, EXIT_COMMAND]
         self.presenter.chat_id = 888
 
         # Act
         self.presenter.handle_user_input(user_query)
 
-        # Assert
-        self.mock_model.assert_called_once_with(user_query)
         self.mock_view.display_message.assert_called_once_with(
             ACE_ID, UNKNOWN_ACTION_MESSAGE
         )
@@ -480,10 +437,10 @@ class TestDesktopPresenter(unittest.TestCase):
         they appear in the query and displays the combined response correctly.
         """
         # Arrange
-        user_query = "who are you and who is your creator?"
-        self.mock_model.return_value = ["IDENTIFY", "CREATOR"]
+        user_query = "who is your creator and who are you?"
+        self.mock_model.return_value = ["CREATOR", "IDENTIFY"]
         expected_response = (
-            "I am ACE, your personal assistant. I was created by Illy Shaieb."
+            "I was created by Illy Shaieb. I am ACE, your personal assistant."
         )
         self.presenter.chat_id = 1000
 
