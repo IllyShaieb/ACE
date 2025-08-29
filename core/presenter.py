@@ -5,14 +5,8 @@ from threading import Thread
 from typing import List
 
 from core.actions import UNKNOWN_ACTION_MESSAGE, execute_action
-from core.database import (
-    add_message,
-    create_database,
-    delete_conversation,
-    get_conversations,
-    get_messages,
-    start_conversation,
-)
+from core.database import (add_message, create_database, delete_conversation,
+                           get_conversations, get_messages, start_conversation)
 from core.model import ACEModel
 from core.view import IACEView
 
@@ -168,7 +162,7 @@ class DesktopPresenter(BasePresenter):
 
         if new_conversation:
             # This needs to be done in the main thread if it updates the GUI
-            self.view.root.after(0, self._load_and_display_conversations)
+            self.view.after(0, self._load_and_display_conversations)
 
     def _load_and_display_conversations(self):
         """Loads conversations from the database and displays them in the view."""
