@@ -3,7 +3,7 @@
 import io
 import tkinter as tk
 import unittest
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from core.view import ConsoleView, DesktopView, IACEView
 
@@ -110,7 +110,7 @@ class TestDesktopView(unittest.TestCase):
 
     def test_desktop_view_implements_iaceview(self):
         """Test that DesktopView correctly implements the IACEView Protocol."""
-        self.assertIsInstance(self.desktop_view, IACEView)
+        self.assertTrue(isinstance(self.desktop_view, IACEView))
 
     def test_display_message(self):
         """Test that display_message adds the message to the window."""
@@ -151,6 +151,18 @@ class TestDesktopView(unittest.TestCase):
             self.desktop_view.clear_chat_history()
             getattr(self.desktop_view, method)(msg)
             self.assertMessageInHistory(expected)
+
+    def test_display_conversation_history(self):
+        """Test that the conversation history sidebar is populated correctly."""
+        conversations = [
+            (1, "2025-07-20T10:00:00"),
+            (2, "2025-07-21T11:00:00"),
+        ]
+        self.desktop_view.display_conversations(conversations)
+
+        # Expect a button for each conversation
+        history_buttons = self.desktop_view.get_conversation_history()
+        self.assertEqual(len(history_buttons), len(conversations))
 
 
 if __name__ == "__main__":
