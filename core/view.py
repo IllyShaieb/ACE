@@ -111,6 +111,14 @@ class IACEView(Protocol):
             bool: True if the user confirmed, False otherwise.
         """
 
+    def after(self, delay: int, callback: Callable):
+        """Schedules a callback to be called after a delay.
+
+        ### Args
+            delay (int): The delay in milliseconds before calling the callback.
+            callback (Callable): The function to call after the delay.
+        """
+
 
 class ConsoleView(IACEView):
     """A concrete implementation of IACEView for console-based interaction.
@@ -243,6 +251,17 @@ class ConsoleView(IACEView):
             bool: True if the user confirmed, False otherwise.
         """
         return False
+
+    def after(self, delay: int, callback: Callable):
+        """Schedules a callback to be called after a delay.
+
+        TODO: Implement the scheduling logic for the console.
+
+        ### Args
+            delay (int): The delay in milliseconds before calling the callback.
+            callback (Callable): The function to call after the delay.
+        """
+        pass
 
 
 class DesktopView(IACEView):
@@ -717,3 +736,12 @@ class DesktopView(IACEView):
         state = "normal" if enabled else "disabled"
         self.input_entry.configure(state=state)
         self.send_button.configure(state=state)
+
+    def after(self, delay: int, callback: Callable):
+        """Schedules a callback to be called after a delay.
+
+        ### Args
+            delay (int): The delay in milliseconds before calling the callback.
+            callback (Callable): The function to call after the delay.
+        """
+        self.root.after(delay, callback)
