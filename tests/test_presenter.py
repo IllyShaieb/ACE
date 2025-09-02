@@ -15,6 +15,7 @@ from core.presenter import (
     WELCOME_MESSAGE,
     ConsolePresenter,
     DesktopPresenter,
+    track_action,
 )
 from core.view import IACEView
 
@@ -50,8 +51,15 @@ class TestConsolePresenter(unittest.TestCase):
         self.mock_dt.now.return_value = datetime(2025, 7, 21, 10, 0, 0)
         self.mock_dt.strftime = datetime.strftime
 
+        # Patch track_action to return the original function
+        self.patcher_track_action = patch(
+            "core.presenter.track_action", side_effect=lambda f: f
+        )
+        self.patcher_track_action.start()
+
     def tearDown(self):
         """Tear down after each test case."""
+        self.patcher_track_action.stop()
         self.patcher_db_path.stop()
         if os.path.exists(TEST_ACE_DATABASE):
             os.remove(TEST_ACE_DATABASE)
@@ -85,11 +93,18 @@ class TestConsolePresenter(unittest.TestCase):
         mock_create_database.assert_called_once_with(TEST_ACE_DATABASE)
         mock_start_conversation.assert_called_once_with(TEST_ACE_DATABASE)
         self.assertEqual(self.presenter.chat_id, "id_123")
-        self.mock_view.show_info.assert_called()
+        self.mock_view.display_message.assert_called()
 
         self.mock_view.display_message.assert_has_calls(
             [
+                call("INFO", "2025-07-21 10:00:00 | Initialising ACE"),
+                call(
+                    "INFO",
+                    "===================================== ACE ======================================",
+                ),
+                call("INFO", "    Welcome to ACE! Type 'exit' to quit.\n\n"),
                 call(ACE_ID, WELCOME_MESSAGE),
+                call(USER_ID, EXIT_COMMAND),
                 call(ACE_ID, GOODBYE_MESSAGE),
             ],
             any_order=False,
@@ -120,18 +135,21 @@ class TestConsolePresenter(unittest.TestCase):
 
         # Assert
         mock_create_database.assert_called_once_with(TEST_ACE_DATABASE)
-        self.mock_view.show_error.assert_called_once_with(
-            "Failed to initialise database: DB Error"
+        self.mock_view.display_message.assert_any_call(
+            "ERROR", "Failed to initialise database: DB Error"
         )
 
-        expected_info_calls = [
-            call("2025-07-21 10:00:00 | Initialising ACE"),
-            call("[INFO] ACE cannot start without a functional database. Exiting."),
-            call("2025-07-21 10:00:00 | Terminating ACE"),
+        expected_calls = [
+            call("INFO", "2025-07-21 10:00:00 | Initialising ACE"),
+            call("ERROR", "Failed to initialise database: DB Error"),
+            call(
+                "INFO",
+                "[INFO] ACE cannot start without a functional database. Exiting.",
+            ),
+            call("INFO", "2025-07-21 10:00:00 | Terminating ACE"),
         ]
-        self.mock_view.show_info.assert_has_calls(expected_info_calls, any_order=False)
+        self.mock_view.display_message.assert_has_calls(expected_calls, any_order=False)
 
-        self.mock_view.display_message.assert_not_called()
         self.assertIsNone(self.presenter.chat_id)
 
     @patch("core.presenter.create_database")
@@ -160,15 +178,23 @@ class TestConsolePresenter(unittest.TestCase):
         self.presenter.run()
 
         # Assert
-        self.mock_model.assert_called_once_with(user_query)
         self.mock_view.display_message.assert_has_calls(
             [
+                call("INFO", "2025-07-21 10:00:00 | Initialising ACE"),
+                call(
+                    "INFO",
+                    "===================================== ACE ======================================",
+                ),
+                call("INFO", "    Welcome to ACE! Type 'exit' to quit.\n\n"),
                 call(ACE_ID, WELCOME_MESSAGE),
+                call(USER_ID, user_query),
                 call(ACE_ID, combined_response),
+                call(USER_ID, EXIT_COMMAND),
                 call(ACE_ID, GOODBYE_MESSAGE),
             ],
             any_order=False,
         )
+
         mock_add_message.assert_has_calls(
             [
                 call(TEST_ACE_DATABASE, "id_999", ACE_ID, WELCOME_MESSAGE),
@@ -203,10 +229,19 @@ class TestConsolePresenter(unittest.TestCase):
         # Assert
         self.mock_view.display_message.assert_has_calls(
             [
+                call("INFO", "2025-07-21 10:00:00 | Initialising ACE"),
+                call(
+                    "INFO",
+                    "===================================== ACE ======================================",
+                ),
+                call("INFO", "    Welcome to ACE! Type 'exit' to quit.\n\n"),
                 call(ACE_ID, WELCOME_MESSAGE),
+                call(USER_ID, user_query),
                 call(ACE_ID, UNKNOWN_ACTION_MESSAGE),
+                call(USER_ID, EXIT_COMMAND),
                 call(ACE_ID, GOODBYE_MESSAGE),
-            ]
+            ],
+            any_order=False,
         )
 
     @patch("core.presenter.create_database")
@@ -238,8 +273,16 @@ class TestConsolePresenter(unittest.TestCase):
         self.mock_model.assert_called_once_with(user_query)
         self.mock_view.display_message.assert_has_calls(
             [
+                call("INFO", "2025-07-21 10:00:00 | Initialising ACE"),
+                call(
+                    "INFO",
+                    "===================================== ACE ======================================",
+                ),
+                call("INFO", "    Welcome to ACE! Type 'exit' to quit.\n\n"),
                 call(ACE_ID, WELCOME_MESSAGE),
+                call(USER_ID, user_query),
                 call(ACE_ID, combined_response),
+                call(USER_ID, EXIT_COMMAND),
                 call(ACE_ID, GOODBYE_MESSAGE),
             ],
             any_order=False,
@@ -279,8 +322,15 @@ class TestDesktopPresenter(unittest.TestCase):
         self.mock_dt.now.return_value = datetime(2025, 7, 21, 10, 0, 0)
         self.mock_dt.strftime = datetime.strftime
 
+        # Patch track_action to return the original function
+        self.patcher_track_action = patch(
+            "core.presenter.track_action", side_effect=lambda f: f
+        )
+        self.patcher_track_action.start()
+
     def tearDown(self):
         """Tear down after each test case."""
+        self.patcher_track_action.stop()
         self.patcher_db_path.stop()
         if os.path.exists(TEST_ACE_DATABASE):
             os.remove(TEST_ACE_DATABASE)
@@ -301,8 +351,8 @@ class TestDesktopPresenter(unittest.TestCase):
         self.presenter.run()
 
         # Assert
-        self.mock_view.show_info.assert_called()
-        self.mock_view.display_message.assert_called_with(ACE_ID, WELCOME_MESSAGE)
+        self.mock_view.display_message.assert_called()
+        self.mock_view.display_message.assert_any_call(ACE_ID, WELCOME_MESSAGE)
 
     @patch("core.presenter.create_database", side_effect=Exception("DB Error"))
     def test_run_application_db_failure(self, mock_create_database):
@@ -315,15 +365,19 @@ class TestDesktopPresenter(unittest.TestCase):
 
         # Assert
         mock_create_database.assert_called_once()
-        self.mock_view.show_error.assert_called_once_with(
-            "Failed to initialise database: DB Error"
+        self.mock_view.display_message.assert_any_call(
+            "ERROR", "Failed to initialise database: DB Error"
         )
 
-        expected_info_calls = [
-            call("[INFO] ACE cannot start without a functional database. Exiting."),
+        expected_calls = [
+            call("INFO", "2025-07-21 10:00:00 | Initialising ACE"),
+            call("ERROR", "Failed to initialise database: DB Error"),
+            call(
+                "INFO",
+                "[INFO] ACE cannot start without a functional database. Exiting.",
+            ),
         ]
-        self.mock_view.show_info.assert_has_calls(expected_info_calls, any_order=False)
-        self.mock_view.display_message.assert_not_called()
+        self.mock_view.display_message.assert_has_calls(expected_calls, any_order=False)
         self.assertIsNone(self.presenter.chat_id)
 
     @patch("core.presenter.create_database")
