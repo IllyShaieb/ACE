@@ -5,8 +5,14 @@ from threading import Thread
 from typing import List
 
 from core.actions import UNKNOWN_ACTION_MESSAGE, execute_action
-from core.database import (add_message, create_database, delete_conversation,
-                           get_conversations, get_messages, start_conversation)
+from core.database import (
+    add_message,
+    create_database,
+    delete_conversation,
+    get_conversations,
+    get_messages,
+    start_conversation,
+)
 from core.model import ACEModel
 from core.view import IACEView
 
@@ -41,17 +47,19 @@ class BasePresenter:
     def initialise(self):
         """Initialises the ACE application, including the database."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.view.show_info(f"{timestamp} | {INITIALISING_MESSAGE}")
+        self.view.display_message("INFO", f"{timestamp} | {INITIALISING_MESSAGE}")
 
         try:
             create_database(ACE_DATABASE)
         except Exception as e:
-            self.view.show_error(f"Failed to initialise database: {e}")
-            self.view.show_info(NO_DB_MESSAGE)
+            self.view.display_message("ERROR", f"Failed to initialise database: {e}")
+            self.view.display_message("INFO", NO_DB_MESSAGE)
             return False  # Indicate failure
 
-        self.view.show_info(" ACE ".center(80, "="))
-        self.view.show_info("    Welcome to ACE! Type 'exit' to quit.\n\n")
+        self.view.display_message("INFO", " ACE ".center(80, "="))
+        self.view.display_message(
+            "INFO", "    Welcome to ACE! Type 'exit' to quit.\n\n"
+        )
 
         self.view.display_message(ACE_ID, WELCOME_MESSAGE)
         return True  # Indicate success
@@ -74,7 +82,9 @@ class BasePresenter:
         if self.chat_id is not None:
             add_message(ACE_DATABASE, self.chat_id, USER_ID, user_input)
         else:
-            self.view.show_error("Conversation ID is not set. Cannot log message.")
+            self.view.display_message(
+                "ERROR", "Conversation ID is not set. Cannot log message."
+            )
             return True  # Continue running
 
         # Check for exit command
@@ -84,6 +94,13 @@ class BasePresenter:
                 add_message(ACE_DATABASE, self.chat_id, ACE_ID, GOODBYE_MESSAGE)
             self.view.close()
             return False  # Indicate exit
+
+        # Simulate error and info
+        if user_input.lower() == "test info":
+            self.view.display_message("INFO", "This is an informational message.")
+
+        if user_input.lower() == "test error":
+            self.view.display_message("ERROR", "This is an error message.")
 
         # Process the user input through the model
         actions = self.model(user_input)
@@ -97,7 +114,7 @@ class BasePresenter:
         return True  # Continue running
 
     def _process_actions(self, actions: List[str]) -> str:
-        """Processes the actions returned by the model and generates a response string.
+        """Processes actions and shows a typing indicator in the console.
 
         ### Args
             actions (List[str]): A list of actions to process.
@@ -108,13 +125,17 @@ class BasePresenter:
         if not actions:
             return UNKNOWN_ACTION_MESSAGE
 
-        responses = [execute_action(action) for action in actions]
-        return " ".join(responses)
+        def do_actions():
+            responses = [execute_action(action) for action in actions]
+            return " ".join(responses)
+
+        # Use the view's track_action to show a spinner during execution
+        return self.view.track_action(do_actions, "ACE is typing...")
 
     def show_termination_message(self):
         """Displays the termination message."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.view.show_info(f"{timestamp} | {TERMINATION_MESSAGE}")
+        self.view.display_message("INFO", f"{timestamp} | {TERMINATION_MESSAGE}")
 
 
 class ConsolePresenter(BasePresenter):
@@ -123,10 +144,50 @@ class ConsolePresenter(BasePresenter):
     def run(self):
         """Runs the main ACE application loop."""
         if self.initialise():
-            while self.process_user_input(self.view.get_user_input(f"{USER_ID}: ")):
-                pass
+            while True:
+                user_input = self.view.get_user_input(f"{USER_ID}: ")
+                self.view.clear_input()
+                if not self.process_user_input(user_input):
+                    break
 
         self.show_termination_message()
+
+    def process_user_input(self, user_input: str) -> bool:
+        """
+        Processes user input, displays it, gets a response, and displays the response.
+        """
+        if not user_input:
+            return True  # Continue loop if input is empty
+
+        # Display the user's message in a bubble
+        self.view.display_message(USER_ID, user_input)
+
+        # Now, process the input and get ACE's response
+        return super().process_user_input(user_input)
+
+    def _process_actions(self, actions: List[str]) -> str:
+        """Processes actions and shows a typing indicator in the console.
+
+        ### Args
+            actions (List[str]): A list of actions to process.
+
+        ### Returns
+            str: A string containing the responses for the processed actions.
+        """
+        if not actions:
+            return UNKNOWN_ACTION_MESSAGE
+
+        def do_actions():
+            responses = [execute_action(action) for action in actions]
+            return " ".join(responses)
+
+        # Use the view's track_action to show a spinner during execution
+        return self.view.track_action(do_actions, "ACE is typing...")
+
+    def show_termination_message(self):
+        """Displays the termination message."""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.view.display_message("INFO", f"{timestamp} | {TERMINATION_MESSAGE}")
 
 
 class DesktopPresenter(BasePresenter):
@@ -181,10 +242,12 @@ class DesktopPresenter(BasePresenter):
 
         # Display initial info messages for context
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.view.show_info(f"{timestamp} | {INITIALISING_MESSAGE}")
+        self.view.display_message("INFO", f"{timestamp} | {INITIALISING_MESSAGE}")
 
-        self.view.show_info(" ACE ".center(80, "="))
-        self.view.show_info("    Welcome to ACE! Type 'exit' to quit.\n\n")
+        self.view.display_message("INFO", " ACE ".center(80, "="))
+        self.view.display_message(
+            "INFO", "    Welcome to ACE! Type 'exit' to quit.\n\n"
+        )
 
         messages = get_messages(ACE_DATABASE, self.chat_id)
         for msg in messages:

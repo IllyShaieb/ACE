@@ -3,7 +3,7 @@
 import io
 import tkinter as tk
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from core.view import ConsoleView, DesktopView, IACEView
 
@@ -18,55 +18,58 @@ class TestConsoleView(unittest.TestCase):
         It initialises a fresh ConsoleView instance for each test.
         """
         self.console_view = ConsoleView()
+        # Suppress rich's output during tests for cleaner test results
+        self.console_view.console.file = io.StringIO()
 
     def test_console_view_implements_iaceview(self):
         """Test that ConsoleView correctly implements the IACEView Protocol."""
         # This uses the @runtime_checkable decorator on IACEView
         self.assertTrue(isinstance(self.console_view, IACEView))
 
-    @patch("sys.stdout", new_callable=io.StringIO)
-    def test_display_message(self, mock_stdout):
-        """Test that display_message prints the correct format to stdout."""
-        # First message
-        sender1 = "ACE"
-        message1 = "Hello, how can I help?"
-        self.console_view.display_message(sender1, message1)
-        self.assertEqual(mock_stdout.getvalue(), f"{sender1}: {message1}\n")
+    def test_display_message(self):
+        """Test that display_message prints the message content."""
+        sender = "ACE"
+        message = "Hello, how can I help?"
+        self.console_view.display_message(sender, message)
+        assert isinstance(self.console_view.console.file, io.StringIO)
+        output = self.console_view.console.file.getvalue()
+        self.assertIn(sender, output)
+        self.assertIn(message, output)
 
-        # Second message - output should be cumulative
-        sender2 = "YOU"
-        message2 = "I need assistance."
-        self.console_view.display_message(sender2, message2)
-        # The expected output should be the first message + the second message
-        expected_cumulative_output = f"{sender1}: {message1}\n{sender2}: {message2}\n"
-        self.assertEqual(mock_stdout.getvalue(), expected_cumulative_output)
-
-    @patch("builtins.input", return_value="test user input")
-    def test_get_user_input(self, mock_input):
+    @patch("rich.console.Console.input", return_value="test user input")
+    def test_get_user_input(self, mock_rich_input):
         """Test that get_user_input correctly captures and strips user input."""
         prompt = "Enter your command: "
         user_input = self.console_view.get_user_input(prompt)
-        mock_input.assert_called_once_with(prompt)
+
+        # Check that the input was captured correctly
         self.assertEqual(user_input, "test user input")
 
+        # Check that rich's input was called
+        mock_rich_input.assert_called_once()
+
         # Test with leading/trailing whitespace
-        mock_input.return_value = "  another input  "
+        mock_rich_input.return_value = "  another input  "
         user_input = self.console_view.get_user_input("Prompt 2: ")
         self.assertEqual(user_input, "another input")
 
-    @patch("sys.stdout", new_callable=io.StringIO)
-    def test_show_error(self, mock_stdout):
-        """Test that show_error prints the correct error format to stdout."""
+    def test_show_error(self):
+        """Test that show_error prints the error message."""
         error_message = "Database connection failed."
-        self.console_view.show_error(error_message)
-        self.assertEqual(mock_stdout.getvalue(), f"[ERROR] {error_message}\n")
+        self.console_view.display_message("ERROR", error_message)
+        assert isinstance(self.console_view.console.file, io.StringIO)
+        output = self.console_view.console.file.getvalue()
+        self.assertIn("ERROR", output)
+        self.assertIn(error_message, output)
 
-    @patch("sys.stdout", new_callable=io.StringIO)
-    def test_show_info(self, mock_stdout):
-        """Test that show_info prints the correct informational message to stdout."""
+    def test_show_info(self):
+        """Test that show_info prints the correct informational message."""
         info_message = "Application starting..."
-        self.console_view.show_info(info_message)
-        self.assertEqual(mock_stdout.getvalue(), f"[INFO] {info_message}\n")
+        self.console_view.display_message("INFO", info_message)
+        assert isinstance(self.console_view.console.file, io.StringIO)
+        output = self.console_view.console.file.getvalue()
+        self.assertIn("INFO", output)
+        self.assertIn(info_message, output)
 
 
 class TestDesktopView(unittest.TestCase):
@@ -140,16 +143,20 @@ class TestDesktopView(unittest.TestCase):
         """Test that show_error and show_info display messages in the chat."""
         cases = [
             (
-                "show_error",
+                "ERROR",
                 "[ERROR] Database connection failed.",
                 "Database connection failed.",
             ),
-            ("show_info", "[INFO] Application starting...", "Application starting..."),
+            (
+                "INFO",
+                "[INFO] Application starting...",
+                "Application starting...",
+            ),
         ]
-        for method, expected, msg in cases:
+        for sender, expected, msg in cases:
             # Clear history for each case to test individually
             self.desktop_view.clear_chat_history()
-            getattr(self.desktop_view, method)(msg)
+            self.desktop_view.display_message(sender, msg)
             self.assertMessageInHistory(expected)
 
     def test_display_conversation_history(self):
