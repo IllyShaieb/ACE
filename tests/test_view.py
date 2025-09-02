@@ -3,7 +3,7 @@
 import io
 import tkinter as tk
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from core.view import ConsoleView, DesktopView, IACEView
 

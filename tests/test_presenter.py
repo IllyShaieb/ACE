@@ -5,7 +5,6 @@ import unittest
 from datetime import datetime
 from unittest.mock import Mock, call, patch
 
-from core.model import ACEModel
 from core.presenter import (
     ACE_ID,
     EXIT_COMMAND,
@@ -15,7 +14,6 @@ from core.presenter import (
     WELCOME_MESSAGE,
     ConsolePresenter,
     DesktopPresenter,
-    track_action,
 )
 from core.view import IACEView
 
