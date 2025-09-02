@@ -1,11 +1,16 @@
 """view.py: Contains the view interfaces and implementations for the ACE program."""
 
+import sys
 import tkinter as tk
 from datetime import datetime
-from typing import Callable, List, Optional, Protocol, runtime_checkable
+from typing import Any, Callable, List, Optional, Protocol, runtime_checkable
 
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.text import Text
 
 
 @runtime_checkable
@@ -119,6 +124,19 @@ class IACEView(Protocol):
             callback (Callable): The function to call after the delay.
         """
 
+    def track_action(
+        self, action_func: Callable, description: str = "ACE is thinking..."
+    ) -> Any:
+        """Tracks the execution of a function with a progress spinner.
+
+        ### Args
+            action_func (Callable): The function to execute.
+            description (str): The text to display next to the spinner.
+
+        ### Returns
+            Any: The return value of the action_func.
+        """
+
 
 class ConsoleView(IACEView):
     """A concrete implementation of IACEView for console-based interaction.
@@ -128,6 +146,16 @@ class ConsoleView(IACEView):
     implementing all its defined methods.
     """
 
+    SENDER_COLOURS = {
+        "ACE": ("cyan", "cyan"),  # (border_colour, text_colour)
+        "ERROR": ("red", "red"),
+        "INFO": ("white", "white"),
+        "YOU": ("magenta", "magenta"),
+    }
+
+    def __init__(self):
+        self.console = Console()
+
     def display_message(self, sender: str, message: str):
         """Displays a message to the console.
 
@@ -135,7 +163,31 @@ class ConsoleView(IACEView):
             sender (str): The name of the sender (e.g., "ACE", "YOU").
             message (str): The message content.
         """
-        print(f"{sender}: {message}")
+        border_colour, text_colour = self.SENDER_COLOURS.get(
+            sender.upper(), ("white", "white")
+        )
+
+        match sender.upper():
+            case "ACE":
+                justify = "left"
+            case "YOU":
+                justify = "right"
+            case _:
+                justify = "center"
+
+        # Don't use panel for INFO
+        if sender.upper() == "INFO":
+            self.console.print(
+                f"[{border_colour}]INFO: {message}[/{border_colour}]", justify=justify
+            )
+        else:
+            panel = Panel(
+                Text(message, style=text_colour, justify=justify),
+                title=sender,
+                border_style=border_colour,
+                expand=False,
+            )
+            self.console.print(panel, justify=justify, markup=True)
 
     def get_user_input(self, prompt: str) -> str:
         """Gets user input from the console.
@@ -146,23 +198,10 @@ class ConsoleView(IACEView):
         ### Returns
             str: The user's input, with leading/trailing whitespace removed.
         """
-        return input(prompt).strip()
-
-    def show_error(self, message: str):
-        """Displays an error message to the console.
-
-        ### Args
-            message (str): The error message.
-        """
-        print(f"[ERROR] {message}")
-
-    def show_info(self, message: str):
-        """Displays an informational message to the console.
-
-        ### Args
-            message (str): The informational message.
-        """
-        print(f"[INFO] {message}")
+        _, text_colour = self.SENDER_COLOURS["YOU"]
+        return self.console.input(
+            f"[bold {text_colour}]{prompt}[/bold {text_colour}]"
+        ).strip()
 
     def set_input_handler(self, handler):
         """Sets the input handler callback.
@@ -185,15 +224,19 @@ class ConsoleView(IACEView):
 
         TODO: Implement a method to clear the console chat history.
         """
-        pass
+        self.console.clear()
 
     def clear_input(self):
-        """Clears the input field.
+        """Clears the last line from the console after input is submitted.
 
-        This method is not applicable for console-based interaction, as input
-        is handled synchronously.
+        This uses ANSI escape codes to move the cursor up one line and clear it,
+        preventing the raw input from remaining on screen before the formatted
+        chat bubble is displayed.
         """
-        pass
+        # \x1b[1A: Move cursor up one line
+        # \x1b[2K: Clear entire line
+        sys.stdout.write("\x1b[1A\x1b[2K")
+        sys.stdout.flush()
 
     def close(self):
         """Closes the console view.
@@ -206,16 +249,14 @@ class ConsoleView(IACEView):
     def show_typing_indicator(self):
         """Informs the user that ACE is responding.
 
-        TODO: Implement a visual indicator (e.g., spinner) to show that ACE is
-            processing the request.
+        This is handled by the `track_action` method for synchronous console operations.
         """
         pass
 
     def hide_typing_indicator(self):
         """Hides the visual indicator for processing.
 
-        TODO: Implement logic to hide the visual indicator (e.g., stop spinner)
-            when ACE has finished processing the request.
+        This is handled by the `track_action` method for synchronous console operations.
         """
         pass
 
@@ -263,6 +304,27 @@ class ConsoleView(IACEView):
         """
         pass
 
+    def track_action(
+        self, action_func: Callable, description: str = "ACE is thinking..."
+    ) -> Any:
+        """Tracks the execution of a function with a progress spinner.
+
+        ### Args
+            action_func (Callable): The function to execute.
+            description (str): The text to display next to the spinner.
+
+        ### Returns
+            Any: The return value of the action_func.
+        """
+        with Progress(
+            SpinnerColumn("dots", style=f"bold {self.SENDER_COLOURS['ACE'][0]}"),
+            TextColumn(f"[{self.SENDER_COLOURS['ACE'][0]}]{description}"),
+            console=self.console,
+            transient=True,
+        ) as progress:
+            progress.add_task(description, total=None)
+            return action_func()
+
 
 class DesktopView(IACEView):
     """A concrete implementation of IACEView for desktop GUI interaction.
@@ -273,7 +335,7 @@ class DesktopView(IACEView):
     """
 
     SENDER_COLOURS = {
-        "ACE": ("#1D1B20", "#FFFFFF"),  # (bg_color, fg_color)
+        "ACE": ("#1D1B20", "#FFFFFF"),  # (bg_colour, fg_colour)
         "ERROR": ("#8C1D18", "white"),
         "INFO": (None, "cyan"),  # No background for info messages
         "YOU": ("#6750A4", "white"),
@@ -362,7 +424,7 @@ class DesktopView(IACEView):
         self._message_history.append(formatted_message.strip())
 
         # Get colours and alignment
-        bg_color, fg_color = self.SENDER_COLOURS.get(
+        bg_colour, fg_colour = self.SENDER_COLOURS.get(
             sender.upper(), ("#333333", "white")
         )
         anchor = "e" if sender.upper() == "YOU" else "w"
@@ -371,12 +433,12 @@ class DesktopView(IACEView):
         if sender.upper() == "ERROR":
             # Create a frame with a red background for the error message
             error_frame = ctk.CTkFrame(
-                self.chat_frame, fg_color=bg_color, corner_radius=10
+                self.chat_frame, fg_color=fg_colour, corner_radius=10
             )
             error_label = ctk.CTkLabel(
                 error_frame,
                 text=message,
-                text_color=fg_color,
+                text_color=fg_colour,
                 wraplength=self.root.winfo_width() - 100,
                 justify=tk.LEFT,
             )
@@ -392,7 +454,7 @@ class DesktopView(IACEView):
             info_label = ctk.CTkLabel(
                 self.chat_frame,
                 text=formatted_message.strip(),
-                text_color=fg_color,
+                text_color=fg_colour,
                 wraplength=self.root.winfo_width() - 100,
             )
             info_label.pack(fill="x", padx=10, pady=5, anchor="w")
@@ -402,13 +464,13 @@ class DesktopView(IACEView):
             return
 
         # Create a bubble frame
-        bubble = ctk.CTkFrame(self.chat_frame, fg_color=bg_color, corner_radius=10)
+        bubble = ctk.CTkFrame(self.chat_frame, fg_color=bg_colour, corner_radius=10)
 
         # Create the message label inside the bubble
         label = ctk.CTkLabel(
             bubble,
             text=message,
-            text_color=fg_color,
+            text_color=fg_colour,
             wraplength=int(self.root.winfo_width() * 0.7),
             justify=tk.LEFT,
             anchor="w",
@@ -465,7 +527,7 @@ class DesktopView(IACEView):
         self._typing_indicator_label = ctk.CTkLabel(
             self.chat_frame,
             text="ACE is typing",
-            text_color="gray",
+            text_colour="gray",
             anchor="center",
         )
         self._typing_indicator_label.pack(fill="x", padx=15, pady=5, anchor="center")
