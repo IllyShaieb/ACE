@@ -14,6 +14,7 @@ dependencies = [
     { name = "ctkmessagebox" },
     { name = "customtkinter" },
     { name = "pip" },
+    { name = "rich" },
     { name = "spacy" },
 ]
 
@@ -22,6 +23,7 @@ requires-dist = [
     { name = "ctkmessagebox", specifier = ">=2.7" },
     { name = "customtkinter", specifier = ">=5.2.2" },
     { name = "pip", specifier = ">=25.2" },
+    { name = "rich", specifier = ">=14.0.0" },
     { name = "spacy", specifier = ">=3.8.7" },
 ]
 
