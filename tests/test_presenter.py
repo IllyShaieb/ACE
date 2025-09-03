@@ -1,6 +1,7 @@
 """test_presenter.py: Unit tests for the ACE Presenter."""
 
 import os
+import threading
 import unittest
 from datetime import datetime
 from unittest.mock import Mock, call, patch
@@ -49,9 +50,9 @@ class TestConsolePresenter(unittest.TestCase):
         self.mock_dt.now.return_value = datetime(2025, 7, 21, 10, 0, 0)
         self.mock_dt.strftime = datetime.strftime
 
-        # Patch track_action to return the original function
-        self.patcher_track_action = patch(
-            "core.presenter.track_action", side_effect=lambda f: f
+        # Patch track_action to call the function and return its result
+        self.patcher_track_action = patch.object(
+            self.mock_view, "track_action", side_effect=lambda f, msg: f()
         )
         self.patcher_track_action.start()
 
@@ -306,6 +307,10 @@ class TestDesktopPresenter(unittest.TestCase):
         self.mock_view = Mock(spec=IACEView)
         self.presenter = DesktopPresenter(model=self.mock_model, view=self.mock_view)
 
+        # Patch threading.Thread to run synchronously
+        self.thread_patcher = patch("core.presenter.Thread", new=self._sync_thread)
+        self.thread_patcher.start()
+
         # Ensure the test database does not exist before each test
         if os.path.exists(TEST_ACE_DATABASE):
             os.remove(TEST_ACE_DATABASE)
@@ -321,17 +326,30 @@ class TestDesktopPresenter(unittest.TestCase):
         self.mock_dt.strftime = datetime.strftime
 
         # Patch track_action to return the original function
-        self.patcher_track_action = patch(
-            "core.presenter.track_action", side_effect=lambda f: f
+        self.patcher_track_action = patch.object(
+            self.mock_view, "track_action", side_effect=lambda f, msg: f()
         )
         self.patcher_track_action.start()
 
     def tearDown(self):
         """Tear down after each test case."""
+        self.thread_patcher.stop()
         self.patcher_track_action.stop()
         self.patcher_db_path.stop()
         if os.path.exists(TEST_ACE_DATABASE):
             os.remove(TEST_ACE_DATABASE)
+
+    @staticmethod
+    def _sync_thread(target, args=(), kwargs=None):
+        """A fake Thread that runs the target synchronously."""
+        if kwargs is None:
+            kwargs = {}
+
+        class FakeThread:
+            def start(self):
+                target(*args, **kwargs)
+
+        return FakeThread()
 
     def test_desktop_presenter_initialisation(self):
         """Test that the desktop presenter is initialised correctly."""

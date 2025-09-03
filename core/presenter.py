@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from threading import Thread
-from typing import List
+from typing import Callable, List
 
 from core.actions import UNKNOWN_ACTION_MESSAGE, execute_action
 from core.database import (
@@ -122,10 +122,10 @@ class BasePresenter:
         ### Returns
             str: A string containing the responses for the processed actions.
         """
-        if not actions:
-            return UNKNOWN_ACTION_MESSAGE
 
         def do_actions():
+            if not actions:
+                return UNKNOWN_ACTION_MESSAGE
             responses = [execute_action(action) for action in actions]
             return " ".join(responses)
 
