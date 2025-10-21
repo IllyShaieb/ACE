@@ -42,11 +42,7 @@ def main():
     """Main function to start the ACE application."""
 
     # Check for GUI override from environment variable
-    GUI_OVERRIDE = os.getenv("ACE_GUI_OVERRIDE", "False").lower() in (
-        "true",
-        "1",
-        "yes",
-    )
+    GUI_OVERRIDE = os.getenv("ACE_GUI_OVERRIDE", "false").lower() == "true"
 
     try:
         # Select the application mode
