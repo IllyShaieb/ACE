@@ -128,5 +128,11 @@
     ],
     "action": "ROLL_DIE",
     "priority": 3
+  },
+  {
+    "name": "GetWeather",
+    "patterns": [[{ "LOWER": "weather" }]],
+    "action": "GET_WEATHER",
+    "priority": 3
   }
 ]
