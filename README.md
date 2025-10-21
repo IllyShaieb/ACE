@@ -1,5 +1,14 @@
 # ACE
 
+Contents:
+
+- [Introduction](#introduction)
+- [Installation](#installation)
+- [Setup](#setup)
+- [Usage](#usage)
+- [How ACE Works](#how-ace-works)
+- [Adding New Action Handlers](#adding-new-action-handlers)
+
 ## Introduction
 
 Welcome to ACE (Artificial Consciousness Engine), which is a digital assistant designed to help you with your daily tasks and provide you with answers to a variety of questions. ACE is designed to be easy to use, privacy-focused, and open-source, so you can customise it to suit your needs.
