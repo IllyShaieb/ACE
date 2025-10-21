@@ -5,9 +5,16 @@ linking together the various components of the program following the
 Model-View-Presenter (MVP) architectural pattern.
 """
 
+import os
+
+from dotenv import load_dotenv
+
 from core.model import ACEModel
-from core.view import DesktopView, ConsoleView
-from core.presenter import DesktopPresenter, ConsolePresenter
+from core.presenter import ConsolePresenter, DesktopPresenter
+from core.view import ConsoleView, DesktopView
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Define available applications with their models, views, and presenters
 APPS = {
@@ -16,8 +23,11 @@ APPS = {
 }
 
 
-def select_app():
+def select_app(gui_override: bool = False) -> str:
     """Prompt the user to select an application mode."""
+    if gui_override:
+        return "1"  # Force Desktop Application
+
     print("Select the application mode:")
     for key, (description, *_) in APPS.items():
         print(f"  {key}. {description}")
@@ -31,9 +41,16 @@ def select_app():
 def main():
     """Main function to start the ACE application."""
 
+    # Check for GUI override from environment variable
+    GUI_OVERRIDE = os.getenv("ACE_GUI_OVERRIDE", "False").lower() in (
+        "true",
+        "1",
+        "yes",
+    )
+
     try:
         # Select the application mode
-        choice = select_app()
+        choice = select_app(GUI_OVERRIDE)
         print(f"Starting {APPS[choice][0]}...")
 
         # Instantiate selected app
