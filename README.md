@@ -22,6 +22,12 @@ Finally, install the dependencies for ACE by running the following command:
 uv install
 ```
 
+## Setup
+Before using ACE, you need to set up the following environment variables:
+- `WEATHER_API_KEY`: Your API key for accessing weather data (https://www.weatherapi.com/).
+
+*This can be set in a `.env` file or exported as an environment variable.*
+
 ## Usage
 
 To start ACE, run the following command:
