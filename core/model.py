@@ -1,7 +1,7 @@
 """model.py: Contains the core model for the ACE program."""
 
-from typing import List
 import json
+from typing import List
 
 import spacy
 from spacy.matcher import Matcher
