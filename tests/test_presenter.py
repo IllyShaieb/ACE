@@ -208,7 +208,7 @@ class TestConsolePresenter(unittest.TestCase):
     @patch("core.presenter.create_database")
     @patch("core.presenter.start_conversation", return_value="id_err")
     @patch("core.presenter.add_message")
-    def test_unrecognized_action(
+    def test_unrecognised_action(
         self, mock_add_message, mock_start_conversation, mock_create_database
     ):
         """
