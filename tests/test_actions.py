@@ -64,6 +64,33 @@ class TestActionHandling(unittest.TestCase):
             "Handler function should return expected result with input",
         )
 
+    def test_register_duplicate_handlers(self):
+        """Ensure registering a duplicate handler warns and overwrites."""
+
+        # Register the first handler
+        @actions.register_handler("DUPLICATE_ACTION")
+        def first_handler():
+            return "First Handler"
+
+        # Check that a warning is issued when overwriting the handler
+        with self.assertWarns(UserWarning):
+
+            @actions.register_handler("DUPLICATE_ACTION")
+            def second_handler():
+                return "Second Handler"
+
+        handler_info = actions.ACTION_HANDLERS["DUPLICATE_ACTION"]
+        self.assertEqual(
+            handler_info.handler,
+            second_handler,
+            "The second handler should overwrite the first one",
+        )
+        self.assertEqual(
+            handler_info.handler(),
+            "Second Handler",
+            "Handler function should return result from the second handler",
+        )
+
     def test_execute_action_known(self):
         """Ensure known actions return the expected results."""
         self.assertIn("ACE", actions.execute_action("IDENTIFY"))

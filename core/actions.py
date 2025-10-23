@@ -18,18 +18,25 @@ SPACY_NLP = spacy.load("en_core_web_sm")
 
 # Registry for action handlers
 class ActionHandler:
-    def __init__(self, handler, requires_user_input):
+    """Class representing an action handler.
+
+    This class encapsulates the handler function and whether it requires user input
+    and provides a callable interface to invoke the handler.
+    """
+
+    def __init__(self, handler: Callable, requires_user_input: bool):
+        """Initialises the ActionHandler.
+
+        ### Args
+            handler (Callable): The function that handles the action.
+            requires_user_input (bool): Whether the action handler requires user input.
+        """
         self.handler = handler
         self.requires_user_input = requires_user_input
 
     def __call__(self, *args, **kwargs):
+        """Invoke the handler function with provided arguments."""
         return self.handler(*args, **kwargs)
-
-    def as_dict(self):
-        return {
-            "handler": self.handler,
-            "requires_user_input": self.requires_user_input,
-        }
 
 
 ACTION_HANDLERS = {}
@@ -41,6 +48,15 @@ def register_handler(
     """Decorator to register an action handler and add it to the ACTION_HANDLERS
     dictionary. This allows for easy addition of new actions without modifying the
     execute_action function.
+
+    If a handler with the same name already exists, it will be overwritten and a warning
+    thrown. This is for the following reasons:
+    1. **Flexibility:** Overriding allows for flexible extension and patching, especially
+        in tests or plugins.
+    2. **Simplicity:** It keeps the registration process straightforward, avoiding the
+       need for additional checks or error handling for duplicate names.
+    3. **Developer Awareness:** The warning serves as a notification to developers,
+       making them aware of potential conflicts in action names.
 
     ### Args
         name (str): The name of the action to register.
@@ -59,6 +75,8 @@ def register_handler(
         ### Returns
             function: The original function.
         """
+        if name in ACTION_HANDLERS:
+            raise Warning(f"Action handler for '{name}' is being overwritten.")
         ACTION_HANDLERS[name] = ActionHandler(func, requires_user_input)
         return func
 
