@@ -1,6 +1,5 @@
 """actions.py: Contains the functions for handling actions in the ACE program."""
 
-import inspect
 import os
 import random
 from datetime import datetime
@@ -16,17 +15,36 @@ load_dotenv()
 UNKNOWN_ACTION_MESSAGE = "I'm not sure how to do that."
 SPACY_NLP = spacy.load("en_core_web_sm")
 
+
 # Registry for action handlers
+class ActionHandler:
+    def __init__(self, handler, requires_user_input):
+        self.handler = handler
+        self.requires_user_input = requires_user_input
+
+    def __call__(self, *args, **kwargs):
+        return self.handler(*args, **kwargs)
+
+    def as_dict(self):
+        return {
+            "handler": self.handler,
+            "requires_user_input": self.requires_user_input,
+        }
+
+
 ACTION_HANDLERS = {}
 
 
-def register_handler(name: str) -> Callable[[Callable], Callable]:
+def register_handler(
+    name: str, requires_user_input: bool = False
+) -> Callable[[Callable], Callable]:
     """Decorator to register an action handler and add it to the ACTION_HANDLERS
     dictionary. This allows for easy addition of new actions without modifying the
     execute_action function.
 
     ### Args
         name (str): The name of the action to register.
+        requires_user_input (bool): Whether the action handler requires user input.
 
     ### Returns
         function: The decorated function that handles the action.
@@ -41,7 +59,7 @@ def register_handler(name: str) -> Callable[[Callable], Callable]:
         ### Returns
             function: The original function.
         """
-        ACTION_HANDLERS[name] = func
+        ACTION_HANDLERS[name] = ActionHandler(func, requires_user_input)
         return func
 
     return decorator
@@ -124,7 +142,7 @@ def handle_roll_die() -> str:
     return str(random.randint(1, 6))
 
 
-@register_handler("GET_WEATHER")
+@register_handler("GET_WEATHER", requires_user_input=True)
 def handle_get_weather(query: str) -> str:
     """Fetches and returns the current weather information."""
 
@@ -208,12 +226,19 @@ def handle_get_weather(query: str) -> str:
 def execute_action(action: str, query: Optional[str] = None) -> str:
     """Executes the action based on the provided action name.
 
-    If the handler requires the user's query, it will be passed as an argument.
+    ### Args
+        action (str): The name of the action to execute.
+        query (Optional[str]): The user's query, if required by the action.
     """
-    handler = ACTION_HANDLERS.get(action, handle_unknown)
+    handler_obj = ACTION_HANDLERS.get(action)
+    if not handler_obj:
+        return handle_unknown()
 
-    handler_spec = inspect.getfullargspec(handler)
+    requires_user_input = handler_obj.requires_user_input
 
-    if "query" in handler_spec.args:
-        return handler(query)
-    return handler()
+    if requires_user_input:
+        if query is None:
+            return f"The action '{action}' requires user input."
+        return handler_obj(query)
+    else:
+        return handler_obj()

@@ -4,7 +4,7 @@ from datetime import datetime
 from threading import Thread
 from typing import Callable, List
 
-from core.actions import UNKNOWN_ACTION_MESSAGE, execute_action
+from core.actions import ACTION_HANDLERS, UNKNOWN_ACTION_MESSAGE, execute_action
 from core.database import (
     add_message,
     create_database,
@@ -123,17 +123,26 @@ class BasePresenter:
         """
 
         def do_actions():
+
+            # No actions detected
             if not actions:
                 return UNKNOWN_ACTION_MESSAGE
 
-            responses = [
-                (
-                    execute_action(action, user_input)
-                    if action == "GET_WEATHER"
-                    else execute_action(action)
-                )
-                for action in actions
-            ]
+            # Process each action and collect responses
+            responses = []
+            for action in actions:
+                if action in ACTION_HANDLERS:
+                    handler_info = ACTION_HANDLERS[action]
+                    if handler_info.requires_user_input:
+                        response = handler_info.handler(user_input)
+                    else:
+                        response = handler_info.handler()
+                    responses.append(response)
+
+            # All actions unrecognised
+            if not responses:
+                return UNKNOWN_ACTION_MESSAGE
+
             return " ".join(responses)
 
         # Use the view's track_action to show a spinner during execution
@@ -172,33 +181,6 @@ class ConsolePresenter(BasePresenter):
 
         # Now, process the input and get ACE's response
         return super().process_user_input(user_input)
-
-    def _process_actions(self, actions: List[str], user_input: str) -> str:
-        """Processes actions and shows a typing indicator in the console.
-
-        ### Args
-            actions (List[str]): A list of actions to process.
-            user_input (str): The user input to pass to the action handlers.
-
-        ### Returns
-            str: A string containing the responses for the processed actions.
-        """
-        if not actions:
-            return UNKNOWN_ACTION_MESSAGE
-
-        def do_actions():
-            responses = [
-                (
-                    execute_action(action, user_input)
-                    if action == "GET_WEATHER"
-                    else execute_action(action)
-                )
-                for action in actions
-            ]
-            return " ".join(responses)
-
-        # Use the view's track_action to show a spinner during execution
-        return self.view.track_action(do_actions, "ACE is typing...")
 
     def show_termination_message(self):
         """Displays the termination message."""

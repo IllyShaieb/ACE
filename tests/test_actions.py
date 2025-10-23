@@ -22,7 +22,47 @@ class TestActionHandling(unittest.TestCase):
             return "Test Passed"
 
         self.assertIn("TEST_ACTION", actions.ACTION_HANDLERS)
-        self.assertEqual(actions.ACTION_HANDLERS["TEST_ACTION"](), "Test Passed")
+
+        handler_info = actions.ACTION_HANDLERS["TEST_ACTION"]
+        self.assertEqual(
+            handler_info.handler,
+            test_action,
+            "Handler function should be in ACTION_HANDLERS",
+        )
+        self.assertFalse(
+            handler_info.requires_user_input,
+            "requires_user_input should be False by default",
+        )
+        self.assertEqual(
+            handler_info.handler(),
+            "Test Passed",
+            "Handler function should return expected result",
+        )
+
+    def test_action_handler_registration_with_input(self):
+        """Ensure action handlers can be registered with requires_user_input=True."""
+
+        @actions.register_handler("TEST_ACTION_INPUT", requires_user_input=True)
+        def test_action_input(user_input: str) -> str:
+            return f"Input Received: {user_input}"
+
+        self.assertIn("TEST_ACTION_INPUT", actions.ACTION_HANDLERS)
+
+        handler_info = actions.ACTION_HANDLERS["TEST_ACTION_INPUT"]
+        self.assertEqual(
+            handler_info.handler,
+            test_action_input,
+            "Handler function should be in ACTION_HANDLERS",
+        )
+        self.assertTrue(
+            handler_info.requires_user_input,
+            "requires_user_input should be True",
+        )
+        self.assertEqual(
+            handler_info.handler("Sample Input"),
+            "Input Received: Sample Input",
+            "Handler function should return expected result with input",
+        )
 
     def test_execute_action_known(self):
         """Ensure known actions return the expected results."""
