@@ -23,36 +23,48 @@ APPS = {
 }
 
 
-def select_app(gui_override: bool = False) -> str:
-    """Prompt the user to select an application mode."""
-    if gui_override:
-        return "1"  # Force Desktop Application
+def select_app(mode_override: str = "0") -> str:
+    """Prompt the user to select an application mode.
 
-    print("Select the application mode:")
-    for key, (description, *_) in APPS.items():
-        print(f"  {key}. {description}")
+    Args:
+        mode_override (str): If not "0", this value is used to select the mode directly.
 
-    choice = input("Enter your choice: ").strip()
-    while choice not in APPS:
-        choice = input("Invalid choice. Please try again: ").strip()
-    return choice
+    Returns:
+        str: The selected application mode key.
+    """
+    match mode_override:
+        case "0":
+            print("Select the application mode:")
+            for key, (description, *_) in APPS.items():
+                print(f"  {key}. {description}")
+
+            choice = input("Enter your choice: ").strip()
+            while choice not in APPS:
+                choice = input("Invalid choice. Please try again: ").strip()
+            return choice
+        case _:
+            return mode_override
 
 
 def main():
     """Main function to start the ACE application."""
 
-    # Check for GUI override from environment variable
-    GUI_OVERRIDE = os.getenv("ACE_GUI_OVERRIDE", "false").lower() == "true"
+    # Check for mode override from environment variable
+    mode_override = os.getenv("ACE_MODE_OVERRIDE", "0").strip()
+    choice = select_app(mode_override)
 
     try:
-        # Select the application mode
-        choice = select_app(GUI_OVERRIDE)
-        print(f"Starting {APPS[choice][0]}...")
+        selected_app = APPS[choice]
+        print(f"Starting {selected_app[0]}...")
 
         # Instantiate selected app
-        model = APPS[choice][1]()
-        view = APPS[choice][2]()
-        presenter = APPS[choice][3](model, view)
+        model_class = selected_app[1]
+        view_class = selected_app[2]
+        presenter_class = selected_app[3]
+
+        model = model_class()
+        view = view_class()
+        presenter = presenter_class(model, view)
 
         # Start the application
         presenter.run()
@@ -60,8 +72,11 @@ def main():
         # Clean up and exit
         print(f"Exiting {APPS[choice][0]}...")
 
-    except KeyboardInterrupt:
-        print("\n\nApplication terminated by user.")
+    except KeyError:
+        print(f"Invalid mode override ({mode_override}). Available modes are:")
+        for key, (description, *_) in APPS.items():
+            print(f"  {key}. {description}")
+        return
 
 
 if __name__ == "__main__":

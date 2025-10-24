@@ -34,7 +34,7 @@ uv install
 ## Setup
 Before using ACE, you need to set up the following environment variables:
 - `WEATHER_API_KEY`: Your API key for accessing weather data (https://www.weatherapi.com/).
-- `ACE_GUI_OVERRIDE`: Set to `true` to force GUI mode, or `false` to allow selecting between console and GUI modes at startup.
+- `ACE_MODE_OVERRIDE`: Set to `1` to force GUI mode, `2` to force Console mode, or `0` to prompt the user each time at startup.
 
 *This can be set in a `.env` file or exported as an environment variable.*
 
