@@ -2,6 +2,7 @@
 
 import os
 import random
+import warnings
 from datetime import datetime
 from random import choice
 from typing import Callable, Optional
@@ -16,7 +17,6 @@ UNKNOWN_ACTION_MESSAGE = "I'm not sure how to do that."
 SPACY_NLP = spacy.load("en_core_web_sm")
 
 
-# Registry for action handlers
 class ActionHandler:
     """Class representing an action handler.
 
@@ -76,7 +76,7 @@ def register_handler(
             function: The original function.
         """
         if name in ACTION_HANDLERS:
-            raise Warning(f"Action handler for '{name}' is being overwritten.")
+            warnings.warn(f"Action handler for '{name}' is being overwritten.")
         ACTION_HANDLERS[name] = ActionHandler(func, requires_user_input)
         return func
 
