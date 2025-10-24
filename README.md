@@ -79,25 +79,47 @@ When the user types something, the model processes it like this:
 
 ## Adding New Action Handlers
 
-When ACE understands what you want (your **intent**), it needs to know **how to respond**. This is where **action handlers** come in.
+When ACE understands your intent (what you want), it needs to know **how to respond**. This is handled by **action handlers—functions** that perform the actual work for each action.
 
-**In simple terms:**
+### How ACE Connects Intents to Actions
 
-- An **intent** is what the user means (e.g., "Tell me a joke" means you want a joke).
-- An **action handler** is the code that actually does the thing (e.g., fetches and tells a joke).
+- An **intent** is what the user means (e.g., "Tell me a joke").
+- An **action handler** is the code that does the thing (e.g., fetches and tells a joke).
+- Each intent in [`data/intents.json`](data/intents.json) has an `"action"` field (like `"JOKE"`).
+- When the model detects an intent, it returns an **action name** (e.g., `"JOKE"`).
+- The presenter looks up the corresponding handler and runs it to generate a response.
 
-ACE connects these two using a decorator system in [`core/actions.py`](core/actions.py).  
-When the model detects an intent, it returns an **action name** (like `"JOKE"`).  
-The presenter then looks for a matching action handler and runs it to generate a response.
+### The Action Handler Registry
 
-### How does it work?
+ACE uses a registry pattern for action handlers, managed by the `@register_handler` decorator in [`core/actions.py`](core/actions.py). When you register a handler for an action name, it is stored in a central dictionary (`ACTION_HANDLERS`).  
+You do **not** need to manually update any registry or dictionary—the decorator handles registration for you.
 
-- Each intent in [`data/intents.json`](data/intents.json) has an `"action"` field (e.g., `"JOKE"`).
-- In [`core/actions.py`](core/actions.py), you create a function to handle that action.
-- You register your function with a decorator: `@register_handler("JOKE")`.
-- When ACE sees your intent, it calls your handler and sends the reply to the user.
+#### Overriding Handlers
 
-### Example
+If you register a handler for an action name that already exists, the new handler **overrides** the previous one.
+
+This is intentional and allows for flexible extension, patching, and testing.
+
+No error is thrown, but a warning is issued to alert developers of the override.
+
+**Best practice:** Use unique action names unless you intentionally want to override an existing handler (e.g., in tests or plugins).
+
+**Example of overriding:**
+
+```python
+@register_handler("MY_ACTION")
+def first_handler():
+    return "First version"
+
+# This will override the previous handler for "MY_ACTION"
+@register_handler("MY_ACTION")
+def second_handler():
+    return "Second version"
+
+# Now, execute_action("MY_ACTION") will return "Second version"
+```
+
+### Adding a New Action Handler
 
 To add a new action handler:
 
@@ -113,16 +135,21 @@ def handle_my_custom_action():
     return "This is my custom action response!"
 ```
 
-Your handler will be automatically registered and available for use.  
-No need to manually update any dictionaries—just use the decorator!
+Your handler will be automatically registered and available for use.
 
 ### Testing Your Handler
 
-You can add a test for your new handler in [`tests/test_actions.py`](tests/test_actions.py):
+Add a test for your new handler in [`tests/test_actions.py`](tests/test_actions.py):
 
 ```python
-def test_handle_my_custom_action(self):
-    self.assertEqual(actions.execute_action("MY_CUSTOM_ACTION"), "This is my custom action response!")
+class TestMyCustomAction(unittest.TestCase):
+    """Tests for the MY_CUSTOM_ACTION handler."""
+
+    def test_handle_my_custom_action(self):
+        """Ensure the MY_CUSTOM_ACTION handler returns the expected response."""
+        result = actions.execute_action("MY_CUSTOM_ACTION")
+        self.assertIsInstance(result, str)
+        self.assertEqual(result, "This is my custom action response!")
 ```
 
 This ensures your handler is registered and works as expected.
