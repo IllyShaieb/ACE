@@ -31,8 +31,18 @@ class ActionHandler:
             handler (Callable): The function that handles the action.
             requires_user_input (bool): Whether the action handler requires user input.
         """
-        self.handler = handler
-        self.requires_user_input = requires_user_input
+        self._handler = handler
+        self._requires_user_input = requires_user_input
+
+    @property
+    def handler(self) -> Callable:
+        """Gets the handler function."""
+        return self._handler
+
+    @property
+    def requires_user_input(self) -> bool:
+        """Gets whether the action handler requires user input."""
+        return self._requires_user_input
 
     def __call__(self, *args, **kwargs):
         """Invoke the handler function with provided arguments."""
@@ -76,7 +86,9 @@ def register_handler(
             function: The original function.
         """
         if name in ACTION_HANDLERS:
-            warnings.warn(f"Action handler for '{name}' is being overwritten.")
+            warnings.warn(
+                f"Action handler for '{name}' is being overwritten.", UserWarning
+            )
         ACTION_HANDLERS[name] = ActionHandler(func, requires_user_input)
         return func
 
@@ -95,13 +107,13 @@ def handle_greet() -> str:
 
 
 @register_handler("IDENTIFY")
-def handle_identify() -> str:
+def handle_identify(user_input: Optional[str] = None) -> str:
     """Returns the identity of the assistant."""
     return "I am ACE, your personal assistant."
 
 
 @register_handler("CREATOR")
-def handle_creator() -> str:
+def handle_creator(user_input: Optional[str] = None) -> str:
     """Returns the name of the creator."""
     return "I was created by Illy Shaieb."
 
