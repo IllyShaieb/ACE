@@ -1,8 +1,8 @@
 """actions.py: Contains the functions for handling actions in the ACE program."""
 
-import inspect
 import os
 import random
+import warnings
 from datetime import datetime
 from random import choice
 from typing import Callable, Optional
@@ -16,17 +16,61 @@ load_dotenv()
 UNKNOWN_ACTION_MESSAGE = "I'm not sure how to do that."
 SPACY_NLP = spacy.load("en_core_web_sm")
 
-# Registry for action handlers
+
+class ActionHandler:
+    """Class representing an action handler.
+
+    This class encapsulates the handler function and whether it requires user input
+    and provides a callable interface to invoke the handler.
+    """
+
+    def __init__(self, handler: Callable, requires_user_input: bool):
+        """Initialises the ActionHandler.
+
+        ### Args
+            handler (Callable): The function that handles the action.
+            requires_user_input (bool): Whether the action handler requires user input.
+        """
+        self._handler = handler
+        self._requires_user_input = requires_user_input
+
+    @property
+    def handler(self) -> Callable:
+        """Gets the handler function."""
+        return self._handler
+
+    @property
+    def requires_user_input(self) -> bool:
+        """Gets whether the action handler requires user input."""
+        return self._requires_user_input
+
+    def __call__(self, *args, **kwargs):
+        """Invoke the handler function with provided arguments."""
+        return self.handler(*args, **kwargs)
+
+
 ACTION_HANDLERS = {}
 
 
-def register_handler(name: str) -> Callable[[Callable], Callable]:
+def register_handler(
+    name: str, requires_user_input: bool = False
+) -> Callable[[Callable], Callable]:
     """Decorator to register an action handler and add it to the ACTION_HANDLERS
     dictionary. This allows for easy addition of new actions without modifying the
     execute_action function.
 
+    If a handler with the same name already exists, it will be overwritten and a warning
+    thrown. This is for the following reasons:
+    1. **Flexibility:** Overriding allows for flexible extension and patching, especially
+        in tests or plugins.
+    2. **Simplicity:** It keeps the registration process straightforward, avoiding the
+       need for additional checks or error handling for duplicate names.
+    3. **Developer Awareness:** The warning serves as a notification to developers,
+       making them aware of potential conflicts in action names.
+
     ### Args
         name (str): The name of the action to register.
+        requires_user_input (bool): Whether the action handler requires user input.
 
     ### Returns
         function: The decorated function that handles the action.
@@ -41,7 +85,11 @@ def register_handler(name: str) -> Callable[[Callable], Callable]:
         ### Returns
             function: The original function.
         """
-        ACTION_HANDLERS[name] = func
+        if name in ACTION_HANDLERS:
+            warnings.warn(
+                f"Action handler for '{name}' is being overwritten.", UserWarning
+            )
+        ACTION_HANDLERS[name] = ActionHandler(func, requires_user_input)
         return func
 
     return decorator
@@ -59,13 +107,13 @@ def handle_greet() -> str:
 
 
 @register_handler("IDENTIFY")
-def handle_identify() -> str:
+def handle_identify(user_input: Optional[str] = None) -> str:
     """Returns the identity of the assistant."""
     return "I am ACE, your personal assistant."
 
 
 @register_handler("CREATOR")
-def handle_creator() -> str:
+def handle_creator(user_input: Optional[str] = None) -> str:
     """Returns the name of the creator."""
     return "I was created by Illy Shaieb."
 
@@ -124,7 +172,7 @@ def handle_roll_die() -> str:
     return str(random.randint(1, 6))
 
 
-@register_handler("GET_WEATHER")
+@register_handler("GET_WEATHER", requires_user_input=True)
 def handle_get_weather(query: str) -> str:
     """Fetches and returns the current weather information."""
 
@@ -208,12 +256,19 @@ def handle_get_weather(query: str) -> str:
 def execute_action(action: str, query: Optional[str] = None) -> str:
     """Executes the action based on the provided action name.
 
-    If the handler requires the user's query, it will be passed as an argument.
+    ### Args
+        action (str): The name of the action to execute.
+        query (Optional[str]): The user's query, if required by the action.
     """
-    handler = ACTION_HANDLERS.get(action, handle_unknown)
+    handler_obj = ACTION_HANDLERS.get(action)
+    if not handler_obj:
+        return handle_unknown()
 
-    handler_spec = inspect.getfullargspec(handler)
+    requires_user_input = handler_obj.requires_user_input
 
-    if "query" in handler_spec.args:
-        return handler(query)
-    return handler()
+    if requires_user_input:
+        if query is None:
+            return f"The action '{action}' requires user input."
+        return handler_obj(query)
+    else:
+        return handler_obj()

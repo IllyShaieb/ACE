@@ -2,9 +2,9 @@
 
 from datetime import datetime
 from threading import Thread
-from typing import Callable, List
+from typing import List
 
-from core.actions import UNKNOWN_ACTION_MESSAGE, execute_action
+from core.actions import ACTION_HANDLERS, UNKNOWN_ACTION_MESSAGE
 from core.database import (
     add_message,
     create_database,
@@ -92,7 +92,7 @@ class BasePresenter:
             self.view.display_message(ACE_ID, GOODBYE_MESSAGE)
             if self.chat_id is not None:
                 add_message(ACE_DATABASE, self.chat_id, ACE_ID, GOODBYE_MESSAGE)
-            self.view.close()
+            # self.view.close() # Defer closing for DesktopView
             return False  # Indicate exit
 
         # Simulate error and info
@@ -104,29 +104,47 @@ class BasePresenter:
 
         # Process the user input through the model
         actions = self.model(user_input)
-        response = self._process_actions(actions)
+        response = self._process_actions(actions, user_input)
 
-        # Hide typing indicator and display response
-        self.view.hide_typing_indicator()
         self.view.display_message(ACE_ID, response)
         if self.chat_id is not None:
             add_message(ACE_DATABASE, self.chat_id, ACE_ID, response)
         return True  # Continue running
 
-    def _process_actions(self, actions: List[str]) -> str:
+    def _process_actions(self, actions: List[str], user_input: str) -> str:
         """Processes actions and shows a typing indicator in the console.
 
         ### Args
             actions (List[str]): A list of actions to process.
+            user_input (str): The user input to pass to the action handlers.
 
         ### Returns
             str: A string containing the responses for the processed actions.
         """
 
         def do_actions():
+
+            # No actions detected
             if not actions:
                 return UNKNOWN_ACTION_MESSAGE
-            responses = [execute_action(action) for action in actions]
+
+            # Process each action and collect responses
+            responses = []
+            for action in actions:
+                if action in ACTION_HANDLERS:
+                    handler_info = ACTION_HANDLERS[action]
+
+                    # Check if the handler requires user input
+                    if handler_info.requires_user_input:
+                        response = handler_info.handler(user_input)
+                    else:
+                        response = handler_info.handler()
+                    responses.append(response)
+
+            # All actions unrecognised
+            if not responses:
+                return UNKNOWN_ACTION_MESSAGE
+
             return " ".join(responses)
 
         # Use the view's track_action to show a spinner during execution
@@ -148,6 +166,7 @@ class ConsolePresenter(BasePresenter):
                 user_input = self.view.get_user_input(f"{USER_ID}: ")
                 self.view.clear_input()
                 if not self.process_user_input(user_input):
+                    self.view.close()
                     break
 
         self.show_termination_message()
@@ -164,25 +183,6 @@ class ConsolePresenter(BasePresenter):
 
         # Now, process the input and get ACE's response
         return super().process_user_input(user_input)
-
-    def _process_actions(self, actions: List[str]) -> str:
-        """Processes actions and shows a typing indicator in the console.
-
-        ### Args
-            actions (List[str]): A list of actions to process.
-
-        ### Returns
-            str: A string containing the responses for the processed actions.
-        """
-        if not actions:
-            return UNKNOWN_ACTION_MESSAGE
-
-        def do_actions():
-            responses = [execute_action(action) for action in actions]
-            return " ".join(responses)
-
-        # Use the view's track_action to show a spinner during execution
-        return self.view.track_action(do_actions, "ACE is typing...")
 
     def show_termination_message(self):
         """Displays the termination message."""
@@ -206,11 +206,10 @@ class DesktopPresenter(BasePresenter):
         ### Args
             user_input (str): The input provided by the user.
         """
-        # Show typing indicator immediately
-        self.view.show_typing_indicator()
-
         # Run the processing in a separate thread to avoid blocking the GUI
-        thread = Thread(target=self._process_input_thread, args=(user_input,))
+        thread = Thread(
+            target=self._process_input_thread, args=(user_input,), daemon=True
+        )
         thread.start()
 
     def _process_input_thread(self, user_input: str):
@@ -218,11 +217,15 @@ class DesktopPresenter(BasePresenter):
         # If this is the first message, a new conversation will be created.
         # We need to refresh the history to show it.
         new_conversation = self.chat_id is None
-
-        self.process_user_input(user_input)
+        try:
+            should_continue = self.process_user_input(user_input)
+            if not should_continue:
+                # Schedule the window to close safely after 100ms
+                self.view.after(100, self.view.close)
+        except Exception as e:
+            self.view.display_message("ERROR", f"An error occurred: {e}")
 
         if new_conversation:
-            # This needs to be done in the main thread if it updates the GUI
             self.view.after(0, self._load_and_display_conversations)
 
     def _load_and_display_conversations(self):
@@ -256,10 +259,22 @@ class DesktopPresenter(BasePresenter):
             content = msg[3]
             self.view.display_message(sender, content)
 
+        self.view.scroll_to_bottom()
+
     def start_new_conversation(self):
         """Starts a new chat session."""
         self.chat_id = None
         self.view.clear_chat_history()
+
+        # Display initial info messages for context
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.view.display_message("INFO", f"{timestamp} | {INITIALISING_MESSAGE}")
+
+        self.view.display_message("INFO", " ACE ".center(80, "="))
+        self.view.display_message(
+            "INFO", "    Welcome to ACE! Type 'exit' to quit.\n\n"
+        )
+
         self.view.display_message(ACE_ID, WELCOME_MESSAGE)
 
     def delete_conversation(self, conversation_id: int):

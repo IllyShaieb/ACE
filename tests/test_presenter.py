@@ -208,7 +208,7 @@ class TestConsolePresenter(unittest.TestCase):
     @patch("core.presenter.create_database")
     @patch("core.presenter.start_conversation", return_value="id_err")
     @patch("core.presenter.add_message")
-    def test_unrecognized_action(
+    def test_unrecognised_action(
         self, mock_add_message, mock_start_conversation, mock_create_database
     ):
         """
@@ -340,14 +340,14 @@ class TestDesktopPresenter(unittest.TestCase):
             os.remove(TEST_ACE_DATABASE)
 
     @staticmethod
-    def _sync_thread(target, args=(), kwargs=None):
+    def _sync_thread(target, *args, **kwargs):
         """A fake Thread that runs the target synchronously."""
-        if kwargs is None:
-            kwargs = {}
+        thread_args = kwargs.get("args", ())
+        thread_kwargs = kwargs.get("kwargs", {})
 
         class FakeThread:
             def start(self):
-                target(*args, **kwargs)
+                target(*thread_args, **thread_kwargs)
 
         return FakeThread()
 

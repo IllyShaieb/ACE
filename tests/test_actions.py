@@ -22,7 +22,74 @@ class TestActionHandling(unittest.TestCase):
             return "Test Passed"
 
         self.assertIn("TEST_ACTION", actions.ACTION_HANDLERS)
-        self.assertEqual(actions.ACTION_HANDLERS["TEST_ACTION"](), "Test Passed")
+
+        handler_info = actions.ACTION_HANDLERS["TEST_ACTION"]
+        self.assertEqual(
+            handler_info.handler,
+            test_action,
+            "Handler function should be in ACTION_HANDLERS",
+        )
+        self.assertFalse(
+            handler_info.requires_user_input,
+            "requires_user_input should be False by default",
+        )
+        self.assertEqual(
+            handler_info.handler(),
+            "Test Passed",
+            "Handler function should return expected result",
+        )
+
+    def test_action_handler_registration_with_input(self):
+        """Ensure action handlers can be registered with requires_user_input=True."""
+
+        @actions.register_handler("TEST_ACTION_INPUT", requires_user_input=True)
+        def test_action_input(user_input: str) -> str:
+            return f"Input Received: {user_input}"
+
+        self.assertIn("TEST_ACTION_INPUT", actions.ACTION_HANDLERS)
+
+        handler_info = actions.ACTION_HANDLERS["TEST_ACTION_INPUT"]
+        self.assertEqual(
+            handler_info.handler,
+            test_action_input,
+            "Handler function should be in ACTION_HANDLERS",
+        )
+        self.assertTrue(
+            handler_info.requires_user_input,
+            "requires_user_input should be True",
+        )
+        self.assertEqual(
+            handler_info.handler("Sample Input"),
+            "Input Received: Sample Input",
+            "Handler function should return expected result with input",
+        )
+
+    def test_register_duplicate_handlers(self):
+        """Ensure registering a duplicate handler warns and overwrites."""
+
+        # Register the first handler
+        @actions.register_handler("DUPLICATE_ACTION")
+        def first_handler():
+            return "First Handler"
+
+        # Check that a warning is issued when overwriting the handler
+        with self.assertWarns(Warning):
+
+            @actions.register_handler("DUPLICATE_ACTION")
+            def second_handler():
+                return "Second Handler"
+
+        handler_info = actions.ACTION_HANDLERS["DUPLICATE_ACTION"]
+        self.assertEqual(
+            handler_info.handler,
+            second_handler,
+            "The second handler should overwrite the first one",
+        )
+        self.assertEqual(
+            handler_info.handler(),
+            "Second Handler",
+            "Handler function should return result from the second handler",
+        )
 
     def test_execute_action_known(self):
         """Ensure known actions return the expected results."""
@@ -40,7 +107,7 @@ class TestGreetAction(unittest.TestCase):
 
     def test_handle_greet(self):
         """Ensure the greet action returns a greeting message."""
-        self.assertIn("Hello", actions.handle_greet())
+        self.assertIn("Hello", actions.execute_action("GREET"))
 
 
 class TestIdentifyAction(unittest.TestCase):
@@ -48,7 +115,7 @@ class TestIdentifyAction(unittest.TestCase):
 
     def test_handle_identify(self):
         """Ensure the identify action returns the correct identifier."""
-        self.assertIn("ACE", actions.handle_identify())
+        self.assertIn("ACE", actions.execute_action("IDENTIFY"))
 
 
 class TestCreatorAction(unittest.TestCase):
@@ -56,7 +123,7 @@ class TestCreatorAction(unittest.TestCase):
 
     def test_handle_creator(self):
         """Ensure the creator action returns the correct creator name."""
-        self.assertIn("Illy Shaieb", actions.handle_creator())
+        self.assertIn("Illy Shaieb", actions.execute_action("CREATOR"))
 
 
 class TestGetTimeAction(unittest.TestCase):
@@ -64,8 +131,7 @@ class TestGetTimeAction(unittest.TestCase):
 
     def test_handle_get_time(self):
         """Ensure the get_time action returns the current time."""
-        result = actions.handle_get_time()
-        self.assertIn("The current time is", result)
+        self.assertIn("The current time is", actions.execute_action("GET_TIME"))
 
 
 class TestGetDateAction(unittest.TestCase):
@@ -73,8 +139,7 @@ class TestGetDateAction(unittest.TestCase):
 
     def test_handle_get_date(self):
         """Ensure the get_date action returns today's date."""
-        result = actions.handle_get_date()
-        self.assertIn("Today's date is", result)
+        self.assertIn("Today's date is", actions.execute_action("GET_DATE"))
 
 
 class TestHelpAction(unittest.TestCase):
@@ -82,7 +147,7 @@ class TestHelpAction(unittest.TestCase):
 
     def test_handle_help(self):
         """Ensure the help action returns a list of available actions."""
-        self.assertIn("assist", actions.handle_help())
+        self.assertIn("assist", actions.execute_action("HELP"))
 
 
 class TestFlipCoinAction(unittest.TestCase):
@@ -90,7 +155,7 @@ class TestFlipCoinAction(unittest.TestCase):
 
     def test_handle_flip_coin(self):
         """Ensure the flip_coin action returns either 'Heads' or 'Tails'."""
-        self.assertIn(actions.handle_flip_coin(), ["Heads", "Tails"])
+        self.assertIn(actions.execute_action("FLIP_COIN"), ["Heads", "Tails"])
 
 
 class TestRollDieAction(unittest.TestCase):
@@ -99,7 +164,7 @@ class TestRollDieAction(unittest.TestCase):
     def test_handle_roll_die(self):
         """Ensure the roll_die action returns a number between 1 and 6."""
         # Must be a string representation of the number
-        result = actions.handle_roll_die()
+        result = actions.execute_action("ROLL_DIE")
         self.assertIsInstance(result, str)
 
         # Convert to integer and check the range
@@ -160,7 +225,9 @@ class TestGetWeatherAction(unittest.TestCase):
                 "gust_kph": 12.9,
             },
         }
-        result = actions.handle_get_weather("What's the weather like in London?")
+        result = actions.execute_action(
+            "GET_WEATHER", "What's the weather like in London?"
+        )
 
         # Check the result contains expected weather information
         # Note: just checking for key substrings to avoid brittleness
@@ -181,14 +248,18 @@ class TestGetWeatherAction(unittest.TestCase):
         mock_get.side_effect = requests.exceptions.RequestException(
             "Testing HTTP Error"
         )
-        result = actions.handle_get_weather("What's the weather like in Nowhere?")
+        result = actions.execute_action(
+            "GET_WEATHER", "What's the weather like in London?"
+        )
         self.assertIn("Sorry, I couldn't connect to the weather service.", result)
 
     @mock.patch("core.actions.requests.get")
     def test_handle_get_weather_handle_unexpected_json(self, mock_get):
         """Ensure the get_weather action handles unexpected JSON structure gracefully."""
         mock_get.return_value.json.return_value = {"unexpected_key": "unexpected_value"}
-        result = actions.handle_get_weather("What's the weather like in Nowhere?")
+        result = actions.execute_action(
+            "GET_WEATHER", "What's the weather like in London?"
+        )
         self.assertIn(
             "Sorry, I received an unexpected response from the weather service.", result
         )
@@ -197,7 +268,9 @@ class TestGetWeatherAction(unittest.TestCase):
     def test_handle_get_weather_handle_general_exception(self, mock_get):
         """Ensure the get_weather action handles general exceptions gracefully."""
         mock_get.side_effect = Exception("General Exception for Testing")
-        result = actions.handle_get_weather("What's the weather like in Nowhere?")
+        result = actions.execute_action(
+            "GET_WEATHER", "What's the weather like in London?"
+        )
         self.assertIn(
             "Sorry, I couldn't fetch the weather information right now.", result
         )
@@ -205,14 +278,16 @@ class TestGetWeatherAction(unittest.TestCase):
     @mock.patch("core.actions.requests.get")
     def test_handle_get_weather_missing_location(self, mock_get):
         """Ensure the get_weather action handles missing location in query."""
-        result = actions.handle_get_weather("What's the weather like?")
+        result = actions.execute_action("GET_WEATHER", "What's the weather like?")
         self.assertIn("I'm sorry, I couldn't find a location in your query.", result)
 
     @mock.patch("core.actions.os.getenv")
     def test_handle_get_weather_missing_api_key(self, mock_getenv):
         """Ensure the get_weather action handles missing API key."""
         mock_getenv.return_value = None
-        result = actions.handle_get_weather("What's the weather like in London?")
+        result = actions.execute_action(
+            "GET_WEATHER", "What's the weather like in London?"
+        )
         self.assertIn("Apologies, it appears the WEATHER_API_KEY is not set.", result)
 
 
