@@ -100,7 +100,9 @@ class TestDesktopView(unittest.TestCase):
             pass
 
     def setUp(self):
-        """Reset the DesktopView state before each test."""
+        """Set up a fresh DesktopView instance before each test."""
+        self.desktop_view = DesktopView()
+        self.desktop_view.root.withdraw()  # Hide the window for testing
         self.desktop_view.clear_chat_history()
         self.desktop_view.reset_input()
 
@@ -119,6 +121,7 @@ class TestDesktopView(unittest.TestCase):
         """Test that display_message adds the message to the window."""
         sender1 = "ACE"
         message1 = "Hello, how can I help?"
+
         self.desktop_view.display_message(sender1, message1)
         self.assertMessageInHistory(f"{sender1}: {message1}")
 
