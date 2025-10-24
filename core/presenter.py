@@ -2,9 +2,9 @@
 
 from datetime import datetime
 from threading import Thread
-from typing import Callable, List
+from typing import List
 
-from core.actions import ACTION_HANDLERS, UNKNOWN_ACTION_MESSAGE, execute_action
+from core.actions import ACTION_HANDLERS, UNKNOWN_ACTION_MESSAGE
 from core.database import (
     add_message,
     create_database,
@@ -133,10 +133,8 @@ class BasePresenter:
             for action in actions:
                 if action in ACTION_HANDLERS:
                     handler_info = ACTION_HANDLERS[action]
-                    if handler_info.requires_user_input:
-                        response = handler_info.handler(user_input)
-                    else:
-                        response = handler_info.handler()
+                    # Always pass user_input; let the handler decide if it needs it
+                    response = handler_info.handler(user_input)
                     responses.append(response)
 
             # All actions unrecognised
