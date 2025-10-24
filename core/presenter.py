@@ -133,8 +133,12 @@ class BasePresenter:
             for action in actions:
                 if action in ACTION_HANDLERS:
                     handler_info = ACTION_HANDLERS[action]
-                    # Always pass user_input; let the handler decide if it needs it
-                    response = handler_info.handler(user_input)
+
+                    # Check if the handler requires user input
+                    if handler_info.requires_user_input:
+                        response = handler_info.handler(user_input)
+                    else:
+                        response = handler_info.handler()
                     responses.append(response)
 
             # All actions unrecognised
