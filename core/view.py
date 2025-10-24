@@ -11,6 +11,9 @@ from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.text import Text
+from typing_extensions import Literal
+
+JustifyMethod = Literal["left", "right", "center"]
 
 
 @runtime_checkable
@@ -22,6 +25,8 @@ class IACEView(Protocol):
     regardless of the underlying display technology (e.g., console, smart glasses, smart
     mirror, phone app).
     """
+
+    chat_history = []
 
     def run(self):
         """Starts the view's main loop.
@@ -160,7 +165,7 @@ class ConsoleView(IACEView):
         self.console = Console()
 
     def display_message(self, sender: str, message: str):
-        """Displays a message to the console.
+        """Displays a message to the console and adds it to the chat history.
 
         ### Args
             sender (str): The name of the sender (e.g., "ACE", "YOU").
@@ -170,7 +175,10 @@ class ConsoleView(IACEView):
             sender.upper(), ("white", "white")
         )
 
-        match sender.upper():
+        sender_upper = sender.upper()
+
+        justify: JustifyMethod
+        match sender_upper:
             case "ACE":
                 justify = "left"
             case "YOU":
@@ -179,7 +187,7 @@ class ConsoleView(IACEView):
                 justify = "center"
 
         # Don't use panel for INFO
-        if sender.upper() == "INFO":
+        if sender_upper == "INFO":
             self.console.print(
                 f"[{border_colour}]INFO: {message}[/{border_colour}]", justify=justify
             )
@@ -192,6 +200,8 @@ class ConsoleView(IACEView):
             )
             self.console.print(panel, justify=justify, markup=True)
 
+        self.chat_history.append(f"{sender}: {message}")
+
     def get_user_input(self, prompt: str) -> str:
         """Gets user input from the console.
 
@@ -202,9 +212,13 @@ class ConsoleView(IACEView):
             str: The user's input, with leading/trailing whitespace removed.
         """
         _, text_colour = self.SENDER_COLOURS["YOU"]
-        return self.console.input(
+
+        user_input = self.console.input(
             f"[bold {text_colour}]{prompt}[/bold {text_colour}]"
         ).strip()
+        self.chat_history.append(f"YOU: {user_input}")
+
+        return user_input
 
     def set_input_handler(self, handler):
         """Sets the input handler callback.
@@ -392,6 +406,8 @@ class DesktopView(IACEView):
         self._create_widgets()
         self._configure_tags()
 
+        self.chat_history = []  # Initialize chat history for DesktopView
+
     def run(self):
         """Starts the GUI event loop."""
         self.root.mainloop()
@@ -409,13 +425,18 @@ class DesktopView(IACEView):
 
     def get_user_input(self, prompt: Optional[str] = None) -> str:
         """Gets user input from the input entry field."""
-        return self.input_entry.get().strip()
+        user_input = self.input_entry.get().strip()
+        self.chat_history.append(f"YOU: {user_input}")
+
+        return user_input
 
     def clear_chat_history(self):
         """Clears the chat history from the textbox."""
         self.chat_display.configure(state="normal")
         self.chat_display.delete("1.0", tk.END)
         self.chat_display.configure(state="disabled")
+
+        self.chat_history = []  # Clear the chat history list
 
     def clear_input(self):
         """Clears the input entry field."""
@@ -435,6 +456,7 @@ class DesktopView(IACEView):
 
         # Insert the formatted line with the appropriate tag for color and justification
         self.chat_display.insert(tk.END, formatted_line, (sender_tag,))
+        self.chat_history.append(formatted_line.strip())
 
         self.chat_display.configure(state="disabled")
         self.scroll_to_bottom()
@@ -730,8 +752,7 @@ class DesktopView(IACEView):
 
     def get_chat_history(self) -> List:
         """Returns the chat history as a list of strings."""
-        chat_content = self.chat_display.get("1.0", tk.END).strip()
-        return chat_content.split("\n\n") if chat_content else []
+        return self.chat_history
 
     def get_conversation_history(self) -> List:
         """Returns a list of the conversation buttons from the sidebar."""
