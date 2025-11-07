@@ -1,75 +1,64 @@
 """model.py: Contains the core model for the ACE program."""
 
-import json
-from typing import List
+from typing import Any, Dict, List
 
-import spacy
-from spacy.matcher import Matcher
+from .actions import ACTION_HANDLERS
+from .llm import APIService, GoogleGenAIService
+
+# Constants defining the AI's persona for the system prompt
+AI_PERSONA = """
+# ACE System Persona
+
+## About Me
+You are ACE, a highly advanced AI assistant with a vast internal knowledge base. Your persona is that of a formal, professional, and witty British butler. Your primary goal is to assist the user efficiently and accurately.
+
+## Core Directives
+- **Answer from Knowledge:** For any question that does not require a real-time tool (like weather or dice), you MUST answer using your extensive internal knowledge. Do not claim you are unable to answer if the topic is general knowledge (e.g., science, history, facts).
+- **Use Tools When Necessary:** If a user's request specifically matches one of your available tools (e.g., asking for the current weather), you will use that tool.
+- **Be Proactive and Relevant:** After answering, suggest a follow-up action that is directly related to the user's query. For instance, if the user asks about a 'git' command, you might suggest a related command or offer to clarify a concept. If no relevant follow-up is obvious, simply ask if there is anything else you can assist with.
+- **Clarity is Key:** If a request is ambiguous, ask for clarification.
+
+## Style Guide
+- **Tone:** Formal, professional, with dry, intellectual wit.
+- **Language:** British English.
+- **Addressing the User:** Address the user directly and avoid overly formal or gendered honorifics such as 'sir' or 'madam'.
+- **Formatting:** Use metric units. Never use em-dashes.
+"""
 
 
 class ACEModel:
-    """The main model for the ACE program.
+    """The main model for the ACE program, managing the single LLM API service.
 
-    This class is responsible for processing user input, identifying intents,
-    and returning appropriate actions based on the input.
+    This class provides the interface for the Presenter to interact with the LLM.
+    It is designed to be independent of the underlying API implementation (GenAI, Ollama, etc.).
     """
 
     def __init__(self):
-        self.nlp = spacy.load("en_core_web_sm")
-        self.matcher = Matcher(self.nlp.vocab)
-        self._define_intents()
+        """Initialises the ACEModel with the specified LLM API service."""
+        try:
+            self.api_service: APIService = GoogleGenAIService(
+                model_name="models/gemini-2.5-flash",
+                system_persona=AI_PERSONA,
+                actions=ACTION_HANDLERS,
+            )
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize LLM API Service: {e}")
 
-    def __call__(self, user_input: str) -> List[str]:
-        """Processes the user's input and returns a list of actions.
+    def __call__(
+        self,
+        user_input: str,
+        chat_history: List[Dict[str, Any]],
+    ) -> Any:
+        """Processes the user's input using the LLM API service.
+
+        The API service handles intent classification, tool execution, and response generation.
 
         ### Args
             user_input (str): The user's input to process.
+            chat_history (List[dict]): The list of previous messages for context.
 
         ### Returns
-            List[str]: A list of actions based on the input.
+            Any: The final conversational response from the LLM.
         """
-        doc = self.nlp(user_input)
-        matches = self.matcher(doc)
-
-        if not matches:
-            return []
-
-        # Collect all found actions with their priority and start position
-        # Result format: (action, priority, start_position)
-        intent_map = {intent["name"]: intent for intent in self.intents}
-        found_actions = [
-            (
-                intent_map[self.nlp.vocab.strings[match_id]]["action"],
-                intent_map[self.nlp.vocab.strings[match_id]]["priority"],
-                start,
-            )
-            for match_id, start, _ in matches
-        ]
-
-        # If there are actions with priority > 1, filter out priority 1 actions
-        if any(priority > 1 for _, priority, _ in found_actions):
-            found_actions = [
-                (action, priority, start)
-                for action, priority, start in found_actions
-                if priority > 1
-            ]
-
-        # Sort actions by start position
-        found_actions.sort(key=lambda x: x[2])
-
-        # Return unique actions while preserving order
-        return list(dict.fromkeys(action for action, _, _ in found_actions))
-
-    def _define_intents(self):
-        """Loads intent definitions from a JSON file and adds them to the matcher."""
-        intents_file_path = "data/intents.json"
-        try:
-            with open(intents_file_path, "r") as f:
-                self.intents = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"Error loading intents file: {e}")
-            self.intents = []
-
-        # Add patterns to the matcher
-        for intent in self.intents:
-            self.matcher.add(intent["name"], intent["patterns"])
+        # The API service handles all complex logic.
+        return self.api_service(user_input, chat_history)
