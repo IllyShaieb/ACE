@@ -145,17 +145,21 @@ class IACEView(Protocol):
     def scroll_to_bottom(self):
         """Forces the chat view to scroll to the latest message."""
 
+    def display_history(self, messages: list[tuple[str, str]]):
+        """
+        Clears the current chat and displays a list of historical messages.
+
+        ### Args:
+            messages (list[tuple[str, str]]): A list of (sender, message) tuples.
+        """
+
 
 class ConsoleView(IACEView):
-    """A concrete implementation of IACEView for console-based interaction.
+    """A console-based view for the ACE application."""
 
-    This view handles input and output directly through the command line
-    interface (CLI). It implicitly adheres to the IACEView Protocol by
-    implementing all its defined methods.
-    """
-
+    # (border_colour, text_colour)
     SENDER_COLOURS = {
-        "ACE": ("cyan", "cyan"),  # (border_colour, text_colour)
+        "ACE": ("cyan", "cyan"),
         "ERROR": ("red", "red"),
         "INFO": ("white", "white"),
         "YOU": ("magenta", "magenta"),
@@ -163,6 +167,8 @@ class ConsoleView(IACEView):
 
     def __init__(self):
         self.console = Console()
+        self._current_ace_message = ""
+        self._live_display = None
 
     def display_message(self, sender: str, message: str):
         """Displays a message to the console and adds it to the chat history.
@@ -200,7 +206,7 @@ class ConsoleView(IACEView):
             )
             self.console.print(panel, justify=justify, markup=True)
 
-        self.chat_history.append(f"{sender}: {message}")
+        self.chat_history.append((sender, message))
 
     def get_user_input(self, prompt: str) -> str:
         """Gets user input from the console.
@@ -291,7 +297,7 @@ class ConsoleView(IACEView):
         ### Args
             conversations (list): The list of conversations to display.
             select_handler (Optional[Callable]): A callback function to handle conversation selection.
-            delete_handler (Optional[Callable]): A callback function to handle conversation deletion.
+            delete_handler (Optional[Callable]: A callback function to handle conversation deletion.
             new_chat_handler (Optional[Callable]): A callback function to handle starting a new chat.
         """
         pass
@@ -348,6 +354,16 @@ class ConsoleView(IACEView):
         This method does nothing for console-based interaction.
         """
         pass
+
+    def display_history(self, messages: list[tuple[str, str]]):
+        """Displays a list of historical messages in the console.
+
+        ### Args
+            messages (list[tuple[str, str]]): A list of (sender, message) tuples.
+        """
+        self.clear_chat_history()
+        for sender, message in messages:
+            self.display_message(sender, message)
 
 
 class DesktopView(IACEView):
@@ -420,14 +436,27 @@ class DesktopView(IACEView):
             pass
 
     def set_input_handler(self, handler: Callable):
-        """Sets the callback for user input."""
+        """Sets the callback for user input.
+
+        ### Args
+            handler (Callable): A function that takes the user's input as an argument.
+        """
         self._input_handler = handler
 
     def get_user_input(self, prompt: Optional[str] = None) -> str:
-        """Gets user input from the input entry field."""
-        user_input = self.input_entry.get().strip()
-        self.chat_history.append(f"YOU: {user_input}")
+        """Gets user input from the input entry field.
 
+        ### Args
+            prompt (Optional[str]): Ignored for GUI input.
+
+        ### Returns
+            str: The user's input, with leading/trailing whitespace removed.
+        """
+        user_input = self.input_entry.get().strip()
+
+        # NOTE: This view does NOT immediately display the user message.
+        # The presenter is responsible for that.
+        self.chat_history.append(f"YOU: {user_input}")
         return user_input
 
     def clear_chat_history(self):
@@ -435,7 +464,6 @@ class DesktopView(IACEView):
         self.chat_display.configure(state="normal")
         self.chat_display.delete("1.0", tk.END)
         self.chat_display.configure(state="disabled")
-
         self.chat_history = []  # Clear the chat history list
 
     def clear_input(self):
@@ -443,7 +471,12 @@ class DesktopView(IACEView):
         self.input_entry.delete(0, tk.END)
 
     def display_message(self, sender: str, message: str):
-        """Displays a message in the chat window."""
+        """Displays a message in the chat window.
+
+        ### Args
+            sender (str): The name of the sender (e.g., "ACE", "YOU").
+            message (str): The message content.
+        """
         self.chat_display.configure(state="normal")
 
         sender_tag = sender.upper()
@@ -461,12 +494,26 @@ class DesktopView(IACEView):
         self.chat_display.configure(state="disabled")
         self.scroll_to_bottom()
 
+    def display_history(self, messages: list[tuple[str, str]]):
+        """Clears the current chat and displays a list of historical messages.
+
+        ### Args:
+            messages (list[tuple[str, str]]): A list of (sender, message) tuples.
+        """
+        self.clear_chat_history()
+        for sender, message in messages:
+            self.display_message(sender, message)
+
     def scroll_to_bottom(self):
         """Forces the chat view to scroll to the latest message."""
         self.chat_display.see(tk.END)
 
     def show_error(self, message: str):
-        """Displays an error message."""
+        """Displays an error message.
+
+        ### Args
+            message (str): The error message to display.
+        """
         self.display_message("ERROR", message)
         CTkMessagebox(
             title="Error",
@@ -477,7 +524,11 @@ class DesktopView(IACEView):
         )
 
     def show_info(self, message: str):
-        """Displays an informational message."""
+        """Displays an informational message.
+
+        ### Args
+            message (str): The informational message to display.
+        """
         self.display_message("INFO", message)
 
     def show_typing_indicator(self):
@@ -505,7 +556,14 @@ class DesktopView(IACEView):
         delete_handler: Optional[Callable] = None,
         new_chat_handler: Optional[Callable] = None,
     ):
-        """Displays a list of past conversations in the sidebar."""
+        """Displays a list of past conversations in the sidebar.
+
+        ### Args
+            conversations (list): A list of (conversation_id, timestamp) tuples.
+            select_handler (Optional[Callable]): A callback function to handle conversation selection.
+            delete_handler (Optional[Callable]): A callback function to handle conversation deletion.
+            new_chat_handler (Optional[Callable]): A callback function to handle starting a new chat.
+        """
         for widget in self._history_frame.winfo_children():
             widget.destroy()
 
@@ -559,7 +617,15 @@ class DesktopView(IACEView):
                 ).grid(row=0, column=1, padx=(5, 0))
 
     def show_confirmation(self, title: str, message: str) -> bool:
-        """Shows a confirmation dialog and returns the user's choice."""
+        """Shows a confirmation dialog and returns the user's choice.
+
+        ### Args
+            title (str): The title of the confirmation dialog.
+            message (str): The message to display in the dialog.
+
+        ### Returns
+            bool: True if the user confirmed, False otherwise.
+        """
         msg = CTkMessagebox(
             title=title,
             message=message,
@@ -572,7 +638,11 @@ class DesktopView(IACEView):
         return msg.get() == "Yes"
 
     def _animate_typing_indicator(self, dot_count=0):
-        """Animates the 'ACE is typing...' indicator."""
+        """Animates the 'ACE is typing...' indicator.
+
+        ### Args
+            dot_count (int): The current number of dots to display.
+        """
         if not self._typing_animation_running:
             return
 
@@ -634,8 +704,15 @@ class DesktopView(IACEView):
             spacing3=10,  # Spacing after the line
         )
 
-    def _create_sidebar(self, parent, row, column, rowspan):
-        """Creates the sidebar for conversation history."""
+    def _create_sidebar(self, parent: ctk.CTk, row: int, column: int, rowspan: int):
+        """Creates the sidebar for conversation history.
+
+        ### Args
+            parent (ctk.CTk): The parent widget.
+            row (int): The row position in the grid.
+            column (int): The column position in the grid.
+            rowspan (int): The number of rows the sidebar should span.
+        """
         history_container = ctk.CTkFrame(parent, fg_color=self.PALETTE["surface"])
         history_container.grid(
             row=row, column=column, rowspan=rowspan, sticky="nsw", padx=(10, 0), pady=10
@@ -653,8 +730,14 @@ class DesktopView(IACEView):
         )
         self._history_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=5)
 
-    def _create_chat_area(self, parent, row, column):
-        """Creates the chat display area using a CTkTextbox."""
+    def _create_chat_area(self, parent: ctk.CTk, row: int, column: int):
+        """Creates the chat display area using a CTkTextbox.
+
+        ### Args
+            parent (ctk.CTk): The parent widget.
+            row (int): The row position in the grid.
+            column (int): The column position in the grid.
+        """
         self.chat_display = ctk.CTkTextbox(
             parent,
             wrap=tk.WORD,
@@ -669,8 +752,14 @@ class DesktopView(IACEView):
             row=row, column=column, padx=(10, 10), pady=(10, 0), sticky="nsew"
         )
 
-    def _create_input_area(self, parent, row, column):
-        """Creates the user input area."""
+    def _create_input_area(self, parent: ctk.CTk, row: int, column: int):
+        """Creates the user input area.
+
+        ### Args
+            parent (ctk.CTk): The parent widget.
+            row (int): The row position in the grid.
+            column (int): The column position in the grid.
+        """
         input_area = ctk.CTkFrame(parent, fg_color="transparent")
         input_area.grid(row=row, column=column, padx=10, pady=10, sticky="sew")
         input_area.grid_columnconfigure(0, weight=1)
@@ -708,13 +797,17 @@ class DesktopView(IACEView):
         )
         self.send_button.grid(row=1, column=1, sticky="e")
 
-    def _send_message(self, event=None):
-        """Handles sending a message."""
+    def _send_message(self, event: Optional[tk.Event] = None):
+        """Handles sending a message.
+
+        ### Args
+            event (Optional[tk.Event]): The event that triggered the send (if any).
+        """
         message = self.get_user_input()
         if message:
-            # Display the user's message immediately
-            self.display_message("YOU", message)
-            self.root.update_idletasks()  # Force immediate redraw
+            # NOTE: This view does not display the user message here.
+            # The Presenter's process_user_input is responsible for it.
+            self.root.update_idletasks()
             self.scroll_to_bottom()
 
             # Reset input and schedule the handler to run after the UI has updated
@@ -726,19 +819,36 @@ class DesktopView(IACEView):
             self.input_entry.focus()
 
     def set_input_enabled(self, enabled: bool):
-        """Enables or disables the input field and send button."""
+        """Enables or disables the input field and send button.
+
+        ### Args
+            enabled (bool): True to enable input, False to disable.
+        """
         state = "normal" if enabled else "disabled"
         self.input_entry.configure(state=state)
         self.send_button.configure(state=state)
 
     def after(self, delay: int, callback: Callable):
-        """Schedules a callback after a delay."""
+        """Schedules a callback after a delay.
+
+        ### Args
+            delay (int): The delay in milliseconds before calling the callback.
+            callback (Callable): The function to call after the delay.
+        """
         self.root.after(delay, callback)
 
     def track_action(
         self, action_func: Callable, description: str = "ACE is thinking..."
     ) -> Any:
-        """Tracks a function with a visual indicator."""
+        """Tracks a function with a visual indicator.
+
+        ### Args
+            action_func (Callable): The function to execute.
+            description (str): The text to display next to the spinner.
+
+        ### Returns
+            Any: The return value of the action_func.
+        """
         self.show_typing_indicator()
         self.root.update_idletasks()  # Ensure UI updates before blocking
         result = action_func()
