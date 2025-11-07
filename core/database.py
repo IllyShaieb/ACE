@@ -109,7 +109,7 @@ def get_messages(database_name: str, conversation_id: int) -> list:
 
         # Get all the messages for the specified conversation
         cursor.execute(
-            """SELECT * FROM messages
+            """SELECT sender, content, timestamp FROM messages
                 WHERE conversation_id = ?;""",
             (conversation_id,),
         )

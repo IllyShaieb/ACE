@@ -50,28 +50,12 @@ class TestDatabase(unittest.TestCase):
         # Check that the length of the returned messages is correct
         self.assertEqual(len(messages), 2)
 
-        # Check that content in all messages is correct
-        self.assertTrue(
-            all(
-                [
-                    messages[0][0] == 1,
-                    messages[0][1] == 1,
-                    messages[0][2] == "user",
-                    messages[0][3] == "Hello!",
-                ]
-            )
-        )
+        # We will ignore the timestamp for simplicity
+        self.assertEqual(messages[0][0], "user")
+        self.assertEqual(messages[0][1], "Hello!")
 
-        self.assertTrue(
-            all(
-                [
-                    messages[1][0] == 2,
-                    messages[1][1] == 1,
-                    messages[1][2] == "ace",
-                    messages[1][3] == "Hi!",
-                ]
-            )
-        )
+        self.assertEqual(messages[1][0], "ace")
+        self.assertEqual(messages[1][1], "Hi!")
 
     def test_get_conversations(self):
         """Test that conversations are retrieved correctly."""
