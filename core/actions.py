@@ -4,17 +4,14 @@ import os
 import random
 import warnings
 from datetime import datetime
-from random import choice
-from typing import Callable, Optional
+from typing import Callable, Dict
 
 import requests
-import spacy
 from dotenv import load_dotenv
 
 load_dotenv()
 
 UNKNOWN_ACTION_MESSAGE = "I'm not sure how to do that."
-SPACY_NLP = spacy.load("en_core_web_sm")
 
 
 class ActionHandler:
@@ -24,15 +21,19 @@ class ActionHandler:
     and provides a callable interface to invoke the handler.
     """
 
-    def __init__(self, handler: Callable, requires_user_input: bool):
+    def __init__(
+        self, handler: Callable, requires_user_input: bool, description: str = ""
+    ):
         """Initialises the ActionHandler.
 
         ### Args
             handler (Callable): The function that handles the action.
             requires_user_input (bool): Whether the action handler requires user input.
+            description (str): A brief description of the action.
         """
         self._handler = handler
         self._requires_user_input = requires_user_input
+        self._description = description
 
     @property
     def handler(self) -> Callable:
@@ -44,16 +45,21 @@ class ActionHandler:
         """Gets whether the action handler requires user input."""
         return self._requires_user_input
 
+    @property
+    def description(self) -> str:
+        """Gets the description of the action."""
+        return self._description
+
     def __call__(self, *args, **kwargs):
         """Invoke the handler function with provided arguments."""
         return self.handler(*args, **kwargs)
 
 
-ACTION_HANDLERS = {}
+ACTION_HANDLERS: Dict[str, ActionHandler] = {}
 
 
 def register_handler(
-    name: str, requires_user_input: bool = False
+    name: str, requires_user_input: bool = False, description: str = ""
 ) -> Callable[[Callable], Callable]:
     """Decorator to register an action handler and add it to the ACTION_HANDLERS
     dictionary. This allows for easy addition of new actions without modifying the
@@ -71,6 +77,7 @@ def register_handler(
     ### Args
         name (str): The name of the action to register.
         requires_user_input (bool): Whether the action handler requires user input.
+        description (str): A brief description of the action.
 
     ### Returns
         function: The decorated function that handles the action.
@@ -89,7 +96,7 @@ def register_handler(
             warnings.warn(
                 f"Action handler for '{name}' is being overwritten.", UserWarning
             )
-        ACTION_HANDLERS[name] = ActionHandler(func, requires_user_input)
+        ACTION_HANDLERS[name] = ActionHandler(func, requires_user_input, description)
         return func
 
     return decorator
@@ -100,31 +107,37 @@ def handle_unknown() -> str:
     return UNKNOWN_ACTION_MESSAGE
 
 
-@register_handler("GREET")
-def handle_greet() -> str:
-    """Provides a greeting message."""
-    return "Hello! How can I assist you today?"
-
-
-@register_handler("IDENTIFY")
-def handle_identify(user_input: Optional[str] = None) -> str:
+@register_handler(
+    "IDENTIFY_SELF",
+    description="Informs the user about the assistant's name and purpose.",
+)
+def handle_identify_self() -> str:
     """Returns the identity of the assistant."""
-    return "I am ACE, your personal assistant."
+    return "I am ACE, your Artificial Consciousness Engine, dedicated to maximizing your efficiency."
 
 
-@register_handler("CREATOR")
-def handle_creator(user_input: Optional[str] = None) -> str:
+@register_handler(
+    "SELF_CREATOR",
+    description="Provides information about the assistant's creator.",
+)
+def handle_self_creator() -> str:
     """Returns the name of the creator."""
-    return "I was created by Illy Shaieb."
+    return "My development was overseen by Illy Shaieb."
 
 
-@register_handler("GET_TIME")
+@register_handler(
+    "GET_TIME",
+    description="Retrieves the current time of day.",
+)
 def handle_get_time() -> str:
     """Provide the current time in a human-readable format."""
     return f"The current time is {datetime.now().strftime('%H:%M')}."
 
 
-@register_handler("GET_DATE")
+@register_handler(
+    "GET_DATE",
+    description="Retrieves the current date.",
+)
 def handle_get_date() -> str:
     """Provide the current date in a human-readable format."""
     now = datetime.now()
@@ -135,75 +148,108 @@ def handle_get_date() -> str:
     return f"Today's date is {now.strftime(f'%A {day}{suffix} %B %Y')}."
 
 
-@register_handler("HELP")
+@register_handler(
+    "HELP",
+    description="Informs the user about the general range of capabilities the assistant has.",
+)
 def handle_help() -> str:
     """Provides a brief description of the assistant's capabilities."""
-    return "I can assist you with various tasks. Try asking me about the time, date, or anything else!"
+
+    # We now retrieve the tool descriptions and let the LLM format the final response.
+    tool_list = [
+        f"- {name}: {handler.description}"
+        for name, handler in ACTION_HANDLERS.items()
+        if name not in ["GENERAL_ENQUIRY", "HELP"]
+    ]
+    tool_list_str = "\n".join(tool_list)
+
+    # The LLM will use this structured list to generate a natural, persona-driven response.
+    return f"My current programmed capabilities are:\n{tool_list_str}"
 
 
-@register_handler("JOKE")
+@register_handler(
+    "JOKE",
+    description="Retrieves a random joke.",
+)
 def handle_joke() -> str:
     """Retrieves a random joke and returns it in a human-readable format."""
     try:
-        response = requests.get("https://official-joke-api.appspot.com/random_joke")
+        response = requests.get(
+            "https://official-joke-api.appspot.com/random_joke", timeout=5
+        )
         response.raise_for_status()
         joke_data = response.json()
         setup = joke_data.get("setup", "")
         punchline = joke_data.get("punchline", "")
-        sentence_stop = punchline.endswith((".", "!", "?"))
         if not setup or not punchline:
-            return (
-                "Sorry, I couldn't fetch a joke right now. The joke format is invalid."
-            )
-        return f"{setup} — {punchline}" if sentence_stop else f"{setup} — {punchline}."
-    except (requests.exceptions.HTTPError, requests.RequestException) as e:
-        return f"Sorry, I couldn't fetch a joke right now. Error: {e}"
+            return "I could not retrieve a joke with a valid setup and punchline, Sir."
+
+        return f"{setup}—{punchline}"
+
+    except requests.exceptions.RequestException as e:
+        return f"I regret to inform you, Sir, that the joke API is currently unresponsive. Error: {e}"
 
 
-@register_handler("FLIP_COIN")
+@register_handler(
+    "FLIP_COIN",
+    description="Performs a coin toss and reports the result.",
+)
 def handle_flip_coin() -> str:
     """Simulates a coin flip and returns the result."""
     return random.choice(["Heads", "Tails"])
 
 
-@register_handler("ROLL_DIE")
-def handle_roll_die() -> str:
-    """Simulates rolling a six-sided die and returns the result."""
-    return str(random.randint(1, 6))
+@register_handler(
+    "ROLL_DICE",
+    description="Simulates rolling one or more dice and returns the results.",
+    requires_user_input=True,
+)
+def handle_roll_dice(sides: list[int]) -> str:
+    """Simulates rolling a die and returns the result.
+
+    ### Args
+        sides (list[int]): A list of integers representing the number of sides on each die to roll.
+            If not provided, defaults to a single 6-sided die.
+
+    ### Returns
+        str: A human-readable string with the results of the dice rolls.
+    """
+    sides = sides or [6]  # Default to a single 6-sided die if no sides provided
+
+    results = [random.randint(1, side) for side in sides]
+    total = sum(results)
+
+    # Group dice by number of sides
+    from collections import Counter
+
+    side_counts = Counter(sides)
+    if len(sides) == 1:
+        return (
+            f"You rolled a {sides[0]}-sided die and got: {results[0]}. Total: {total}"
+        )
+    elif len(side_counts) == 1:
+        count = len(sides)
+        side = sides[0]
+        return f"You rolled {count} {side}-sided dice and got: {', '.join(map(str, results))}. Total: {total}"
+    else:
+        grouped = [
+            f"{count} {side}-sided" if count > 1 else f"{side}-sided"
+            for side, count in side_counts.items()
+        ]
+        return f"You rolled {', '.join(grouped)} dice and got: {', '.join(map(str, results))}. Total: {total}"
 
 
-@register_handler("GET_WEATHER", requires_user_input=True)
-def handle_get_weather(query: str) -> str:
-    """Fetches and returns the current weather information."""
-
-    doc = SPACY_NLP(query)
-    location = None
-
-    # First, try to find a GPE (Geopolitical Entity)
-    for ent in doc.ents:
-        if ent.label_ == "GPE":
-            location = ent.text
-            break
-
-    # If no GPE is found, fall back to finding proper nouns after a preposition
+@register_handler(
+    "GET_WEATHER",
+    description="Fetches and returns the current weather for a specified location.",
+    requires_user_input=True,
+)
+def handle_get_weather(location: str) -> str:
+    """
+    Fetches weather data from an external API and formats it into a human-readable response.
+    """
     if not location:
-        for token in doc:
-            if token.lower_ in ["in", "for"] and token.pos_ == "ADP":
-                # Find the noun phrase that follows the preposition
-                for child in token.children:
-                    if child.pos_ in ("PROPN", "NOUN"):
-                        # Reconstruct the full location name from the subtree
-                        location_parts = [
-                            t.text for t in child.subtree if t.pos_ in ("PROPN", "NOUN")
-                        ]
-                        if location_parts:
-                            location = " ".join(location_parts)
-                            break
-                if location:
-                    break
-
-    if not location:
-        return "I'm sorry, I couldn't find a location in your query."
+        return "What location would you like to know the weather for?"
 
     api_key = os.getenv("WEATHER_API_KEY")
     if not api_key:
@@ -215,60 +261,42 @@ def handle_get_weather(query: str) -> str:
         resp = requests.get(api_url, params={"key": api_key, "q": location}, timeout=5)
         resp.raise_for_status()
         data = resp.json()
-        curr = data["current"]
-        cond = curr["condition"]
 
-        wording_options = [
-            (
-                f"The prevailing weather in {data['location']['name']} is {cond['text'].lower()}. "
-                f"The temperature is currently {curr['temp_c']}°C, feeling like {curr['feelslike_c']}°C."
-            ),
-            (
-                f"In {data['location']['name']}, the weather is {cond['text'].lower()} and the temperature is {curr['temp_c']}°C, "
-                f"which feels like {curr['feelslike_c']}°C."
-            ),
-            (
-                f"It's {cond['text'].lower()} in {data['location']['name']} right now. The temperature is {curr['temp_c']}°C, "
-                f"but it feels more like {curr['feelslike_c']}°C."
-            ),
-            (
-                f"The weather report for {data['location']['name']} shows {cond['text'].lower()} with a temperature of {curr['temp_c']}°C. "
-                f"The 'feels like' temperature is {curr['feelslike_c']}°C."
-            ),
-            (
-                f"{data['location']['name']} is experiencing {cond['text'].lower()} weather. It's {curr['temp_c']}°C outside, "
-                f"and it feels like {curr['feelslike_c']}°C."
-            ),
-        ]
+        # Extract relevant weather details
+        try:
+            location_name = data["location"]["name"]
+            region = data["location"]["region"]
+            country = data["location"]["country"]
+            temp_c = data["current"]["temp_c"]
+            condition = data["current"]["condition"]["text"]
+            wind_kph = data["current"]["wind_kph"]
+            humidity = data["current"]["humidity"]
+            feelslike_c = data["current"]["feelslike_c"]
 
-        return choice(wording_options)
+        except KeyError as e:
+            return f"Received unexpected data format from the weather service: {e}"
 
-    except requests.exceptions.RequestException as e:  # Handle network/HTTP errors
-        return f"Sorry, I couldn't connect to the weather service. Error: {e}"
+        # Format the response
+        return (
+            f"The current weather in {location_name}, {region}, {country} is {temp_c}°C with {condition}. "
+            f"The wind speed is {wind_kph} kph, the humidity is {humidity}%, and it feels like {feelslike_c}°C."
+        )
 
-    except KeyError:  # Handle unexpected JSON structure
-        return "Sorry, I received an unexpected response from the weather service."
+    except requests.exceptions.RequestException as e:
+        return f"Weather service is unavailable. Connection Error: {e}"
 
     except Exception as e:
-        return f"Sorry, I couldn't fetch the weather information right now. Error: {e}"
+        return f"An unknown issue occurred during the weather retrieval: {e}"
 
 
-def execute_action(action: str, query: Optional[str] = None) -> str:
-    """Executes the action based on the provided action name.
-
-    ### Args
-        action (str): The name of the action to execute.
-        query (Optional[str]): The user's query, if required by the action.
-    """
+def execute_action(action: str, **kwargs) -> str:
+    """Executes the action based on the provided action name and arguments."""
     handler_obj = ACTION_HANDLERS.get(action)
     if not handler_obj:
         return handle_unknown()
 
-    requires_user_input = handler_obj.requires_user_input
-
-    if requires_user_input:
-        if query is None:
-            return f"The action '{action}' requires user input."
-        return handler_obj(query)
-    else:
-        return handler_obj()
+    try:
+        # Pass all keyword arguments directly to the handler
+        return handler_obj.handler(**kwargs)
+    except Exception as e:
+        return f"System Error during tool execution: {e}"

@@ -93,7 +93,7 @@ class TestActionHandling(unittest.TestCase):
 
     def test_execute_action_known(self):
         """Ensure known actions return the expected results."""
-        self.assertIn("ACE", actions.execute_action("IDENTIFY"))
+        self.assertIn("ACE", actions.execute_action("IDENTIFY_SELF"))
 
     def test_execute_action_unknown(self):
         """Ensure unknown actions return the unknown action message."""
@@ -102,28 +102,20 @@ class TestActionHandling(unittest.TestCase):
         )
 
 
-class TestGreetAction(unittest.TestCase):
-    """Tests for the Greet action."""
-
-    def test_handle_greet(self):
-        """Ensure the greet action returns a greeting message."""
-        self.assertIn("Hello", actions.execute_action("GREET"))
-
-
-class TestIdentifyAction(unittest.TestCase):
-    """Tests for the Identify action."""
+class TestIdentifySelfAction(unittest.TestCase):
+    """Tests for the Identify Self action."""
 
     def test_handle_identify(self):
-        """Ensure the identify action returns the correct identifier."""
-        self.assertIn("ACE", actions.execute_action("IDENTIFY"))
+        """Ensure the identify self action returns the correct identifier."""
+        self.assertIn("ACE", actions.execute_action("IDENTIFY_SELF"))
 
 
-class TestCreatorAction(unittest.TestCase):
-    """Tests for the Creator action."""
+class TestSelfCreatorAction(unittest.TestCase):
+    """Tests for the Self Creator action."""
 
-    def test_handle_creator(self):
+    def test_handle_self_creator(self):
         """Ensure the creator action returns the correct creator name."""
-        self.assertIn("Illy Shaieb", actions.execute_action("CREATOR"))
+        self.assertIn("Illy Shaieb", actions.execute_action("SELF_CREATOR"))
 
 
 class TestGetTimeAction(unittest.TestCase):
@@ -158,18 +150,82 @@ class TestFlipCoinAction(unittest.TestCase):
         self.assertIn(actions.execute_action("FLIP_COIN"), ["Heads", "Tails"])
 
 
-class TestRollDieAction(unittest.TestCase):
-    """Tests for the Roll Die action."""
+class TestRollDiceAction(unittest.TestCase):
+    """Tests for the Roll Dice action."""
 
-    def test_handle_roll_die(self):
-        """Ensure the roll_die action returns a number between 1 and 6."""
-        # Must be a string representation of the number
-        result = actions.execute_action("ROLL_DIE")
+    def test_handle_roll_dice(self):
+        """Ensure the roll_dice action correctly returns a single die roll result."""
+        # FIX: The 'sides' argument is required.
+        result = actions.execute_action("ROLL_DICE", sides=[6])
         self.assertIsInstance(result, str)
 
-        # Convert to integer and check the range
-        value = int(result)
-        self.assertIn(value, range(1, 7))
+        # Result should be like "You rolled a {sides}-sided die and got: {result}. Total: {total}"
+        self.assertIn("You rolled a", result)
+        self.assertIn("6-sided", result)
+
+        # FIX: Parse the result correctly
+        dice_roll = int(result.split("got: ")[1].split(".")[0])
+        self.assertIn(dice_roll, range(1, 7), "Dice roll should be between 1 and 6")
+
+    def test_handle_roll_dice_custom_sides(self):
+        """Ensure the roll_dice action correctly handles custom sides."""
+        result = actions.execute_action("ROLL_DICE", sides=[20])
+        self.assertIsInstance(result, str)
+
+        self.assertIn("You rolled a", result)
+        self.assertIn("20-sided", result)
+
+        # FIX: Parse the result correctly
+        dice_roll = int(result.split("got: ")[1].split(".")[0])
+        self.assertIn(dice_roll, range(1, 21), "Dice roll should be between 1 and 20")
+
+    def test_handle_multiple_dice(self):
+        """Ensure the roll_dice action can handle multiple dice rolls."""
+        test_cases = [
+            {
+                "sides": [6, 6],
+                "expected_range": (2, 12),
+                "expected_str": "You rolled 2 6-sided dice",
+            },
+            {
+                "sides": [6, 20],
+                "expected_range": (2, 26),
+                "expected_str": "You rolled 6-sided, 20-sided dice",
+            },
+            {
+                "sides": [4, 8, 12],
+                "expected_range": (3, 24),
+                "expected_str": "You rolled 4-sided, 8-sided, 12-sided dice",
+            },
+        ]
+        for case in test_cases:
+            with self.subTest(sides=case["sides"]):
+                sides_list = case["sides"]
+                expected_min, expected_max = case["expected_range"]
+
+                result = actions.execute_action("ROLL_DICE", sides=sides_list)
+                self.assertIsInstance(result, str)
+
+                # FIX: Check for the new response format
+                self.assertIn(case["expected_str"], result)
+                self.assertIn("Total: ", result)
+
+                # Extract the total from the result string
+                total_str = result.split("Total: ")[1]
+                total = int(total_str)
+                self.assertIn(
+                    total,
+                    range(expected_min, expected_max + 1),
+                    "Total should be within the expected range",
+                )
+
+    def test_handle_roll_dice_no_sides(self):
+        """Ensure the roll_dice action handles no sides provided."""
+        result = actions.execute_action("ROLL_DICE", sides=[])
+        self.assertIsInstance(result, str)
+
+        # Should default to rolling a single 6-sided die
+        self.assertIn("You rolled a 6-sided die", result)
 
 
 class TestGetWeatherAction(unittest.TestCase):
@@ -225,9 +281,7 @@ class TestGetWeatherAction(unittest.TestCase):
                 "gust_kph": 12.9,
             },
         }
-        result = actions.execute_action(
-            "GET_WEATHER", "What's the weather like in London?"
-        )
+        result = actions.execute_action("GET_WEATHER", location="London")
 
         # Check the result contains expected weather information
         # Note: just checking for key substrings to avoid brittleness
@@ -248,46 +302,36 @@ class TestGetWeatherAction(unittest.TestCase):
         mock_get.side_effect = requests.exceptions.RequestException(
             "Testing HTTP Error"
         )
-        result = actions.execute_action(
-            "GET_WEATHER", "What's the weather like in London?"
-        )
-        self.assertIn("Sorry, I couldn't connect to the weather service.", result)
+        result = actions.execute_action("GET_WEATHER", location="London")
+        self.assertIn("Testing HTTP Error", result)
 
     @mock.patch("core.actions.requests.get")
     def test_handle_get_weather_handle_unexpected_json(self, mock_get):
         """Ensure the get_weather action handles unexpected JSON structure gracefully."""
         mock_get.return_value.json.return_value = {"unexpected_key": "unexpected_value"}
-        result = actions.execute_action(
-            "GET_WEATHER", "What's the weather like in London?"
-        )
+        result = actions.execute_action("GET_WEATHER", location="London")
         self.assertIn(
-            "Sorry, I received an unexpected response from the weather service.", result
+            "Received unexpected data format from the weather service", result
         )
 
     @mock.patch("core.actions.requests.get")
     def test_handle_get_weather_handle_general_exception(self, mock_get):
         """Ensure the get_weather action handles general exceptions gracefully."""
         mock_get.side_effect = Exception("General Exception for Testing")
-        result = actions.execute_action(
-            "GET_WEATHER", "What's the weather like in London?"
-        )
-        self.assertIn(
-            "Sorry, I couldn't fetch the weather information right now.", result
-        )
+        result = actions.execute_action("GET_WEATHER", location="London")
+        self.assertIn("An unknown issue occurred during the weather retrieval", result)
 
     @mock.patch("core.actions.requests.get")
     def test_handle_get_weather_missing_location(self, mock_get):
         """Ensure the get_weather action handles missing location in query."""
-        result = actions.execute_action("GET_WEATHER", "What's the weather like?")
-        self.assertIn("I'm sorry, I couldn't find a location in your query.", result)
+        result = actions.execute_action("GET_WEATHER", location=None)
+        self.assertIn("What location would you like to know the weather for?", result)
 
     @mock.patch("core.actions.os.getenv")
     def test_handle_get_weather_missing_api_key(self, mock_getenv):
         """Ensure the get_weather action handles missing API key."""
         mock_getenv.return_value = None
-        result = actions.execute_action(
-            "GET_WEATHER", "What's the weather like in London?"
-        )
+        result = actions.execute_action("GET_WEATHER", location="London")
         self.assertIn("Apologies, it appears the WEATHER_API_KEY is not set.", result)
 
 
