@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from threading import Thread
-from typing import List
+from typing import Any, Dict, List, Optional
 
 from core.actions import ACTION_HANDLERS, UNKNOWN_ACTION_MESSAGE
 from core.database import (
@@ -28,6 +28,7 @@ GOODBYE_MESSAGE: str = "Goodbye! It was a pleasure assisting you."
 INITIALISING_MESSAGE: str = "Initialising ACE"
 TERMINATION_MESSAGE: str = "Terminating ACE"
 NO_DB_MESSAGE: str = "[INFO] ACE cannot start without a functional database. Exiting."
+EMPTY_RESPONSE_MESSAGE: str = "I'm sorry, I don't have a response for that."
 
 
 class BasePresenter:
@@ -45,7 +46,7 @@ class BasePresenter:
         self.chat_id = None
 
     def initialise(self):
-        """Initialises the ACE application, including the database."""
+        """Initialises the ACE application, including the database and API."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.view.display_message("INFO", f"{timestamp} | {INITIALISING_MESSAGE}")
 
@@ -56,60 +57,73 @@ class BasePresenter:
             self.view.display_message("INFO", NO_DB_MESSAGE)
             return False  # Indicate failure
 
-        self.view.display_message("INFO", " ACE ".center(80, "="))
         self.view.display_message(
             "INFO", "    Welcome to ACE! Type 'exit' to quit.\n\n"
         )
 
         self.view.display_message(ACE_ID, WELCOME_MESSAGE)
+
         return True  # Indicate success
 
-    def process_user_input(self, user_input: str) -> bool:
-        """Processes the user input and generates a response.
+    def process_user_input(
+        self, user_input: str, display_user_message: bool = True
+    ) -> bool:
+        """Processes user input, gets a response, and displays it.
 
         ### Args
             user_input (str): The input provided by the user.
+            display_user_message (bool): Whether to display the user's message in the view.
 
         ### Returns
-            bool: True if the application should continue running, False if it should exit.
+            bool: True if processing was successful, False otherwise.
         """
-        # If no chat is active, start a new one and log the initial messages
+        if not user_input:
+            return True
+
+        # If this is the first user message, create the conversation and save the welcome message
         if self.chat_id is None:
             self.chat_id = start_conversation(ACE_DATABASE)
             add_message(ACE_DATABASE, self.chat_id, ACE_ID, WELCOME_MESSAGE)
 
-        # Log the user input
+        # 1. Display user's message immediately
+        if display_user_message:
+            self.view.display_message(USER_ID, user_input)
+
+        # 2. Load PAST chat history (does not include the current user_input)
+        chat_history = self._load_chat_history(self.chat_id)
+
+        # 3. Get ACE's response from the model
+        response = self.view.track_action(lambda: self.model(user_input, chat_history))
+
+        # 4. Display ACE's response
+        final_response = response or EMPTY_RESPONSE_MESSAGE
+        self.view.display_message(ACE_ID, final_response)
+
+        # 5. Log the complete exchange to the database
         if self.chat_id is not None:
             add_message(ACE_DATABASE, self.chat_id, USER_ID, user_input)
-        else:
-            self.view.display_message(
-                "ERROR", "Conversation ID is not set. Cannot log message."
-            )
-            return True  # Continue running
+            add_message(ACE_DATABASE, self.chat_id, ACE_ID, final_response)
 
-        # Check for exit command
-        if user_input.lower() == EXIT_COMMAND:
-            self.view.display_message(ACE_ID, GOODBYE_MESSAGE)
-            if self.chat_id is not None:
-                add_message(ACE_DATABASE, self.chat_id, ACE_ID, GOODBYE_MESSAGE)
-            # self.view.close() # Defer closing for DesktopView
-            return False  # Indicate exit
-
-        # Simulate error and info
-        if user_input.lower() == "test info":
-            self.view.display_message("INFO", "This is an informational message.")
-
-        if user_input.lower() == "test error":
-            self.view.display_message("ERROR", "This is an error message.")
-
-        # Process the user input through the model
-        actions = self.model(user_input)
-        response = self._process_actions(actions, user_input)
-
-        self.view.display_message(ACE_ID, response)
-        if self.chat_id is not None:
-            add_message(ACE_DATABASE, self.chat_id, ACE_ID, response)
         return True  # Continue running
+
+    def _load_chat_history(self, chat_id: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Loads and formats the current chat history from the database.
+
+        ### Args
+            chat_id (Optional[int]): The ID of the chat conversation to load.
+        """
+        if chat_id is None:
+            return []
+
+        messages = get_messages(ACE_DATABASE, chat_id)
+
+        # Format for the LLM API
+        formatted_history = []
+        for sender, message, _ in messages:
+            role = "model" if sender == ACE_ID else "user"
+            formatted_history.append({"role": role, "text": message})
+
+        return formatted_history
 
     def _process_actions(self, actions: List[str], user_input: str) -> str:
         """Processes actions and shows a typing indicator in the console.
@@ -172,20 +186,28 @@ class ConsolePresenter(BasePresenter):
         self.show_termination_message()
 
     def process_user_input(self, user_input: str) -> bool:
-        """
-        Processes user input, displays it, gets a response, and displays the response.
-        """
-        if not user_input:
-            return True  # Continue loop if input is empty
+        """Overrides the base implementation to handle console-specific logic.
 
-        # Display the user's message in a bubble
-        self.view.display_message(USER_ID, user_input)
+        This method ensures that the application continues to run unless the user
+        explicitly types the exit command.
 
-        # Now, process the input and get ACE's response
-        return super().process_user_input(user_input)
+        ### Args:
+            user_input (str): The input from the user.
+
+        ### Returns:
+            bool: True if the application should continue, False if it should exit.
+        """
+        if user_input.lower() == EXIT_COMMAND:
+            return False
+
+        # Call the base presenter's logic to handle the core processing
+        super().process_user_input(user_input)
+
+        # Always return True to keep the console application running
+        return True
 
     def show_termination_message(self):
-        """Displays the termination message."""
+        """Displays the termination message in the console."""
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.view.display_message("INFO", f"{timestamp} | {TERMINATION_MESSAGE}")
 
@@ -213,20 +235,82 @@ class DesktopPresenter(BasePresenter):
         thread.start()
 
     def _process_input_thread(self, user_input: str):
-        """The target function for the input processing thread."""
-        # If this is the first message, a new conversation will be created.
-        # We need to refresh the history to show it.
-        new_conversation = self.chat_id is None
-        try:
-            should_continue = self.process_user_input(user_input)
-            if not should_continue:
-                # Schedule the window to close safely after 100ms
-                self.view.after(100, self.view.close)
-        except Exception as e:
-            self.view.display_message("ERROR", f"An error occurred: {e}")
+        """The target function for the input processing thread.
 
-        if new_conversation:
-            self.view.after(0, self._load_and_display_conversations)
+        ### Args
+            user_input (str): The input provided by the user.
+        """
+        new_conversation = self.chat_id is None
+
+        try:
+            # 1. Display user message (Scheduled on main thread)
+            # This view's _send_message does not display, so presenter must.
+            self.view.after(0, lambda: self.view.display_message(USER_ID, user_input))
+
+            # 2. Start database conversation if needed
+            if self.chat_id is None:
+                self.chat_id = start_conversation(ACE_DATABASE)
+                add_message(ACE_DATABASE, self.chat_id, ACE_ID, WELCOME_MESSAGE)
+
+            # 3. Load history
+            chat_history = self._load_chat_history(self.chat_id)
+
+            # 4. Get response from model (This is the blocking call)
+            # We wrap this in track_action, which is now handled by the presenter
+
+            def get_model_response():
+                return self.model(user_input, chat_history)
+
+            # Use view.track_action to manage indicators *around the blocking call*
+            response = self.view.track_action(get_model_response)
+            final_response = response or EMPTY_RESPONSE_MESSAGE
+
+            # 5. Log to DB
+            add_message(ACE_DATABASE, self.chat_id, USER_ID, user_input)
+            add_message(ACE_DATABASE, self.chat_id, ACE_ID, final_response)
+
+            # 6. Schedule ACE response (Scheduled on main thread)
+            self.view.after(
+                0, lambda: self.view.display_message(ACE_ID, final_response)
+            )
+
+            if new_conversation:
+                # Schedule conversation list refresh on main thread
+                self.view.after(0, self._load_and_display_conversations)
+
+            # Ensure typing indicator is hidden after processing
+            self.view.after(0, self.view.hide_typing_indicator)
+
+        except Exception as e:
+            # Schedule error display back on the main thread
+            error_message = f"An error occurred: {e}"
+            self.view.after(
+                0, lambda: self.view.display_message("ERROR", error_message)
+            )
+            # Ensure indicator is hidden on error
+            self.view.after(0, self.view.hide_typing_indicator)
+
+    def select_conversation(self, conversation_id: int):
+        """Handles the selection of a conversation from the history.
+
+        ### Args
+            conversation_id (int): The ID of the conversation to select.
+        """
+        self.chat_id = conversation_id
+        self.view.clear_chat_history()
+
+        # Display initial info messages for context
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        self.view.display_message("INFO", f"{timestamp} | {INITIALISING_MESSAGE}")
+        self.view.display_message(
+            "INFO", "    Welcome to ACE! Type 'exit' to quit.\n\n"
+        )
+
+        messages = get_messages(ACE_DATABASE, self.chat_id)
+
+        history_for_view = [(sender, message) for sender, message, _ in messages]
+        for sender, message in history_for_view:
+            self.view.display_message(sender, message)
 
     def _load_and_display_conversations(self):
         """Loads conversations from the database and displays them in the view."""
@@ -238,29 +322,6 @@ class DesktopPresenter(BasePresenter):
             self.start_new_conversation,
         )
 
-    def select_conversation(self, conversation_id: int):
-        """Handles the selection of a conversation from the history."""
-        self.chat_id = conversation_id
-        self.view.clear_chat_history()
-
-        # Display initial info messages for context
-        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        self.view.display_message("INFO", f"{timestamp} | {INITIALISING_MESSAGE}")
-
-        self.view.display_message("INFO", " ACE ".center(80, "="))
-        self.view.display_message(
-            "INFO", "    Welcome to ACE! Type 'exit' to quit.\n\n"
-        )
-
-        messages = get_messages(ACE_DATABASE, self.chat_id)
-        for msg in messages:
-            # msg format: (message_id, conversation_id, sender, content, timestamp)
-            sender = msg[2]
-            content = msg[3]
-            self.view.display_message(sender, content)
-
-        self.view.scroll_to_bottom()
-
     def start_new_conversation(self):
         """Starts a new chat session."""
         self.chat_id = None
@@ -269,8 +330,6 @@ class DesktopPresenter(BasePresenter):
         # Display initial info messages for context
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.view.display_message("INFO", f"{timestamp} | {INITIALISING_MESSAGE}")
-
-        self.view.display_message("INFO", " ACE ".center(80, "="))
         self.view.display_message(
             "INFO", "    Welcome to ACE! Type 'exit' to quit.\n\n"
         )
