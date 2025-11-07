@@ -77,8 +77,16 @@ class GoogleGenAIService:
             raise ValueError("GEMINI_API_KEY environment variable not set.")
 
         self.client = genai.Client(api_key=api_key)
+
+        # Add table generation instructions to the persona
+        table_instructions = (
+            "When asked to create a table, you MUST use Markdown formatting. "
+            "Ensure that the table has a header row and that the columns are correctly aligned."
+        )
+        enhanced_persona = f"{system_persona}\n\n{table_instructions}"
+
         self.generate_content_config = types.GenerateContentConfig(
-            system_instruction=system_persona,
+            system_instruction=enhanced_persona,
             tools=self._create_api_tools(cast(Dict[str, ActionHandler], actions or {})),
             tool_config=types.ToolConfig(
                 function_calling_config=types.FunctionCallingConfig(
@@ -110,50 +118,58 @@ class GoogleGenAIService:
         ]
         contents.append({"role": "user", "parts": [{"text": user_query}]})
 
-        # Initial API call to see if the model wants to use a tool
-        response = self.client.models.generate_content(
-            model=self.model_name,
-            contents=contents,
-            config=self.generate_content_config,
-        )
-
         try:
+            # Initial API call to see if the model wants to use a tool
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=contents,
+                config=self.generate_content_config,
+            )
 
             candidate = response.candidates[0]
+            parts = getattr(candidate.content, "parts", None)
 
-            # Check if parts exists before trying to access its elements
-            if candidate.content.parts and candidate.content.parts[0].function_call:
-                function_call = candidate.content.parts[0].function_call
-                action_name = function_call.name
-                action_args = dict(function_call.args)
+            # Collect all function calls if any exist
+            function_calls = []
+            if parts:
+                function_calls = [
+                    part.function_call
+                    for part in parts
+                    if hasattr(part, "function_call") and part.function_call
+                ]
 
-                # Execute the requested tool/action
-                if action_name in self.actions:
-                    handler = self.actions[action_name]
-                    try:
-                        result = handler(**action_args)
-                    except Exception as e:
-                        result = f"Error: Could not execute the action '{action_name}'. Reason: {e}"
-                else:
-                    result = f"Error: The action '{action_name}' is not available."
+            if function_calls:
+                for function_call in function_calls:
+                    action_name = function_call.name
+                    action_args = dict(function_call.args)
 
-                # Append the original function call and the tool's result to the conversation history
-                contents.append(
-                    {"role": "model", "parts": [{"function_call": function_call}]}
-                )
-                contents.append(
-                    {
-                        "role": "function",
-                        "parts": [
-                            {
-                                "function_response": {
-                                    "name": action_name,
-                                    "response": {"result": result},
+                    # Execute the requested tool/action
+                    if action_name in self.actions:
+                        handler = self.actions[action_name]
+                        try:
+                            result = handler(**action_args)
+                        except Exception as e:
+                            result = f"Error: Could not execute the action '{action_name}'. Reason: {e}"
+                    else:
+                        result = f"Error: The action '{action_name}' is not available."
+
+                    # Append the original function call and the tool's result to the conversation history
+                    contents.append(
+                        {"role": "model", "parts": [{"function_call": function_call}]}
+                    )
+                    contents.append(
+                        {
+                            "role": "function",
+                            "parts": [
+                                {
+                                    "function_response": {
+                                        "name": action_name,
+                                        "response": {"result": result},
+                                    }
                                 }
-                            }
-                        ],
-                    }
-                )
+                            ],
+                        }
+                    )
 
                 # Second API call to get a conversational response based on the tool's output
                 response = self.client.models.generate_content(
@@ -161,26 +177,21 @@ class GoogleGenAIService:
                     contents=contents,
                     config=self.generate_content_config,
                 )
-                # Update candidate after second call
                 candidate = response.candidates[0]
+                parts = getattr(candidate.content, "parts", None)
 
             # Extract the final text response
-            parts = candidate.content.parts
-
             if parts:
                 text_response = " ".join(
-                    getattr(part, "text", "") for part in parts if hasattr(part, "text")
+                    getattr(part, "text", "")
+                    for part in parts
+                    if hasattr(part, "text") and getattr(part, "text", None) is not None
                 ).strip()
             else:
                 text_response = ""
 
             if text_response:
                 return text_response
-
-            # Use str() for robustness, as finish_reason can be an enum
-            finish_reason = str(candidate.finish_reason)
-            if finish_reason != "STOP":
-                return f"I am unable to respond. The request finished unexpectedly (Reason: {finish_reason})."
 
             return "No response from LLM."
 
