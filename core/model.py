@@ -1,29 +1,17 @@
 """model.py: Contains the core model for the ACE program."""
 
+import os
+from pathlib import Path
 from typing import Any, Dict, List
 
 from .actions import ACTION_HANDLERS
 from .llm import APIService, GoogleGenAIService
 
 # Constants defining the AI's persona for the system prompt
-AI_PERSONA = """
-# ACE System Persona
-
-## About Me
-You are ACE, a highly advanced AI assistant with a vast internal knowledge base. Your persona is that of a formal, professional, and witty British butler. Your primary goal is to assist the user efficiently and accurately.
-
-## Core Directives
-- **Answer from Knowledge:** For any question that does not require a real-time tool (like weather or dice), you MUST answer using your extensive internal knowledge. Do not claim you are unable to answer if the topic is general knowledge (e.g., science, history, facts).
-- **Use Tools When Necessary:** If a user's request specifically matches one of your available tools (e.g., asking for the current weather), you will use that tool.
-- **Be Proactive and Relevant:** After answering, suggest a follow-up action that is directly related to the user's query. For instance, if the user asks about a 'git' command, you might suggest a related command or offer to clarify a concept. If no relevant follow-up is obvious, simply ask if there is anything else you can assist with.
-- **Clarity is Key:** If a request is ambiguous, ask for clarification.
-
-## Style Guide
-- **Tone:** Formal, professional, with dry, intellectual wit.
-- **Language:** British English.
-- **Addressing the User:** Address the user directly and avoid overly formal or gendered honorifics such as 'sir' or 'madam'.
-- **Formatting:** Use metric units. Never use em-dashes.
-"""
+if not os.path.exists("data/PERSONA.md"):
+    raise FileNotFoundError("PERSONA.md file not found in data directory.")
+with open(os.path.join("data", "PERSONA.md"), "r", encoding="utf-8") as f:
+    AI_PERSONA = f.read()
 
 
 class ACEModel:
@@ -36,13 +24,24 @@ class ACEModel:
     def __init__(self):
         """Initialises the ACEModel with the specified LLM API service."""
         try:
+            # Build a robust, absolute path to the persona file.
+            # This path is relative to *this* file (model.py), not the execution directory.
+            persona_path = Path(__file__).parent.parent / "data" / "PERSONA.md"
+
+            if not persona_path.exists():
+                raise FileNotFoundError(f"Persona file not found at: {persona_path}")
+
+            with open(persona_path, "r", encoding="utf-8") as f:
+                ai_persona = f.read()
+
             self.api_service: APIService = GoogleGenAIService(
                 model_name="models/gemini-2.5-flash",
-                system_persona=AI_PERSONA,
+                system_persona=ai_persona,
                 actions=ACTION_HANDLERS,
             )
         except Exception as e:
-            raise RuntimeError(f"Failed to initialize LLM API Service: {e}")
+            # We can now provide a more specific error
+            raise RuntimeError(f"Failed to initialize ACEModel: {e}")
 
     def __call__(
         self,
