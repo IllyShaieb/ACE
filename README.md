@@ -1,13 +1,15 @@
 # ACE
 
-Contents:
+### Contents
 
-- [Introduction](#introduction)
-- [Installation](#installation)
-- [Setup](#setup)
-- [Usage](#usage)
-- [How ACE Works](#how-ace-works)
-- [Adding New Action Handlers](#adding-new-action-handlers)
+| Section                       | Description                                  |
+|-------------------------------|----------------------------------------------|
+| 🚀 [Introduction](#introduction)                | Overview of ACE and its features             |
+| 🛠️ [Installation](#installation)                | Steps to install ACE and dependencies        |
+| ⚙️ [Setup](#setup)                              | Environment variable configuration           |
+| 💡 [Usage](#usage)                              | How to run and interact with ACE             |
+| 🧠 [How ACE Works](#how-ace-works)              | Explanation of ACE's internal logic          |
+| 🧩 [Adding New Action Handlers](#adding-new-action-handlers) | Guide to extending ACE with custom actions |
 
 ## Introduction
 
@@ -35,6 +37,7 @@ uv install
 Before using ACE, you need to set up the following environment variables:
 - `WEATHER_API_KEY`: Your API key for accessing weather data (https://www.weatherapi.com/).
 - `ACE_MODE_OVERRIDE`: Set to `1` to force GUI mode, `2` to force Console mode, or `0` to prompt the user each time at startup.
+- `GEMINI_API_KEY`: Your API key for accessing Google Gemini API (https://ai.google.dev/gemini-api/docs).
 
 *This can be set in a `.env` file or exported as an environment variable.*
 
@@ -50,92 +53,70 @@ This will start the ACE digital assistant, and you can interact with it by typin
 
 ## How ACE Works
 
-The "brain" of the application is the `ACEModel`, located in `core/model.py`. Its main job is to understand what a user says and decide what actions the application should take in response. It doesn't _do_ the actions, it just identifies them.
+ACE operates using a modern Large Language Model (LLM) architecture with Tool-Calling capabilities, allowing it to move beyond simple chat and perform complex, real-world actions.
 
-The class works in three main stages:
+1. **Receives the Query & Context:** You submit a prompt (e.g., "What is the weather in London?"). The LLM reads your request along with the entire prior conversation history (the context) to understand your intent.
 
-### 1. Initialisation (`__init__`)
+2. **Intelligent Tool Selection:** The LLM, acting as a superb interpreter, automatically determines if one of the application’s available Python functions—which we call "Tools"—is required. For the weather, it identifies the get_weather tool and extracts the necessary parameter ("London").
 
-When an `ACEModel` is created, it loads a pre-trained English language model from the `spacy` library and sets up a `Matcher` tool. This tool is used to find specific words and phrases based on rules we define.
+3. **Executes the Action:** The system momentarily pauses the chat to execute the actual Python function (core.actions.handle_get_weather(location="London")), capturing the raw result (e.g., "15°C, partly cloudy").
 
-### 2. Defining Intents (`_define_intents`)
+4. **Formulates and Delivers the Answer:** The raw tool output is sent back to the LLM, which then processes it and formats it into a polite, polished, and persona-aligned response for display in your interface.
 
-This method is the "rulebook" for our model. It contains a list of **intents**—concepts the bot can recognize. Each intent has:
+## Core Components
 
-- **Patterns**: The specific words or phrases to look for (e.g., `who are you`).
-- **Action**: The command to execute if the pattern is found (e.g., `IDENTIFY`).
-- **Priority**: A score for how important the intent is. Specific questions have a higher priority than simple greetings.
+| Component               | Role                                  |
+|-------------------------|----------------------------------------------|
+| `main.py`               | The main **Entry Point**. It initialises the selected View, Model, and Presenter.         |
+| `core/model.py`         | The Model Interface. A thin wrapper that provides a consistent interface to the LLM API's capabilities. |
+| `core/view.py`            | The **User Interface** (IACEView protocol). Contains the `ConsoleView` and `DesktopView` (customtkinter) frontends.    |
+| `core/presenter.py`    | The **Orchestrator** (Model-View-Presenter logic). It manages the application loop, loads chat history, and coordinates the flow between the View and the Model. |
+| `core/llm.py`          | The **API Gateway**. Handles all direct interaction with the Gemini LLM, defining the LLM's available Tools and executing tool-calls. |
+| `core/actions.py`      | The **Tool Registry**. Defines all extensible Python functions (Tools) that the LLM can be instructed to invoke. |
+| `core/database.py`   | The **Data Store**. Manages all SQLite database operations for persistently recording conversations. |
 
-### 3. Processing Input (`__call__`)
+## Adding New Actions (Tools)
 
-When the user types something, the model processes it like this:
+Adding new tools extremely simple:
 
-1.  **Find All Matches**: It finds every pattern that exists in the user's input.
-2.  **Filter for Importance**: It checks if any of the matched intents are "important" (i.e., have a priority score greater than 1).
-    - If yes, it **discards all the low-priority "conversational" intents** (like greetings). This allows the model to focus on the user's actual questions or commands.
-    - If no important intents are found, it proceeds with the conversational ones.
-3.  **Order Actions**: It sorts the final list of actions based on where they appeared in the user's sentence. This ensures the response feels natural and follows the user's line of questioning.
-4.  **Return Actions**: It returns a clean, ordered list of action commands (e.g., `['GREETING', 'IDENTITY']`) to the Presenter, which is responsible for executing them.
+1.  **Open `core/actions.py`**.
+2.  **Create your Python function**. Make sure it has typed arguments.
+3.  **Add the decorator** `@register_handler` above your function, providing the following parameters:
+    - `action_name` (str): The unique name of the action.
+    - `description` (str): A brief description of what the action does. This helps the LLM understand when to use it.
+    - `requires_input` (bool, optional): Whether the action requires user input. Defaults to `False`.
 
-## Adding New Action Handlers
+### Example:
 
-When ACE understands your intent (what you want), it needs to know **how to respond**. This is handled by **action handlers—functions** that perform the actual work for each action.
+```python
+import random
 
-### How ACE Connects Intents to Actions
+@register_handler("RANDOM_NUMBER", description="Generates a random number between two integers.", requires_input=True)
+def generate_random_number(min_value: int, max_value: int) -> int:
+    """Generates a random number between min_value and max_value."""
+    return random.randint(min_value, max_value)
+```
 
-- An **intent** is what the user means (e.g., "Tell me a joke").
-- An **action handler** is the code that does the thing (e.g., fetches and tells a joke).
-- Each intent in [`data/intents.json`](data/intents.json) has an `"action"` field (like `"JOKE"`).
-- When the model detects an intent, it returns an **action name** (e.g., `"JOKE"`).
-- The presenter looks up the corresponding handler and runs it to generate a response.
+### Technical Note: The Action Handler Registry
 
-### The Action Handler Registry
-
-ACE uses a registry pattern for action handlers, managed by the `@register_handler` decorator in [`core/actions.py`](core/actions.py). When you register a handler for an action name, it is stored in a central dictionary (`ACTION_HANDLERS`).  
-You do **not** need to manually update any registry or dictionary—the decorator handles registration for you.
-
-#### Overriding Handlers
-
-If you register a handler for an action name that already exists, the new handler **overrides** the previous one.
-
-This is intentional and allows for flexible extension, patching, and testing.
-
-No error is thrown, but a warning is issued to alert developers of the override.
+The `@register_handler` decorator automatically stores your function in the central `ACTION_HANDLERS` dictionary as an `ActionHandler` object. If a handler is registered with a name that already exists, the new function will automatically override the original. A warning is issued to the developer when this occurs, permitting advanced features like intentional patching or local testing overrides.
 
 **Best practice:** Use unique action names unless you intentionally want to override an existing handler (e.g., in tests or plugins).
 
 **Example of overriding:**
 
 ```python
-@register_handler("MY_ACTION")
+@register_handler("MY_ACTION", description="First version of MY_ACTION")
 def first_handler():
     return "First version"
 
 # This will override the previous handler for "MY_ACTION"
-@register_handler("MY_ACTION")
+@register_handler("MY_ACTION", description="Second version of MY_ACTION")
 def second_handler():
     return "Second version"
 
 # Now, execute_action("MY_ACTION") will return "Second version"
 ```
-
-### Adding a New Action Handler
-
-To add a new action handler:
-
-1. Open [`core/actions.py`](core/actions.py).
-2. Define a new function for your action.
-3. Decorate it with `@register_handler("YOUR_ACTION_NAME")`.
-
-```python
-from core.actions import register_handler
-
-@register_handler("MY_CUSTOM_ACTION")
-def handle_my_custom_action():
-    return "This is my custom action response!"
-```
-
-Your handler will be automatically registered and available for use.
 
 ### Testing Your Handler
 
