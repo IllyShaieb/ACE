@@ -35,7 +35,7 @@ class ACEModel:
                 ai_persona = f.read()
 
             self.api_service: APIService = GoogleGenAIService(
-                model_name="models/gemini-2.5-flash",
+                model_name="models/gemini-flash-latest",
                 system_persona=ai_persona,
                 actions=ACTION_HANDLERS,
             )

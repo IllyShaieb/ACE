@@ -1,6 +1,8 @@
 """llm.py: Handles all interactions with external LLM APIs.
 
+
 This module defines the APIService protocol for flexible API switching and
+
 provides an implementation for the Google GenAI service with native tool calling.
 """
 
@@ -139,6 +141,7 @@ class GoogleGenAIService:
                 ]
 
             if function_calls:
+                api_results = []
                 for function_call in function_calls:
                     action_name = function_call.name
                     action_args = dict(function_call.args)
@@ -152,6 +155,9 @@ class GoogleGenAIService:
                             result = f"Error: Could not execute the action '{action_name}'. Reason: {e}"
                     else:
                         result = f"Error: The action '{action_name}' is not available."
+
+                    # Store the result for potential fallback
+                    api_results.append(str(result))
 
                     # Append the original function call and the tool's result to the conversation history
                     contents.append(
@@ -181,17 +187,23 @@ class GoogleGenAIService:
                 parts = getattr(candidate.content, "parts", None)
 
             # Extract the final text response
-            if parts:
+            if parts and hasattr(parts[0], "text"):
                 text_response = " ".join(
-                    getattr(part, "text", "")
-                    for part in parts
-                    if hasattr(part, "text") and getattr(part, "text", None) is not None
+                    part.text for part in parts if hasattr(part, "text")
                 ).strip()
             else:
                 text_response = ""
 
             if text_response:
                 return text_response
+
+            # Fallback for cases where the response might be in a different format
+            if response.text:
+                return response.text
+
+            # Fallback: If no conversational response, return the raw tool result
+            if "api_results" in locals() and api_results:
+                return "\n".join(api_results)
 
             return "No response from LLM."
 
@@ -238,6 +250,20 @@ class GoogleGenAIService:
                     description="A list of integers representing the number of sides for each die to roll (e.g., [6] for a single 6-sided die, [6, 8] for rolling both a 6-sided and an 8-sided die).",
                 )
                 required_params.append("sides")
+
+            if action_name == "WEB_SEARCH":
+                parameters["query"] = types.Schema(
+                    type=types.Type.STRING,
+                    description="The search query for finding real-time information on the web (e.g., 'current news', 'who won the game').",
+                )
+                required_params.append("query")
+
+            if action_name == "GET_TIME":
+                parameters["timezone"] = types.Schema(
+                    type=types.Type.STRING,
+                    description="The timezone for which to get the current time (e.g., 'UTC', 'America/New_York').",
+                )
+                required_params.append("timezone")
 
             # Define function declaration
             function_declaration = types.FunctionDeclaration(
