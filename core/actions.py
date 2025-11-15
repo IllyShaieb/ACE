@@ -6,7 +6,9 @@ import warnings
 from datetime import datetime
 from typing import Callable, Dict
 
+import pytz
 import requests
+from ddgs import DDGS
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -129,9 +131,21 @@ def handle_self_creator() -> str:
     "GET_TIME",
     description="Retrieves the current time of day.",
 )
-def handle_get_time() -> str:
-    """Provide the current time in a human-readable format."""
-    return f"The current time is {datetime.now().strftime('%H:%M')}."
+def handle_get_time(timezone: str = "GMT") -> str:
+    """Provide the current time in a human-readable format.
+
+    ### Args
+        timezone (str): The timezone for which to get the current time.
+    """
+    template = "The current time is {time}."
+
+    try:
+        tz = pytz.timezone(timezone)
+        time = datetime.now(tz).strftime("%H:%M")
+
+        return template.format(time=time)
+    except pytz.UnknownTimeZoneError:
+        return f"The timezone '{timezone}' is not recognized."
 
 
 @register_handler(
@@ -287,6 +301,68 @@ def handle_get_weather(location: str) -> str:
 
     except Exception as e:
         return f"An unknown issue occurred during the weather retrieval: {e}"
+
+
+@register_handler(
+    "WEB_SEARCH",
+    description="Performs a web search for the given query. Used to find real-time information or facts beyond the assistant's internal knowledge.",
+    requires_user_input=True,
+)
+def handle_web_search(query: str) -> str:
+    """Performs a web search using DuckDuckGo.
+
+    It first attempts to find a direct "instant answer".
+    If no instant answer is found, it falls back to a general text search.
+
+    ### Args
+        query (str): The search query provided by the user.
+
+    ### Returns
+        str: A direct answer or a summary of search snippets.
+    """
+    if not query:
+        return "What would you like to search for?"
+
+    search_types = ["text", "news"]
+
+    try:
+        # We use a context manager for the DDGS client
+        with DDGS() as ddgs:
+
+            final_result = ""
+            for search_type in search_types:
+                match search_type:
+                    case "text":
+                        results = list(ddgs.text(query, max_results=20))
+
+                        header = "## Search Snippets Found:"
+
+                        if not results:
+                            final_result += f"{header}\nNo text results found for your query: '{query}'.\n"
+                            continue
+
+                        template = "Title: {title}\nSnippet: {body}\n----------\n"
+                        summary = "\n".join(template.format(**res) for res in results)
+                        final_result += f"{header}\n{summary}\n"
+
+                    case "news":
+                        results = list(ddgs.news(query, max_results=20))
+
+                        header = "## News Snippets Found:"
+
+                        if not results:
+                            final_result += f"{header}\nNo news results found for your query: '{query}'.\n"
+                            continue
+
+                        template = "Title: {title}\nDate: {date}\nSource: {source}\nBody: {body}\n----------\n"
+                        summary = "\n".join(template.format(**res) for res in results)
+                        final_result += f"{header}\n{summary}\n"
+
+            return final_result.strip()
+
+    except Exception as e:
+        formatted_error = f"{e.__class__.__name__} - {str(e)}"
+        return f"An error occurred during the web search:\n{formatted_error}"
 
 
 def execute_action(action: str, **kwargs) -> str:

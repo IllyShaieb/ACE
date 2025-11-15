@@ -6,6 +6,7 @@ Ensures that the action can return the expected results for various inputs.
 import unittest
 from unittest import mock
 
+import pytz
 import requests
 
 from core import actions
@@ -124,6 +125,20 @@ class TestGetTimeAction(unittest.TestCase):
     def test_handle_get_time(self):
         """Ensure the get_time action returns the current time."""
         self.assertIn("The current time is", actions.execute_action("GET_TIME"))
+
+    def test_handle_get_time_with_invalid_timezone(self):
+        """Ensure the get_time action handles invalid timezone gracefully."""
+        self.assertIn(
+            "The timezone 'XYZ' is not recognized.",
+            actions.execute_action("GET_TIME", timezone="XYZ"),
+        )
+
+    def test_handle_get_time_with_valid_timezone(self):
+        """Ensure the get_time action returns correct time for a valid timezone."""
+        self.assertIn(
+            "The current time is",
+            actions.execute_action("GET_TIME", timezone="America/New_York"),
+        )
 
 
 class TestGetDateAction(unittest.TestCase):
@@ -333,6 +348,104 @@ class TestGetWeatherAction(unittest.TestCase):
         mock_getenv.return_value = None
         result = actions.execute_action("GET_WEATHER", location="London")
         self.assertIn("Apologies, it appears the WEATHER_API_KEY is not set.", result)
+
+
+class TestWebSearchAction(unittest.TestCase):
+    """Tests for the Web Search action."""
+
+    @mock.patch("core.actions.DDGS")
+    def test_handle_web_search(self, mock_ddgs_cls):
+        """Ensure the web_search action returns search results."""
+        # Create a mock instance to be returned by the context manager
+        mock_ddgs = mock.Mock()
+        mock_ddgs.text.return_value = [
+            {
+                "title": "Python - Wikipedia",
+                "body": "Python is a programming language.",
+                "href": "https://en.wikipedia.org/wiki/Python_(programming_language)",
+            },
+            {
+                "title": "Official Python Website",
+                "body": "Welcome to Python.org.",
+                "href": "https://www.python.org/",
+            },
+        ]
+        mock_ddgs.news.return_value = [
+            {
+                "title": "Python 4.0 Released",
+                "body": "The Python Software Foundation has released Python 4.0.",
+                "date": "2025-10-15",
+                "source": "Tech News",
+                "image": "https://example.com/image.jpg",
+            },
+            {
+                "title": "New Features in Python",
+                "body": "Python introduces new features in the latest version.",
+                "date": "2025-10-14",
+                "source": "Programming Daily",
+                "image": "https://example.com/image2.jpg",
+            },
+        ]
+        # Set up the context manager to return the mock instance
+        mock_ddgs_cls.return_value.__enter__.return_value = mock_ddgs
+
+        result_text = actions.execute_action(
+            "WEB_SEARCH", query="Python programming language"
+        )
+
+        self.assertIn("## Search Snippets Found:", result_text)
+        self.assertIn(
+            "Title: Python - Wikipedia\nSnippet: Python is a programming language.",
+            result_text,
+        )
+        self.assertIn(
+            "Title: Official Python Website\nSnippet: Welcome to Python.org.",
+            result_text,
+        )
+        self.assertIn("## News Snippets Found:", result_text)
+        self.assertIn(
+            "Title: Python 4.0 Released\nDate: 2025-10-15\nSource: Tech News\nBody: The Python Software Foundation has released Python 4.0.",
+            result_text,
+        )
+        self.assertIn(
+            "Title: New Features in Python\nDate: 2025-10-14\nSource: Programming Daily\nBody: Python introduces new features in the latest version.",
+            result_text,
+        )
+
+    def test_handle_web_search_missing_query(self):
+        """Ensure the web_search action handles missing query."""
+        result = actions.execute_action("WEB_SEARCH", query=None)
+        self.assertIn("What would you like to search for?", result)
+
+    @mock.patch("core.actions.DDGS")
+    def test_handle_web_search_no_results(self, mock_ddgs_cls):
+        """Ensure the web_search action handles no results found."""
+        # Create a mock instance to be returned by the context manager
+        mock_ddgs = mock.Mock()
+        mock_ddgs.text.return_value = []
+        mock_ddgs.news.return_value = []
+        # Set up the context manager to return the mock instance
+        mock_ddgs_cls.return_value.__enter__.return_value = mock_ddgs
+
+        result = actions.execute_action("WEB_SEARCH", query="asdlkfjasldkfjalskdfj")
+
+        self.assertIn("No text results found for your query:", result)
+        self.assertIn("No news results found for your query:", result)
+
+    @mock.patch("core.actions.DDGS")
+    def test_handle_web_search_exception(self, mock_ddgs_cls):
+        """Ensure the web_search action handles exceptions gracefully."""
+        # Set up the context manager to raise an exception
+        mock_ddgs_cls.return_value.__enter__.side_effect = Exception(
+            "Testing Exception Handling"
+        )
+
+        result = actions.execute_action("WEB_SEARCH", query="Python programming")
+
+        self.assertIn(
+            "An error occurred during the web search:\nException - Testing Exception Handling",
+            result,
+        )
 
 
 if __name__ == "__main__":
