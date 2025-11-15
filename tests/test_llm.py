@@ -9,7 +9,7 @@ from unittest.mock import patch
 from google.genai import types
 
 from core.actions import ACTION_HANDLERS
-from core.llm import GoogleGenAIService
+from core.llm import ConversationNamer, GoogleGenAIService
 
 
 @patch("core.llm.os.getenv", return_value="MOCK_API_KEY")
@@ -120,6 +120,80 @@ class TestGoogleGenAIService(unittest.TestCase):
 
         # Assert
         self.assertEqual(response, expected_text)
+        mock_client.return_value.models.generate_content.assert_called_once()
+
+
+class TestConversationNamer(unittest.TestCase):
+    """Unit tests for the conversation naming functionality."""
+
+    @patch("core.llm.os.getenv", return_value="MOCK_API_KEY")
+    @patch("core.llm.genai.Client")
+    def test_conversation_naming(self, mock_client, mock_getenv):
+        """Test that the conversation naming function generates an appropriate name."""
+
+        # Arrange
+        expected_name = "Solar System Discussion"
+        conversation_namer = ConversationNamer()
+
+        mock_response = types.GenerateContentResponse(
+            candidates=[
+                types.Candidate(
+                    content=types.Content(parts=[types.Part(text=expected_name)])
+                )
+            ]
+        )
+        mock_client.return_value.models.generate_content.return_value = mock_response
+
+        # Act
+        conversation_name = conversation_namer(query="Tell me about the Solar System.")
+
+        # Assert
+        self.assertEqual(conversation_name, expected_name)
+        mock_client.return_value.models.generate_content.assert_called_once()
+
+    @patch("core.llm.os.getenv", return_value="MOCK_API_KEY")
+    @patch("core.llm.genai.Client")
+    def test_conversation_naming_empty_response(self, mock_client, mock_getenv):
+        """Test that the conversation naming function handles empty responses gracefully."""
+
+        # Arrange
+        expected_name = "Unnamed Chat"
+        conversation_namer = ConversationNamer()
+
+        mock_response = types.GenerateContentResponse(
+            candidates=[
+                types.Candidate(content=types.Content(parts=[types.Part(text="")]))
+            ]
+        )
+        mock_client.return_value.models.generate_content.return_value = mock_response
+
+        # Act
+        conversation_name = conversation_namer(query="")
+
+        # Assert
+        self.assertEqual(conversation_name, expected_name)
+        mock_client.return_value.models.generate_content.assert_called_once()
+
+    @patch("core.llm.os.getenv", return_value="MOCK_API_KEY")
+    @patch("core.llm.genai.Client")
+    def test_conversation_naming_exception_handling(self, mock_client, mock_getenv):
+        """Test that the conversation naming function handles exceptions gracefully."""
+
+        # Arrange
+        expected_response = (
+            "An error occurred during conversation naming: Exception - API Error"
+        )
+        conversation_namer = ConversationNamer()
+
+        mock_client.return_value.models.generate_content.side_effect = Exception(
+            "API Error"
+        )
+
+        # Act
+        conversation_name = conversation_namer(query="Tell me about AI.")
+
+        # Assert
+        self.assertEqual(conversation_name, expected_response)
         mock_client.return_value.models.generate_content.assert_called_once()
 
 

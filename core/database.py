@@ -27,6 +27,12 @@ def create_database(database_name: str) -> None:
             );"""
         )
 
+        # --- Schema Migration: Add 'name' column to 'conversations' if it doesn't exist ---
+        cursor.execute("PRAGMA table_info(conversations);")
+        columns = [column[1] for column in cursor.fetchall()]
+        if "name" not in columns:
+            cursor.execute("ALTER TABLE conversations ADD COLUMN name TEXT;")
+
         # Create the messages table if it doesn't exist
         cursor.execute(
             """CREATE TABLE IF NOT EXISTS messages (
@@ -138,6 +144,7 @@ def get_conversations(database_name: str) -> list:
             """
             SELECT
                 c.conversation_id,
+                COALESCE(c.name, 'New Conversation') AS name,
                 COALESCE(MAX(m.timestamp), c.start_time) AS last_activity
             FROM
                 conversations c
@@ -152,6 +159,24 @@ def get_conversations(database_name: str) -> list:
         conversations = cursor.fetchall()
 
         return conversations if conversations else []
+
+
+def update_conversation_name(
+    database_name: str, conversation_id: int, name: str
+) -> None:
+    """Update the name of a conversation.
+
+    Args:
+        database_name (str): The name of the database to use.
+        conversation_id (int): The ID of the conversation to update.
+        name (str): The new name for the conversation.
+    """
+    with sqlite3.connect(database_name) as connection:
+        cursor = connection.cursor()
+        cursor.execute(
+            "UPDATE conversations SET name = ? WHERE conversation_id = ?;",
+            (name, conversation_id),
+        )
 
 
 def delete_conversation(database_name: str, conversation_id: int) -> None:

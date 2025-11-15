@@ -7,6 +7,7 @@ provides an implementation for the Google GenAI service with native tool calling
 """
 
 import os
+import re
 from typing import Any, Callable, Dict, List, Optional, Protocol, cast
 
 from google import genai
@@ -281,3 +282,82 @@ class GoogleGenAIService:
             api_tools.append(tool)
 
         return api_tools
+
+
+class ConversationNamer:
+    """An LLM based tool to name a chat topic."""
+
+    def __init__(self):
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY environment variable not set.")
+
+        self.client = genai.Client(api_key=api_key)
+        self.model_name = "gemma-3-27b-it"
+
+    def __call__(self, query: str) -> str:
+        """Generates a concise name for the chat based on the query.
+
+        ### Args
+            query (str): The chat history as a single string.
+
+        ### Returns
+            str: A concise name for the chat topic.
+        """
+        # The prompt is now constructed here, as Gemma models
+        # expect instructions within the 'contents'.
+        prompt_instructions = """ROLE AND TASK:
+You are an AI Chat Naming Specialist. Your *only* task is to generate a concise, descriptive title for the provided chat history (QUERY).
+
+RULES:
+1.  The title *must* be 3 words or less.
+2.  The title *must* accurately summarize the main topic.
+3.  Do *not* use generic names like 'Chat', 'Conversation', or 'Query'.
+4.  You *must* respond ONLY with the title. Do not add any preamble, explanation, or conversational text (e.g., "Here is the name:").
+
+GOOD EXAMPLES:
+- "Global News Update"
+- "AI Innovations"
+- "Cooking Recipes"
+- "US Government Discussion"
+- "Current Prime Minister"
+"""
+
+        # We combine the instructions, the query, and the final cue.
+        contents = f"""{prompt_instructions}
+QUERY: {query}
+NAME:
+"""
+
+        try:
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=contents,
+                config=types.GenerateContentConfig(
+                    temperature=1.5,
+                ),
+            )
+
+            candidate = response.candidates[0]
+            parts = getattr(candidate.content, "parts", None)
+
+            # Extract the final text response
+            if parts:
+                text_response = " ".join(
+                    getattr(part, "text", "")
+                    for part in parts
+                    if hasattr(part, "text") and getattr(part, "text", None) is not None
+                ).strip()
+
+            else:
+                text_response = ""
+
+            if text_response:
+                # Remove multiple spaces and ensure clean output
+                text_response = re.sub(r"\s{2,}", " ", text_response).strip()
+                return text_response
+
+            return "Unnamed Chat"
+
+        except Exception as e:
+            return f"An error occurred during conversation naming: {e.__class__.__name__} - {str(e)}"
