@@ -48,7 +48,7 @@ class TestConsolePresenter(unittest.TestCase):
 
         # Patch track_action to just call the function
         self.patcher_track_action = patch.object(
-            self.mock_view, "track_action", side_effect=lambda f, *args: f()
+            self.mock_view, "track_action", side_effect=lambda f, *args, **kwargs: f()
         )
         self.patcher_track_action.start()
 
@@ -86,7 +86,6 @@ class TestConsolePresenter(unittest.TestCase):
                 call(ACE_ID, WELCOME_MESSAGE),
                 call(USER_ID, "hello"),
                 call(ACE_ID, "Hello to you too."),
-                # "exit" is ingested but not displayed
                 call("INFO", "2025-07-21 10:00:00 | Terminating ACE"),
             ],
             any_order=False,
@@ -110,7 +109,7 @@ class TestConsolePresenter(unittest.TestCase):
         )
         self.assertIsNone(self.presenter.chat_id)
 
-    def test_unrecognised_action(self):
+    def test_unknown_response(self):
         """Test that the presenter handles an empty/unknown response from the model."""
         user_query = "gibberish"
         self.mock_model.return_value = ""
@@ -146,11 +145,18 @@ class TestDesktopPresenter(unittest.TestCase):
 
         # FIX 3: This patch is necessary to make the mock view execute the lambda
         # that calls the model.
+        def track_action_side_effect(func, completion_handler=None, *args, **kwargs):
+            result = func()
+            if completion_handler:
+                completion_handler(result, False)
+            return result
+
         self.patcher_track_action = patch.object(
-            self.mock_view, "track_action", side_effect=lambda f: f()
+            self.mock_view, "track_action", side_effect=track_action_side_effect
         )
         self.patcher_track_action.start()
 
+        # Patch after to immediately call the callback
         self.patcher_after = patch.object(
             self.mock_view, "after", side_effect=lambda ms, cb: cb()
         )
@@ -174,7 +180,7 @@ class TestDesktopPresenter(unittest.TestCase):
         target(*thread_args, **thread_kwargs)
         return Mock()
 
-    def test_single_action_query(self):
+    def test_single_query_response(self):
         """Test a single query and response."""
         user_query = "who are you?"
         expected_response = "I am ACE."
@@ -198,8 +204,8 @@ class TestDesktopPresenter(unittest.TestCase):
         )
         self.mock_view.hide_typing_indicator.assert_called_once()
 
-    def test_unrecognised_action(self):
-        """Test an empty response from the model."""
+    def test_unknown_response(self):
+        """Test an empty/unknown response from the model."""
         user_query = "gibberish"
         self.mock_model.return_value = ""  # Empty response
 

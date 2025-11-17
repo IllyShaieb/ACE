@@ -12,7 +12,9 @@ from core.database import (
     get_conversations,
     get_messages,
     start_conversation,
+    update_conversation_name,
 )
+from core.llm import ConversationNamer
 from core.model import ACEModel
 from core.view import IACEView
 
@@ -84,6 +86,24 @@ class BasePresenter:
         if self.chat_id is None:
             self.chat_id = start_conversation(ACE_DATABASE)
             add_message(ACE_DATABASE, self.chat_id, ACE_ID, WELCOME_MESSAGE)
+
+        # Check if it's the first message in the conversation
+
+        if len(get_messages(ACE_DATABASE, self.chat_id)) == 1:
+            # Generate a name for the conversation
+            conversation_namer = ConversationNamer()
+            chat_name = conversation_namer(user_input)
+
+            # Update the database with the new name
+            update_conversation_name(ACE_DATABASE, self.chat_id, chat_name)
+
+            # Refresh the conversation list in the view
+            self.view.display_conversations(
+                get_conversations(ACE_DATABASE),
+                select_handler=self.select_conversation,
+                delete_handler=self.delete_conversation,
+                new_chat_handler=self.new_chat,
+            )
 
         # 1. Display user's message immediately
         if display_user_message:
@@ -169,6 +189,13 @@ class BasePresenter:
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.view.display_message("INFO", f"{timestamp} | {TERMINATION_MESSAGE}")
 
+    def select_conversation(self, conversation_id: int):
+        """Handles the selection of a conversation from the history.
+
+        ### Args
+            conversation_id (int): The ID of the conversation to select.
+        """
+
 
 class ConsolePresenter(BasePresenter):
     """Orchestrates the interaction between the ACE model and console view."""
@@ -211,6 +238,33 @@ class ConsolePresenter(BasePresenter):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         self.view.display_message("INFO", f"{timestamp} | {TERMINATION_MESSAGE}")
 
+    def select_conversation(self, conversation_id: int):
+        """Handles the selection of a conversation from the history.
+
+        TODO: Implement conversation selection for console view.
+
+        ### Args
+            conversation_id (int): The ID of the conversation to select.
+        """
+        pass
+
+    def delete_conversation(self, conversation_id: int):
+        """Handles deletion of a conversation in the console view.
+
+        TODO: Implement conversation deletion for console view.
+
+        ### Args
+            conversation_id (int): The ID of the conversation to delete.
+        """
+        pass
+
+    def new_chat(self):
+        """Starts a new chat session in the console view.
+
+        TODO: Implement new chat functionality for console view.
+        """
+        pass
+
 
 class DesktopPresenter(BasePresenter):
     """Orchestrates the interaction between the ACE model and a desktop view."""
@@ -235,59 +289,69 @@ class DesktopPresenter(BasePresenter):
         thread.start()
 
     def _process_input_thread(self, user_input: str):
-        """The target function for the input processing thread.
+        """
+        Starts the input processing by preparing data and calling the async
+        track_action in the view.
 
         ### Args
             user_input (str): The input provided by the user.
         """
-        new_conversation = self.chat_id is None
 
         try:
-            # 1. Display user message (Scheduled on main thread)
+            # Show typing indicator before processing
+            self.view.after(0, self.view.show_typing_indicator)
+
             # This view's _send_message does not display, so presenter must.
             self.view.after(0, lambda: self.view.display_message(USER_ID, user_input))
 
-            # 2. Start database conversation if needed
             if self.chat_id is None:
                 self.chat_id = start_conversation(ACE_DATABASE)
                 add_message(ACE_DATABASE, self.chat_id, ACE_ID, WELCOME_MESSAGE)
 
-            # 3. Load history
-            chat_history = self._load_chat_history(self.chat_id)
+            if len(get_messages(ACE_DATABASE, self.chat_id)) == 1:
+                renamer = ConversationNamer()
+                chat_name = renamer(user_input)
+                update_conversation_name(ACE_DATABASE, self.chat_id, chat_name)
 
-            # 4. Get response from model (This is the blocking call)
-            # We wrap this in track_action, which is now handled by the presenter
+                self.view.after(0, self._load_and_display_conversations)
+
+            chat_history = self._load_chat_history(self.chat_id)
 
             def get_model_response():
                 return self.model(user_input, chat_history)
 
-            # Use view.track_action to manage indicators *around the blocking call*
-            response = self.view.track_action(get_model_response)
-            final_response = response or EMPTY_RESPONSE_MESSAGE
+            # Define the completion handler to finish processing
+            def on_model_response(response: str, is_error: bool):
 
-            # 5. Log to DB
-            add_message(ACE_DATABASE, self.chat_id, USER_ID, user_input)
-            add_message(ACE_DATABASE, self.chat_id, ACE_ID, final_response)
+                # Hide typing indicator after processing
+                self.view.hide_typing_indicator()
 
-            # 6. Schedule ACE response (Scheduled on main thread)
-            self.view.after(
-                0, lambda: self.view.display_message(ACE_ID, final_response)
-            )
+                if is_error:
+                    self.view.display_message("ERROR", f"An error occurred: {response}")
+                    return
 
-            if new_conversation:
-                # Schedule conversation list refresh on main thread
-                self.view.after(0, self._load_and_display_conversations)
+                final_response = response or EMPTY_RESPONSE_MESSAGE
 
-            # Ensure typing indicator is hidden after processing
-            self.view.after(0, self.view.hide_typing_indicator)
+                add_message(ACE_DATABASE, self.chat_id, USER_ID, user_input)
+                add_message(ACE_DATABASE, self.chat_id, ACE_ID, final_response)
+
+                self.view.display_message(ACE_ID, final_response)
+
+                # Refresh conversation list if it was a new chat
+                if (
+                    len(get_messages(ACE_DATABASE, self.chat_id)) <= 3
+                ):  # Heuristic for new chat
+
+                    self._load_and_display_conversations()
+
+            # Use track_action with the completion handler
+            self.view.track_action(get_model_response, on_model_response)
 
         except Exception as e:
-            # Schedule error display back on the main thread
-            error_message = f"An error occurred: {e}"
+            error_message = f"An error occurred during input processing: {e}"
             self.view.after(
                 0, lambda: self.view.display_message("ERROR", error_message)
             )
-            # Ensure indicator is hidden on error
             self.view.after(0, self.view.hide_typing_indicator)
 
     def select_conversation(self, conversation_id: int):
@@ -344,6 +408,7 @@ class DesktopPresenter(BasePresenter):
         ):
             delete_conversation(ACE_DATABASE, conversation_id)
             self._load_and_display_conversations()
+
             # If the deleted chat was the active one, start a new chat
             if self.chat_id == conversation_id:
                 self.start_new_conversation()
