@@ -165,8 +165,8 @@ class TestDesktopView(unittest.TestCase):
     def test_display_conversation_history(self):
         """Test that the conversation history sidebar is populated correctly."""
         conversations = [
-            (1, "2025-07-20T10:00:00"),
-            (2, "2025-07-21T11:00:00"),
+            (1, "Chat One", "2025-07-20T10:00:00"),
+            (2, "Chat Two", "2025-07-21T11:00:00"),
         ]
         self.desktop_view.display_conversations(conversations)
 
