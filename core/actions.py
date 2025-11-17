@@ -159,7 +159,7 @@ def handle_get_date() -> str:
     suffix = (
         "th" if 11 <= day <= 13 else {1: "st", 2: "nd", 3: "rd"}.get(day % 10, "th")
     )
-    return f"Today's date is {now.strftime(f'%A {day}{suffix} %B %Y')}."
+    return f"Today's date is {now.strftime('%A')} the {day}{suffix} of {now.strftime('%B %Y')}."
 
 
 @register_handler(
@@ -333,35 +333,55 @@ def handle_web_search(query: str) -> str:
             for search_type in search_types:
                 match search_type:
                     case "text":
-                        results = list(ddgs.text(query, max_results=20))
+                        results = list(ddgs.text(query, region="wt-wt", max_results=20))
 
                         header = "## Search Snippets Found:"
 
-                        if not results:
+                        # Filter out None results before processing
+                        valid_results = [res for res in results if res]
+
+                        if not valid_results:
                             final_result += f"{header}\nNo text results found for your query: '{query}'.\n"
                             continue
 
                         template = "Title: {title}\nSnippet: {body}\n----------\n"
-                        summary = "\n".join(template.format(**res) for res in results)
+                        summary = "\n".join(
+                            template.format(
+                                title=res.get("title", "Not available"),
+                                body=res.get("body", "Not available"),
+                            )
+                            for res in valid_results
+                        )
                         final_result += f"{header}\n{summary}\n"
 
                     case "news":
-                        results = list(ddgs.news(query, max_results=20))
+                        results = list(ddgs.news(query, region="wt-wt", max_results=20))
 
                         header = "## News Snippets Found:"
 
-                        if not results:
+                        # Filter out None results before processing
+                        valid_results = [res for res in results if res]
+
+                        if not valid_results:
                             final_result += f"{header}\nNo news results found for your query: '{query}'.\n"
                             continue
 
                         template = "Title: {title}\nDate: {date}\nSource: {source}\nBody: {body}\n----------\n"
-                        summary = "\n".join(template.format(**res) for res in results)
+                        summary = "\n".join(
+                            template.format(
+                                title=res.get("title", "Not available"),
+                                date=res.get("date", "Not available"),
+                                source=res.get("source", "Not available"),
+                                body=res.get("body", "Not available"),
+                            )
+                            for res in valid_results
+                        )
                         final_result += f"{header}\n{summary}\n"
 
             return final_result.strip()
 
     except Exception as e:
-        formatted_error = f"{e.__class__.__name__} - {str(e)}"
+        formatted_error = f"{type(e).__name__} - {e}"
         return f"An error occurred during the web search:\n{formatted_error}"
 
 

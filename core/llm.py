@@ -121,98 +121,95 @@ class GoogleGenAIService:
         ]
         contents.append({"role": "user", "parts": [{"text": user_query}]})
 
-        try:
-            # Initial API call to see if the model wants to use a tool
+        # Initial API call to see if the model wants to use a tool
+        response = self.client.models.generate_content(
+            model=self.model_name,
+            contents=contents,
+            config=self.generate_content_config,
+        )
+
+        candidate = response.candidates[0]
+        parts = getattr(candidate.content, "parts", None)
+
+        # Collect all function calls if any exist
+        function_calls = []
+        if parts:
+            function_calls = [
+                part.function_call
+                for part in parts
+                if hasattr(part, "function_call") and part.function_call
+            ]
+
+        if function_calls:
+            api_results = []
+            for function_call in function_calls:
+                action_name = function_call.name
+                action_args = dict(function_call.args)
+
+                # Execute the requested tool/action
+                if action_name in self.actions:
+                    handler = self.actions[action_name]
+                    try:
+                        result = handler(**action_args)
+                    except Exception as e:
+                        result = f"Error: Could not execute the action '{action_name}'. Reason: {e}"
+                else:
+                    result = f"Error: The action '{action_name}' is not available."
+
+                # Store the result for potential fallback
+                api_results.append(str(result))
+
+                # Append the original function call and the tool's result to the conversation history
+                contents.append(
+                    {"role": "model", "parts": [{"function_call": function_call}]}
+                )
+                contents.append(
+                    {
+                        "role": "function",
+                        "parts": [
+                            {
+                                "function_response": {
+                                    "name": action_name,
+                                    "response": {"result": result},
+                                }
+                            }
+                        ],
+                    }
+                )
+
+            # Second API call to get a conversational response based on the tool's output
             response = self.client.models.generate_content(
                 model=self.model_name,
                 contents=contents,
                 config=self.generate_content_config,
             )
-
             candidate = response.candidates[0]
             parts = getattr(candidate.content, "parts", None)
 
-            # Collect all function calls if any exist
-            function_calls = []
-            if parts:
-                function_calls = [
-                    part.function_call
-                    for part in parts
-                    if hasattr(part, "function_call") and part.function_call
-                ]
+        # Extract the final text response
+        if parts:
+            text_parts = [
+                part.text
+                for part in parts
+                if hasattr(part, "text") and part.text is not None
+            ]
+            text_response = " ".join(text_parts).strip()
+        else:
+            text_response = ""
 
-            if function_calls:
-                api_results = []
-                for function_call in function_calls:
-                    action_name = function_call.name
-                    action_args = dict(function_call.args)
+        if text_response:
+            return text_response
 
-                    # Execute the requested tool/action
-                    if action_name in self.actions:
-                        handler = self.actions[action_name]
-                        try:
-                            result = handler(**action_args)
-                        except Exception as e:
-                            result = f"Error: Could not execute the action '{action_name}'. Reason: {e}"
-                    else:
-                        result = f"Error: The action '{action_name}' is not available."
+        # Fallback for cases where the response might be in a different format
+        # Safely access response.text only if no tool calls were made in the first place
+        if not function_calls and response.text:
+            return response.text
 
-                    # Store the result for potential fallback
-                    api_results.append(str(result))
+        # Fallback: If no conversational response, return the raw tool result
+        if "api_results" in locals() and api_results:
+            return "\n".join(api_results)
 
-                    # Append the original function call and the tool's result to the conversation history
-                    contents.append(
-                        {"role": "model", "parts": [{"function_call": function_call}]}
-                    )
-                    contents.append(
-                        {
-                            "role": "function",
-                            "parts": [
-                                {
-                                    "function_response": {
-                                        "name": action_name,
-                                        "response": {"result": result},
-                                    }
-                                }
-                            ],
-                        }
-                    )
-
-                # Second API call to get a conversational response based on the tool's output
-                response = self.client.models.generate_content(
-                    model=self.model_name,
-                    contents=contents,
-                    config=self.generate_content_config,
-                )
-                candidate = response.candidates[0]
-                parts = getattr(candidate.content, "parts", None)
-
-            # Extract the final text response
-            if parts and hasattr(parts[0], "text"):
-                text_response = " ".join(
-                    part.text for part in parts if hasattr(part, "text")
-                ).strip()
-            else:
-                text_response = ""
-
-            if text_response:
-                return text_response
-
-            # Fallback for cases where the response might be in a different format
-            if response.text:
-                return response.text
-
-            # Fallback: If no conversational response, return the raw tool result
-            if "api_results" in locals() and api_results:
-                return "\n".join(api_results)
-
-            return "No response from LLM."
-
-        except Exception as e:
-            # Add more detail to the exception
-            return (
-                f"An unexpected LLM response error occurred: {str(e)} (Type: {type(e)})"
-            )
+        return "No response from LLM."
 
     def _create_api_tools(self, actions: Dict[str, ActionHandler]) -> List[types.Tool]:
         """Creates API tools for the Gemini model based on the provided actions.
