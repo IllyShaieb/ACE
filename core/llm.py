@@ -358,3 +358,55 @@ NAME:
 
         except Exception as e:
             return f"An error occurred during conversation naming: {e.__class__.__name__} - {str(e)}"
+
+
+class Summarizer:
+    """An LLM-based tool to summarize web page content."""
+
+    def __init__(self):
+        api_key = os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY environment variable not set.")
+
+        self.client = genai.Client(api_key=api_key)
+        self.model_name = "gemma-3-27b-it"
+
+    def __call__(self, text: str, query: str) -> str:
+        """Generates a concise summary of the text based on the user's query.
+
+        ### Args
+            text (str): The text content of the web page.
+            query (str): The original user query to focus the summary.
+
+        ### Returns
+            str: A concise summary of the text.
+        """
+        prompt_instructions = f"""
+ROLE AND TASK:
+You are an AI Summarization Specialist. Your task is to generate a concise, factual summary of the provided TEXT based on the user's original QUERY.
+
+RULES:
+1.  The summary **must** be relevant to the user's QUERY: "{query}".
+2.  The summary **must** be a neutral, third-person summary of the key facts.
+3.  The summary should be no more than 3-4 sentences.
+4.  If the TEXT is irrelevant to the QUERY, respond with only "No relevant information found.".
+5.  You **must** respond ONLY with the summary. Do not add any preamble, explanation, or conversational text.
+
+TEXT:
+{text[:15000]}
+
+SUMMARY:
+"""
+        try:
+            response = self.client.models.generate_content(
+                model=self.model_name,
+                contents=prompt_instructions,
+                config=types.GenerateContentConfig(temperature=0.5),
+            )
+            candidate = response.candidates[0]
+            if candidate.content and candidate.content.parts:
+                summary = "".join(part.text for part in candidate.content.parts).strip()
+                return re.sub(r"\s{2,}", " ", summary)
+            return "Could not generate a summary."
+        except Exception as e:
+            return f"An error occurred during summarization: {e}"

@@ -4,7 +4,7 @@ Ensures that the action can return the expected results for various inputs.
 """
 
 import unittest
-from unittest import mock
+from unittest import IsolatedAsyncioTestCase, mock
 
 import pytz
 import requests
@@ -350,102 +350,79 @@ class TestGetWeatherAction(unittest.TestCase):
         self.assertIn("Apologies, it appears the WEATHER_API_KEY is not set.", result)
 
 
-class TestWebSearchAction(unittest.TestCase):
+class TestWebSearchAction(IsolatedAsyncioTestCase):
     """Tests for the Web Search action."""
 
-    @mock.patch("core.actions.DDGS")
-    def test_handle_web_search(self, mock_ddgs_cls):
-        """Ensure the web_search action returns search results."""
-        # Create a mock instance to be returned by the context manager
-        mock_ddgs = mock.Mock()
-        mock_ddgs.text.return_value = [
-            {
-                "title": "Python - Wikipedia",
-                "body": "Python is a programming language.",
-                "href": "https://en.wikipedia.org/wiki/Python_(programming_language)",
-            },
-            {
-                "title": "Official Python Website",
-                "body": "Welcome to Python.org.",
-                "href": "https://www.python.org/",
-            },
-        ]
-        mock_ddgs.news.return_value = [
-            {
-                "title": "Python 4.0 Released",
-                "body": "The Python Software Foundation has released Python 4.0.",
-                "date": "2025-10-15",
-                "source": "Tech News",
-                "image": "https://example.com/image.jpg",
-            },
-            {
-                "title": "New Features in Python",
-                "body": "Python introduces new features in the latest version.",
-                "date": "2025-10-14",
-                "source": "Programming Daily",
-                "image": "https://example.com/image2.jpg",
-            },
-        ]
-        # Set up the context manager to return the mock instance
-        mock_ddgs_cls.return_value.__enter__.return_value = mock_ddgs
+    @mock.patch("core.actions.scrape_and_summarize")
+    @mock.patch("core.actions.asyncio.to_thread")
+    async def test_web_search_async_success(
+        self, mock_to_thread, mock_scrape_and_summarize
+    ):
+        """Ensure the web_search_async function returns a formatted summary."""
+        # 1. Mock the synchronous search call run in a thread
+        mock_web_results = [{"title": "Python Website", "href": "https://python.org"}]
+        mock_news_results = [{"title": "Python News", "url": "https://news.python.org"}]
+        mock_to_thread.return_value = (mock_web_results, mock_news_results)
 
-        result_text = actions.execute_action(
-            "WEB_SEARCH", query="Python programming language"
-        )
+        # 2. Mock the scrape_and_summarize function
+        # This is the key change: we control its output directly.
+        mock_scrape_and_summarize.side_effect = [
+            "Source: Python Website\nURL: https://python.org\nSummary: Summary for web.\n\n",
+            "Source: Python News\nURL: https://news.python.org\nSummary: Summary for news.\n\n",
+        ]
 
-        self.assertIn("## Search Snippets Found:", result_text)
-        self.assertIn(
-            "Title: Python - Wikipedia\nSnippet: Python is a programming language.",
-            result_text,
-        )
-        self.assertIn(
-            "Title: Official Python Website\nSnippet: Welcome to Python.org.",
-            result_text,
-        )
-        self.assertIn("## News Snippets Found:", result_text)
-        self.assertIn(
-            "Title: Python 4.0 Released\nDate: 2025-10-15\nSource: Tech News\nBody: The Python Software Foundation has released Python 4.0.",
-            result_text,
-        )
-        self.assertIn(
-            "Title: New Features in Python\nDate: 2025-10-14\nSource: Programming Daily\nBody: Python introduces new features in the latest version.",
-            result_text,
-        )
+        # 3. Call the function under test
+        result = await actions.web_search_async("Python")
+
+        # 4. Assert the final aggregated result
+        self.assertIn("## Web & News Search Summary:", result)
+        self.assertIn("Source: Python Website", result)
+        self.assertIn("Summary: Summary for web.", result)
+        self.assertIn("Source: Python News", result)
+        self.assertIn("Summary: Summary for news.", result)
+
+        # 5. Verify mocks were called
+        mock_to_thread.assert_called_once()
+        self.assertEqual(mock_scrape_and_summarize.call_count, 2)
 
     def test_handle_web_search_missing_query(self):
-        """Ensure the web_search action handles missing query."""
-        result = actions.execute_action("WEB_SEARCH", query=None)
-        self.assertIn("What would you like to search for?", result)
+        """Ensure the web_search action handles a missing query."""
+        result = actions.handle_web_search(query="")
+        self.assertEqual(result, "What would you like to search for?")
 
-    @mock.patch("core.actions.DDGS")
-    def test_handle_web_search_no_results(self, mock_ddgs_cls):
-        """Ensure the web_search action handles no results found."""
-        # Create a mock instance to be returned by the context manager
-        mock_ddgs = mock.Mock()
-        mock_ddgs.text.return_value = []
-        mock_ddgs.news.return_value = []
-        # Set up the context manager to return the mock instance
-        mock_ddgs_cls.return_value.__enter__.return_value = mock_ddgs
+    @mock.patch("core.actions.asyncio.to_thread")
+    async def test_web_search_async_no_results(self, mock_to_thread):
+        """Ensure the web_search_async function handles no results found."""
+        # Mock the search to return no results
+        mock_to_thread.return_value = ([], [])
+        result = await actions.web_search_async("a_very_unlikely_query")
+        self.assertIn("No web or news results found for your query:", result)
 
-        result = actions.execute_action("WEB_SEARCH", query="asdlkfjasldkfjalskdfj")
+    @mock.patch("core.actions.asyncio.to_thread")
+    async def test_web_search_async_exception_in_search(self, mock_to_thread):
+        """Ensure the web_search_async function handles exceptions during search."""
+        # Mock the search to raise an exception
+        mock_to_thread.side_effect = Exception("Test search error")
+        result = await actions.web_search_async("Python")
+        self.assertIn("An error occurred during the web/news search:", result)
+        self.assertIn("Exception - Test search error", result)
 
-        self.assertIn("No text results found for your query:", result)
-        self.assertIn("No news results found for your query:", result)
+    @mock.patch("core.actions.asyncio.to_thread")
+    @mock.patch("core.actions.scrape_and_summarize")
+    async def test_web_search_async_exception_in_summarize(
+        self, mock_scrape_and_summarize, mock_to_thread
+    ):
+        """Ensure the web_search_async function handles exceptions during summarization."""
+        # Mock a successful search
+        mock_to_thread.return_value = ([{"href": "some_url"}], [])
+        # Mock the summarization to raise an exception
+        mock_scrape_and_summarize.side_effect = Exception("Test summarize error")
 
-    @mock.patch("core.actions.DDGS")
-    def test_handle_web_search_exception(self, mock_ddgs_cls):
-        """Ensure the web_search action handles exceptions gracefully."""
-        # Set up the context manager to raise an exception
-        mock_ddgs_cls.return_value.__enter__.side_effect = Exception(
-            "Testing Exception Handling"
-        )
-
-        result = actions.execute_action("WEB_SEARCH", query="Python programming")
-
-        self.assertIn(
-            "An error occurred during the web search:\nException - Testing Exception Handling",
-            result,
-        )
+        # Since asyncio.gather will raise the first exception, we expect the main
+        # function's try/except block to catch it.
+        result = await actions.web_search_async("Python")
+        self.assertIn("An error occurred during the web/news search:", result)
+        self.assertIn("Exception - Test summarize error", result)
 
 
 if __name__ == "__main__":

@@ -1,15 +1,21 @@
 """actions.py: Contains the functions for handling actions in the ACE program."""
 
+import asyncio
 import os
 import random
 import warnings
 from datetime import datetime
 from typing import Callable, Dict
 
+import aiohttp
 import pytz
 import requests
+from bs4 import BeautifulSoup
 from ddgs import DDGS
 from dotenv import load_dotenv
+
+# The Summarizer import is moved inside the async function to avoid circular import
+# from core.llm import Summarizer
 
 load_dotenv()
 
@@ -303,86 +309,140 @@ def handle_get_weather(location: str) -> str:
         return f"An unknown issue occurred during the weather retrieval: {e}"
 
 
+async def scrape_and_summarize(
+    session: aiohttp.ClientSession, res: Dict, query: str, summarizer, semaphore
+) -> str:
+    """Asynchronously scrapes a single URL and returns a formatted summary.
+
+    ### Args
+        session (aiohttp.ClientSession): The HTTP session to use for requests.
+        res (Dict): The search result containing the URL and title.
+        query (str): The original search query.
+        summarizer: The summarization model instance.
+        semaphore: An asyncio.Semaphore to limit concurrent summarizer calls.
+
+    ### Returns
+        str: A formatted summary of the scraped content.
+    """
+    url = res.get("href")
+    if not url:
+        return ""
+
+    try:
+        async with session.get(
+            url, timeout=5, headers={"User-Agent": "ACE-Assistant/1.0"}
+        ) as response:
+            if response.status != 200:
+                return ""  # Ignore non-successful responses
+
+            html = await response.text()
+            soup = BeautifulSoup(html, "html.parser")
+            paragraphs = soup.find_all("p")
+            page_text = "\n".join([p.get_text() for p in paragraphs])
+
+            if not page_text.strip():
+                return ""
+
+            # Acquire semaphore before calling the summarizer API
+            async with semaphore:
+                # Run the synchronous summarizer call in a thread to avoid blocking the event loop
+                summary = await asyncio.to_thread(summarizer, page_text, query)
+                await asyncio.sleep(1)  # Add a small delay to respect rate limits
+
+            if "No relevant information found." not in summary:
+                return f"Source: {res.get('title', 'N/A')}\nURL: {url}\nSummary: {summary}\n\n"
+            return ""
+    except (aiohttp.ClientError, asyncio.TimeoutError):
+        # Silently ignore pages that fail to load or time out
+        return ""
+    except Exception:
+        # Catch any other unexpected errors during scraping/summarization
+        return ""
+
+
+async def web_search_async(query: str) -> str:
+    """Performs an async web search, scrapes the top results, and provides a summary.
+
+    ### Args
+        query (str): The search query provided by the user.
+
+    ### Returns
+        str: A summary of the top search results.
+    """
+    # Import here to avoid circular dependency
+    from core.llm import Summarizer
+
+    summarizer = Summarizer()
+    # Semaphore to limit concurrent API calls to the summarizer
+    semaphore = asyncio.Semaphore(2)
+
+    def sync_search():
+        """Synchronous function to perform blocking search calls."""
+        with DDGS() as ddgs:
+            web_results = list(ddgs.text(query, region="wt-wt", max_results=10))
+            news_results = list(ddgs.news(query, region="wt-wt", max_results=10))
+            return web_results, news_results
+
+    try:
+        # Run the synchronous DDGS search in a separate thread to avoid blocking the event loop
+        web_results, news_results = await asyncio.to_thread(sync_search)
+
+        # Filter valid results with URLs
+        valid_web_results = [res for res in web_results if res and res.get("href")]
+        valid_news_results = [res for res in news_results if res and res.get("url")]
+
+        # Normalize news result keys to match web result keys
+        for res in valid_news_results:
+            if "url" in res:
+                res["href"] = res["url"]
+
+        all_results = valid_web_results + valid_news_results
+
+        if not all_results:
+            return f"No web or news results found for your query: '{query}'."
+
+        # Using a TCPConnector with force_close=True helps ensure connections are closed properly on Windows.
+        connector = aiohttp.TCPConnector(force_close=True, ssl=False)
+        async with aiohttp.ClientSession(connector=connector) as session:
+            tasks = [
+                scrape_and_summarize(session, res, query, summarizer, semaphore)
+                for res in all_results
+            ]
+            summaries = await asyncio.gather(*tasks)
+
+        final_summary = "".join(summaries)
+
+        # Add a small delay to allow background tasks to clean up before the event loop closes.
+        await asyncio.sleep(0.1)
+
+        if not final_summary:
+            return "I was unable to find and summarize relevant information for your query."
+
+        return f"## Web & News Search Summary:\n\n{final_summary.strip()}"
+
+    except Exception as e:
+        formatted_error = f"{type(e).__name__} - {e}"
+        return f"An error occurred during the web/news search:\n{formatted_error}"
+
+
 @register_handler(
     "WEB_SEARCH",
     description="Performs a web search for the given query. Used to find real-time information or facts beyond the assistant's internal knowledge.",
     requires_user_input=True,
 )
 def handle_web_search(query: str) -> str:
-    """Performs a web search using DuckDuckGo.
-
-    It first attempts to find a direct "instant answer".
-    If no instant answer is found, it falls back to a general text search.
+    """
+    Performs a web search, scrapes the top results, and provides a summary.
 
     ### Args
         query (str): The search query provided by the user.
 
     ### Returns
-        str: A direct answer or a summary of search snippets.
+        str: A summary of the top search results.
     """
     if not query:
         return "What would you like to search for?"
-
-    search_types = ["text", "news"]
-
-    try:
-        # We use a context manager for the DDGS client
-        with DDGS() as ddgs:
-
-            final_result = ""
-            for search_type in search_types:
-                match search_type:
-                    case "text":
-                        results = list(ddgs.text(query, region="wt-wt", max_results=20))
-
-                        header = "## Search Snippets Found:"
-
-                        # Filter out None results before processing
-                        valid_results = [res for res in results if res]
-
-                        if not valid_results:
-                            final_result += f"{header}\nNo text results found for your query: '{query}'.\n"
-                            continue
-
-                        template = "Title: {title}\nSnippet: {body}\n----------\n"
-                        summary = "\n".join(
-                            template.format(
-                                title=res.get("title", "Not available"),
-                                body=res.get("body", "Not available"),
-                            )
-                            for res in valid_results
-                        )
-                        final_result += f"{header}\n{summary}\n"
-
-                    case "news":
-                        results = list(ddgs.news(query, region="wt-wt", max_results=20))
-
-                        header = "## News Snippets Found:"
-
-                        # Filter out None results before processing
-                        valid_results = [res for res in results if res]
-
-                        if not valid_results:
-                            final_result += f"{header}\nNo news results found for your query: '{query}'.\n"
-                            continue
-
-                        template = "Title: {title}\nDate: {date}\nSource: {source}\nBody: {body}\n----------\n"
-                        summary = "\n".join(
-                            template.format(
-                                title=res.get("title", "Not available"),
-                                date=res.get("date", "Not available"),
-                                source=res.get("source", "Not available"),
-                                body=res.get("body", "Not available"),
-                            )
-                            for res in valid_results
-                        )
-                        final_result += f"{header}\n{summary}\n"
-
-            return final_result.strip()
-
-    except Exception as e:
-        formatted_error = f"{type(e).__name__} - {e}"
-        return f"An error occurred during the web search:\n{formatted_error}"
+    return asyncio.run(web_search_async(query))
 
 
 def execute_action(action: str, **kwargs) -> str:
@@ -396,3 +456,9 @@ def execute_action(action: str, **kwargs) -> str:
         return handler_obj.handler(**kwargs)
     except Exception as e:
         return f"System Error during tool execution: {e}"
+
+
+if __name__ == "__main__":
+    # Test the WEB_SEARCH action
+    result = execute_action("WEB_SEARCH", query="AI advancements in 2025")
+    print(result)
