@@ -11,10 +11,11 @@ from typing import Any, Callable, List, Optional, Protocol, runtime_checkable
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
 from PIL import Image, ImageTk
+from pylatexenc.latex2text import LatexNodes2Text
 from rich.console import Console
+from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich.text import Text
 from typing_extensions import Literal
 
 # Add this import if you have matplotlib installed
@@ -243,6 +244,31 @@ class ConsoleView(IACEView):
         self.console = Console()
         self._current_ace_message = ""
         self._live_display = None
+        self._latex_converter = LatexNodes2Text()
+
+    def _preprocess_latex(self, text: str) -> str:
+        """
+        Finds LaTeX expressions in a string and converts them to plain text
+        before Markdown parsing.
+
+        ### Args
+            text (str): The input text containing LaTeX expressions.
+
+        ### Returns
+            str: The text with LaTeX expressions converted to plain text.
+        """
+        # This pattern is more robust. It looks for $$...$$ blocks first,
+        # then for non-greedy $...$ inline expressions. It avoids single
+        # dollar signs that are not part of a pair.
+        latex_pattern = re.compile(r"(\$\$[^\$]+\$\$|\$[^\$]+\$)")
+
+        def replace_match(match):
+            latex_code = match.group(1)
+            # Convert to text. The converter expects the delimiters.
+            text_representation = self._latex_converter.latex_to_text(latex_code)
+            return text_representation
+
+        return latex_pattern.sub(replace_match, text)
 
     def display_message(self, sender: str, message: str):
         """Displays a message to the console and adds it to the chat history.
@@ -272,11 +298,15 @@ class ConsoleView(IACEView):
                 f"[{border_colour}]INFO: {message}[/{border_colour}]", justify=justify
             )
         else:
+            # Create a Markdown object for the message content
+            markdown = Markdown(self._preprocess_latex(message))
+
             panel = Panel(
-                Text(message, style=text_colour, justify=justify),
+                markdown,
                 title=sender,
                 border_style=border_colour,
                 expand=False,
+                title_align=justify,
             )
             self.console.print(panel, justify=justify, markup=True)
 
@@ -293,9 +323,14 @@ class ConsoleView(IACEView):
         """
         _, text_colour = self.SENDER_COLOURS["YOU"]
 
-        user_input = self.console.input(
-            f"[bold {text_colour}]{prompt}[/bold {text_colour}]"
-        ).strip()
+        # Print the prompt using rich, but get input using Python's built-in input()
+        # to avoid issues with special characters in the user's typing.
+        self.console.print(f"[bold {text_colour}]{prompt}[/bold {text_colour}]", end="")
+        user_input = input().strip()
+
+        # Store the original input to calculate lines for clearing
+        self._last_input = prompt + user_input
+
         self.chat_history.append(f"YOU: {user_input}")
 
         return user_input
@@ -324,15 +359,25 @@ class ConsoleView(IACEView):
         self.console.clear()
 
     def clear_input(self):
-        """Clears the last line from the console after input is submitted.
-
-        This uses ANSI escape codes to move the cursor up one line and clear it,
-        preventing the raw input from remaining on screen before the formatted
-        chat bubble is displayed.
         """
-        # \x1b[1A: Move cursor up one line
-        # \x1b[2K: Clear entire line
-        sys.stdout.write("\x1b[1A\x1b[2K")
+        Clears the last input line(s) from the console after submission.
+        This version correctly handles multi-line input wrapping.
+        """
+        if not hasattr(self, "_last_input"):
+            return
+
+        # Calculate how many lines the last input took up
+        prompt_and_input_length = len(self._last_input)
+        terminal_width = self.console.width
+        lines_to_clear = (prompt_and_input_length + terminal_width) // terminal_width
+
+        # Move cursor up and clear each line
+        for _ in range(lines_to_clear):
+            sys.stdout.write("\x1b[1A")  # Move cursor up one line
+            sys.stdout.write("\x1b[2K")  # Clear entire line
+
+        # Position cursor at the beginning of the now-cleared line
+        sys.stdout.write("\r")
         sys.stdout.flush()
 
     def close(self):

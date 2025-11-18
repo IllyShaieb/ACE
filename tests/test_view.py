@@ -36,8 +36,8 @@ class TestConsoleView(unittest.TestCase):
         self.assertIn(sender, output)
         self.assertIn(message, output)
 
-    @patch("rich.console.Console.input", return_value="test user input")
-    def test_get_user_input(self, mock_rich_input):
+    @patch("builtins.input", return_value="test user input")
+    def test_get_user_input(self, mock_builtin_input):
         """Test that get_user_input correctly captures and strips user input."""
         prompt = "Enter your command: "
         user_input = self.console_view.get_user_input(prompt)
@@ -46,10 +46,10 @@ class TestConsoleView(unittest.TestCase):
         self.assertEqual(user_input, "test user input")
 
         # Check that rich's input was called
-        mock_rich_input.assert_called_once()
+        mock_builtin_input.assert_called_once()
 
         # Test with leading/trailing whitespace
-        mock_rich_input.return_value = "  another input  "
+        mock_builtin_input.return_value = "  another input  "
         user_input = self.console_view.get_user_input("Prompt 2: ")
         self.assertEqual(user_input, "another input")
 
