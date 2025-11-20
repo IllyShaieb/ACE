@@ -370,9 +370,9 @@ async def web_search_async(query: str) -> str:
         str: A summary of the top search results.
     """
     # Import here to avoid circular dependency
-    from core.llm import Summarizer
+    from core.llm import WebPageSummarizer
 
-    summarizer = Summarizer()
+    summarizer = WebPageSummarizer()
     # Semaphore to limit concurrent API calls to the summarizer
     semaphore = asyncio.Semaphore(2)
 

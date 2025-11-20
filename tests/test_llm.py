@@ -9,7 +9,7 @@ from unittest.mock import patch
 from google.genai import types
 
 from core.actions import ACTION_HANDLERS
-from core.llm import ConversationNamer, GoogleGenAIService
+from core.llm import ConversationNamer, GoogleGenAIService, WebPageSummarizer
 
 
 @patch("core.llm.os.getenv", return_value="MOCK_API_KEY")
@@ -194,6 +194,60 @@ class TestConversationNamer(unittest.TestCase):
 
         # Assert
         self.assertEqual(conversation_name, expected_response)
+        mock_client.return_value.models.generate_content.assert_called_once()
+
+
+@patch("core.llm.os.getenv", return_value="MOCK_API_KEY")
+@patch("core.llm.genai.Client")
+class TestSummarizer(unittest.TestCase):
+    """Unit tests for the Summarizer class."""
+
+    def test_summarization(self, mock_client, mock_getenv):
+        """Test that the summarization function generates an appropriate summary."""
+
+        # Arrange
+        mock_webpage_content = """<html><body><h1>Test Page</h1><p>This is a test page for summarization.</p></body></html>"""
+        expected_summary = "This is a summary of the provided content."
+        summarizer = WebPageSummarizer()
+
+        mock_response = types.GenerateContentResponse(
+            candidates=[
+                types.Candidate(
+                    content=types.Content(parts=[types.Part(text=expected_summary)])
+                )
+            ]
+        )
+        mock_client.return_value.models.generate_content.return_value = mock_response
+
+        content_to_summarize = "Detailed content that needs to be summarized."
+
+        # Act
+        summary = summarizer(text=mock_webpage_content, query=content_to_summarize)
+
+        # Assert
+        self.assertEqual(summary, expected_summary)
+        mock_client.return_value.models.generate_content.assert_called_once()
+
+    def test_summarization_exception_handling(self, mock_client, mock_getenv):
+        """Test that the summarization function handles exceptions gracefully."""
+
+        # Arrange
+        expected_response = (
+            "An error occurred during summarization: Exception - API Error"
+        )
+        summarizer = WebPageSummarizer()
+
+        mock_client.return_value.models.generate_content.side_effect = Exception(
+            "API Error"
+        )
+
+        content_to_summarize = "Detailed content that needs to be summarized."
+
+        # Act
+        summary = summarizer(text="Some text", query=content_to_summarize)
+
+        # Assert
+        self.assertEqual(summary, expected_response)
         mock_client.return_value.models.generate_content.assert_called_once()
 
 
