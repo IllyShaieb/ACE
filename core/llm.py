@@ -335,6 +335,9 @@ NAME:
                 ),
             )
 
+            if not response.candidates:
+                return "Unnamed Chat"
+
             candidate = response.candidates[0]
             parts = getattr(candidate.content, "parts", None)
 
@@ -360,7 +363,7 @@ NAME:
             return f"An error occurred during conversation naming: {e.__class__.__name__} - {str(e)}"
 
 
-class Summarizer:
+class WebPageSummarizer:
     """An LLM-based tool to summarize web page content."""
 
     def __init__(self):
@@ -403,10 +406,16 @@ SUMMARY:
                 contents=prompt_instructions,
                 config=types.GenerateContentConfig(temperature=0.5),
             )
+
+            if not response.candidates:
+                return "Could not generate a summary."
+
             candidate = response.candidates[0]
             if candidate.content and candidate.content.parts:
-                summary = "".join(part.text for part in candidate.content.parts).strip()
+                summary = "".join(
+                    part.text or "" for part in candidate.content.parts
+                ).strip()
                 return re.sub(r"\s{2,}", " ", summary)
             return "Could not generate a summary."
         except Exception as e:
-            return f"An error occurred during summarization: {e}"
+            return f"An error occurred during summarization: {e.__class__.__name__} - {str(e)}"
