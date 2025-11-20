@@ -3,90 +3,18 @@
 import re
 import sys
 import tkinter as tk
-from io import BytesIO
 from queue import Queue
 from threading import Thread
 from typing import Any, Callable, List, Optional, Protocol, runtime_checkable
 
 import customtkinter as ctk
 from CTkMessagebox import CTkMessagebox
-from PIL import Image, ImageTk
 from pylatexenc.latex2text import LatexNodes2Text
 from rich.console import Console
 from rich.markdown import Markdown
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from typing_extensions import Literal
-
-# Add this import if you have matplotlib installed
-try:
-    import matplotlib.pyplot as plt
-except ImportError:
-    plt = None
-
-
-class MathRenderer:
-    """Renders LaTeX formulas to images for display in Tkinter."""
-
-    def __init__(self, root: ctk.CTk, dpi: int = 120):
-        if not plt:
-            raise ImportError(
-                "Matplotlib is not installed. Please install it with 'pip install matplotlib'."
-            )
-        self._root = root
-        self._dpi = dpi
-        self._photo_images = {}  # Cache PhotoImage objects
-
-    def render(
-        self, formula: str, text_color: str, is_inline: bool = False
-    ) -> Optional[tk.PhotoImage]:
-        """Renders a LaTeX formula to a PhotoImage."""
-        cache_key = (formula, text_color, is_inline)
-        if cache_key in self._photo_images:
-            return self._photo_images[cache_key]
-
-        try:
-            # Adjust figure size and font size for inline formulas
-            figsize = (0.8, 0.3) if is_inline else (6, 1)
-            fontsize = 10 if is_inline else 13
-
-            # Create a matplotlib figure with a smaller size
-            fig = plt.figure(figsize=figsize, dpi=self._dpi)
-            ax = fig.add_subplot(111)
-
-            # Render the formula
-            ax.text(
-                0.5,
-                0.5,
-                f"${formula}$",
-                size=fontsize,
-                ha="center",
-                va="center",
-                color=text_color,
-            )
-            ax.axis("off")
-
-            # Save to a BytesIO buffer with less padding
-            buffer = BytesIO()
-            fig.savefig(
-                buffer,
-                format="png",
-                transparent=True,
-                bbox_inches="tight",
-                pad_inches=0,
-            )
-            buffer.seek(0)
-            plt.close(fig)
-
-            # Create a PhotoImage
-            image = Image.open(buffer)
-            photo = ImageTk.PhotoImage(image)
-            self._photo_images[cache_key] = photo
-            return photo
-
-        except Exception:
-            return None
-
 
 JustifyMethod = Literal["left", "right", "center"]
 
@@ -539,8 +467,8 @@ class DesktopView(IACEView):
         self._action_thread: Optional[Thread] = None
         self._action_completion_handler: Optional[Callable] = None
 
-        # Initialize the math renderer
-        self._math_renderer = MathRenderer(self.root) if plt else None
+        # Initialize the latex converter
+        self._latex_converter = LatexNodes2Text()
 
         # User actions
         self._input_handler = None
@@ -719,30 +647,24 @@ class DesktopView(IACEView):
 
     def _render_formula(self, formula: str, base_tags: tuple, is_block: bool):
         """Renders a LaTeX formula and inserts it into the text widget."""
-        if not self._math_renderer:
-            self.chat_display.insert(tk.END, f"[{formula}]", base_tags + ("italic",))
-            return
-
-        text_color = self.chat_display.tag_cget(base_tags[0], "foreground")
-        formula_image = self._math_renderer.render(
-            formula, text_color, is_inline=not is_block
-        )
-
-        if formula_image:
-            if is_block:
-                # For block formulas, add newlines for spacing and remove padx
-                self.chat_display.insert(tk.END, "\n")
-                self.chat_display.image_create(tk.END, image=formula_image, padx=0)
-                self.chat_display.insert(tk.END, "\n")
-            else:
-                # For inline formulas, keep them in the line
-                self.chat_display.image_create(
-                    tk.END, image=formula_image, padx=0, pady=0
-                )
+        # Reconstruct the LaTeX code with delimiters for the converter
+        if is_block:
+            latex_code = f"$${formula}$$"
         else:
-            # Fallback to text if rendering fails
+            latex_code = f"${formula}$"
+
+        try:
+            text_representation = self._latex_converter.latex_to_text(latex_code)
+        except Exception:
+            text_representation = formula
+
+        if is_block:
             self.chat_display.insert(
-                tk.END, f" [Formula: {formula}] ", base_tags + ("italic",)
+                tk.END, "\n" + text_representation + "\n", base_tags + ("italic",)
+            )
+        else:
+            self.chat_display.insert(
+                tk.END, text_representation, base_tags + ("italic",)
             )
 
     def display_history(self, messages: list[tuple[str, str]]):
