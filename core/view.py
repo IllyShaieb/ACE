@@ -578,9 +578,7 @@ class DesktopView(IACEView):
             # Insert the non-code part before the match and parse it
             start, end = match.span()
             non_code_part = message[last_end:start]
-            for line in non_code_part.split("\n"):
-                self._parse_and_insert_line(line, (sender_tag,))
-                self.chat_display.insert(tk.END, "\n")
+            self._process_text_blocks(non_code_part, sender_tag)
 
             # Create and insert the code block widget
             code_content = match.group(1)
@@ -589,9 +587,7 @@ class DesktopView(IACEView):
 
         # Parse and insert any remaining text after the last code block
         remaining_text = message[last_end:]
-        for line in remaining_text.split("\n"):
-            self._parse_and_insert_line(line, (sender_tag,))
-            self.chat_display.insert(tk.END, "\n")
+        self._process_text_blocks(remaining_text, sender_tag)
 
         # Add final spacing and update history
         self.chat_display.insert(tk.END, "\n")
@@ -696,9 +692,7 @@ class DesktopView(IACEView):
             for match in code_block_pattern.finditer(message):
                 start, end = match.span()
                 non_code_part = message[last_end:start]
-                for line in non_code_part.split("\n"):
-                    self._parse_and_insert_line(line, (sender_tag,))
-                    self.chat_display.insert(tk.END, "\n")
+                self._process_text_blocks(non_code_part, sender_tag)
 
                 # Create and insert the code block widget
                 code_content = match.group(1)
@@ -706,9 +700,7 @@ class DesktopView(IACEView):
                 last_end = end
 
             remaining_text = message[last_end:]
-            for line in remaining_text.split("\n"):
-                self._parse_and_insert_line(line, (sender_tag,))
-                self.chat_display.insert(tk.END, "\n")
+            self._process_text_blocks(remaining_text, sender_tag)
 
             self.chat_display.insert(tk.END, "\n")
 
@@ -821,6 +813,96 @@ class DesktopView(IACEView):
             tk.END, window=code_frame, stretch=1, align="center"
         )
         self.chat_display.insert(tk.END, "\n")
+
+    def _is_table_row(self, line: str) -> bool:
+        return "|" in line
+
+    def _is_table_separator(self, line: str) -> bool:
+        if "|" not in line or "-" not in line:
+            return False
+        allowed = set("| -:\t")
+        return set(line).issubset(allowed)
+
+    def _create_table_block(self, table_lines: List[str], sender_tag: str):
+        rows = []
+        for line in table_lines:
+            cells = [c.strip() for c in line.split("|")]
+            if line.strip().startswith("|"):
+                cells.pop(0)
+            if line.strip().endswith("|"):
+                cells.pop(-1)
+            rows.append(cells)
+
+        if len(rows) < 2:
+            return
+
+        headers = rows[0]
+        separators = rows[1]
+        data_rows = rows[2:]
+
+        alignments = []
+        for cell in separators:
+            if cell.startswith(":") and cell.endswith(":"):
+                alignments.append("center")
+            elif cell.endswith(":"):
+                alignments.append("e")
+            else:
+                alignments.append("w")
+
+        table_frame = ctk.CTkFrame(self.chat_display, fg_color="transparent")
+
+        # Headers
+        for i, header in enumerate(headers):
+            align = alignments[i] if i < len(alignments) else "w"
+            lbl = ctk.CTkLabel(
+                table_frame,
+                text=header,
+                font=ctk.CTkFont(family="IBM Plex Sans", size=12, weight="bold"),
+                text_color=self.PALETTE["primary"],
+                anchor=align,
+            )
+            lbl.grid(row=0, column=i, padx=5, pady=2, sticky="ew")
+            table_frame.grid_columnconfigure(i, weight=1)
+
+        # Data
+        for r_idx, row in enumerate(data_rows):
+            for c_idx, cell in enumerate(row):
+                if c_idx < len(headers):
+                    align = alignments[c_idx] if c_idx < len(alignments) else "w"
+                    lbl = ctk.CTkLabel(
+                        table_frame,
+                        text=cell,
+                        font=ctk.CTkFont(family="IBM Plex Sans", size=12),
+                        text_color=self.PALETTE["on_surface"],
+                        anchor=align,
+                    )
+                    lbl.grid(row=r_idx + 1, column=c_idx, padx=5, pady=2, sticky="ew")
+
+        self._code_block_frames.append(table_frame)
+        self.chat_display.window_create(tk.END, window=table_frame, align="center")
+        self.chat_display.insert(tk.END, "\n")
+
+    def _process_text_blocks(self, text: str, sender_tag: str):
+        lines = text.split("\n")
+        i = 0
+        while i < len(lines):
+            line = lines[i]
+            if (
+                i + 1 < len(lines)
+                and self._is_table_row(line)
+                and self._is_table_separator(lines[i + 1])
+            ):
+
+                table_lines = [line, lines[i + 1]]
+                i += 2
+                while i < len(lines) and self._is_table_row(lines[i]):
+                    table_lines.append(lines[i])
+                    i += 1
+                self._create_table_block(table_lines, sender_tag)
+            else:
+                self._parse_and_insert_line(line, (sender_tag,))
+                self.chat_display.insert(tk.END, "\n")
+                i += 1
 
     def scroll_to_bottom(self):
         """Forces the chat view to scroll to the latest message."""
