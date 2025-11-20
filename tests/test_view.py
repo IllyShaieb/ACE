@@ -36,8 +36,8 @@ class TestConsoleView(unittest.TestCase):
         self.assertIn(sender, output)
         self.assertIn(message, output)
 
-    @patch("rich.console.Console.input", return_value="test user input")
-    def test_get_user_input(self, mock_rich_input):
+    @patch("builtins.input", return_value="test user input")
+    def test_get_user_input(self, mock_builtin_input):
         """Test that get_user_input correctly captures and strips user input."""
         prompt = "Enter your command: "
         user_input = self.console_view.get_user_input(prompt)
@@ -46,10 +46,10 @@ class TestConsoleView(unittest.TestCase):
         self.assertEqual(user_input, "test user input")
 
         # Check that rich's input was called
-        mock_rich_input.assert_called_once()
+        mock_builtin_input.assert_called_once()
 
         # Test with leading/trailing whitespace
-        mock_rich_input.return_value = "  another input  "
+        mock_builtin_input.return_value = "  another input  "
         user_input = self.console_view.get_user_input("Prompt 2: ")
         self.assertEqual(user_input, "another input")
 
@@ -165,8 +165,8 @@ class TestDesktopView(unittest.TestCase):
     def test_display_conversation_history(self):
         """Test that the conversation history sidebar is populated correctly."""
         conversations = [
-            (1, "2025-07-20T10:00:00"),
-            (2, "2025-07-21T11:00:00"),
+            (1, "Chat One", "2025-07-20T10:00:00"),
+            (2, "Chat Two", "2025-07-21T11:00:00"),
         ]
         self.desktop_view.display_conversations(conversations)
 

@@ -50,33 +50,27 @@ def main():
     """Main function to start the ACE application."""
 
     # Check for mode override from environment variable
-    mode_override = os.getenv("ACE_MODE_OVERRIDE", "0").strip()
+    mode_override = os.getenv("ACE_MODE_OVERRIDE", "0")
     choice = select_app(mode_override)
 
-    try:
-        selected_app = APPS[choice]
-        print(f"Starting {selected_app[0]}...")
+    selected_app = APPS[choice]
+    print(f"Starting {selected_app[0]}...")
 
-        # Instantiate selected app
-        model_class = selected_app[1]
-        view_class = selected_app[2]
-        presenter_class = selected_app[3]
+    # Instantiate selected app
+    model_class = selected_app[1]
+    view_class = selected_app[2]
+    presenter_class = selected_app[3]
 
-        model = model_class()
-        view = view_class()
-        presenter = presenter_class(model, view)
+    model = model_class()
+    view = view_class()
+    presenter = presenter_class(model, view)
 
-        # Start the application
-        presenter.run()
+    # Start the application
+    presenter.run()
 
-        # Clean up and exit
-        print(f"Exiting {APPS[choice][0]}...")
-
-    except KeyError:
-        print(f"Invalid mode override ({mode_override}). Available modes are:")
-        for key, (description, *_) in APPS.items():
-            print(f"  {key}. {description}")
-        return
+    # Clean up and exit
+    print(f"Exiting {selected_app[0]}...")
+    return
 
 
 if __name__ == "__main__":

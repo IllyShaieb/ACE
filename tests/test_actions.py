@@ -4,8 +4,9 @@ Ensures that the action can return the expected results for various inputs.
 """
 
 import unittest
-from unittest import mock
+from unittest import IsolatedAsyncioTestCase, mock
 
+import pytz
 import requests
 
 from core import actions
@@ -93,7 +94,7 @@ class TestActionHandling(unittest.TestCase):
 
     def test_execute_action_known(self):
         """Ensure known actions return the expected results."""
-        self.assertIn("ACE", actions.execute_action("IDENTIFY"))
+        self.assertIn("ACE", actions.execute_action("IDENTIFY_SELF"))
 
     def test_execute_action_unknown(self):
         """Ensure unknown actions return the unknown action message."""
@@ -102,28 +103,20 @@ class TestActionHandling(unittest.TestCase):
         )
 
 
-class TestGreetAction(unittest.TestCase):
-    """Tests for the Greet action."""
-
-    def test_handle_greet(self):
-        """Ensure the greet action returns a greeting message."""
-        self.assertIn("Hello", actions.execute_action("GREET"))
-
-
-class TestIdentifyAction(unittest.TestCase):
-    """Tests for the Identify action."""
+class TestIdentifySelfAction(unittest.TestCase):
+    """Tests for the Identify Self action."""
 
     def test_handle_identify(self):
-        """Ensure the identify action returns the correct identifier."""
-        self.assertIn("ACE", actions.execute_action("IDENTIFY"))
+        """Ensure the identify self action returns the correct identifier."""
+        self.assertIn("ACE", actions.execute_action("IDENTIFY_SELF"))
 
 
-class TestCreatorAction(unittest.TestCase):
-    """Tests for the Creator action."""
+class TestSelfCreatorAction(unittest.TestCase):
+    """Tests for the Self Creator action."""
 
-    def test_handle_creator(self):
+    def test_handle_self_creator(self):
         """Ensure the creator action returns the correct creator name."""
-        self.assertIn("Illy Shaieb", actions.execute_action("CREATOR"))
+        self.assertIn("Illy Shaieb", actions.execute_action("SELF_CREATOR"))
 
 
 class TestGetTimeAction(unittest.TestCase):
@@ -132,6 +125,20 @@ class TestGetTimeAction(unittest.TestCase):
     def test_handle_get_time(self):
         """Ensure the get_time action returns the current time."""
         self.assertIn("The current time is", actions.execute_action("GET_TIME"))
+
+    def test_handle_get_time_with_invalid_timezone(self):
+        """Ensure the get_time action handles invalid timezone gracefully."""
+        self.assertIn(
+            "The timezone 'XYZ' is not recognized.",
+            actions.execute_action("GET_TIME", timezone="XYZ"),
+        )
+
+    def test_handle_get_time_with_valid_timezone(self):
+        """Ensure the get_time action returns correct time for a valid timezone."""
+        self.assertIn(
+            "The current time is",
+            actions.execute_action("GET_TIME", timezone="America/New_York"),
+        )
 
 
 class TestGetDateAction(unittest.TestCase):
@@ -158,18 +165,82 @@ class TestFlipCoinAction(unittest.TestCase):
         self.assertIn(actions.execute_action("FLIP_COIN"), ["Heads", "Tails"])
 
 
-class TestRollDieAction(unittest.TestCase):
-    """Tests for the Roll Die action."""
+class TestRollDiceAction(unittest.TestCase):
+    """Tests for the Roll Dice action."""
 
-    def test_handle_roll_die(self):
-        """Ensure the roll_die action returns a number between 1 and 6."""
-        # Must be a string representation of the number
-        result = actions.execute_action("ROLL_DIE")
+    def test_handle_roll_dice(self):
+        """Ensure the roll_dice action correctly returns a single die roll result."""
+        # FIX: The 'sides' argument is required.
+        result = actions.execute_action("ROLL_DICE", sides=[6])
         self.assertIsInstance(result, str)
 
-        # Convert to integer and check the range
-        value = int(result)
-        self.assertIn(value, range(1, 7))
+        # Result should be like "You rolled a {sides}-sided die and got: {result}. Total: {total}"
+        self.assertIn("You rolled a", result)
+        self.assertIn("6-sided", result)
+
+        # FIX: Parse the result correctly
+        dice_roll = int(result.split("got: ")[1].split(".")[0])
+        self.assertIn(dice_roll, range(1, 7), "Dice roll should be between 1 and 6")
+
+    def test_handle_roll_dice_custom_sides(self):
+        """Ensure the roll_dice action correctly handles custom sides."""
+        result = actions.execute_action("ROLL_DICE", sides=[20])
+        self.assertIsInstance(result, str)
+
+        self.assertIn("You rolled a", result)
+        self.assertIn("20-sided", result)
+
+        # FIX: Parse the result correctly
+        dice_roll = int(result.split("got: ")[1].split(".")[0])
+        self.assertIn(dice_roll, range(1, 21), "Dice roll should be between 1 and 20")
+
+    def test_handle_multiple_dice(self):
+        """Ensure the roll_dice action can handle multiple dice rolls."""
+        test_cases = [
+            {
+                "sides": [6, 6],
+                "expected_range": (2, 12),
+                "expected_str": "You rolled 2 6-sided dice",
+            },
+            {
+                "sides": [6, 20],
+                "expected_range": (2, 26),
+                "expected_str": "You rolled 6-sided, 20-sided dice",
+            },
+            {
+                "sides": [4, 8, 12],
+                "expected_range": (3, 24),
+                "expected_str": "You rolled 4-sided, 8-sided, 12-sided dice",
+            },
+        ]
+        for case in test_cases:
+            with self.subTest(sides=case["sides"]):
+                sides_list = case["sides"]
+                expected_min, expected_max = case["expected_range"]
+
+                result = actions.execute_action("ROLL_DICE", sides=sides_list)
+                self.assertIsInstance(result, str)
+
+                # FIX: Check for the new response format
+                self.assertIn(case["expected_str"], result)
+                self.assertIn("Total: ", result)
+
+                # Extract the total from the result string
+                total_str = result.split("Total: ")[1]
+                total = int(total_str)
+                self.assertIn(
+                    total,
+                    range(expected_min, expected_max + 1),
+                    "Total should be within the expected range",
+                )
+
+    def test_handle_roll_dice_no_sides(self):
+        """Ensure the roll_dice action handles no sides provided."""
+        result = actions.execute_action("ROLL_DICE", sides=[])
+        self.assertIsInstance(result, str)
+
+        # Should default to rolling a single 6-sided die
+        self.assertIn("You rolled a 6-sided die", result)
 
 
 class TestGetWeatherAction(unittest.TestCase):
@@ -225,9 +296,7 @@ class TestGetWeatherAction(unittest.TestCase):
                 "gust_kph": 12.9,
             },
         }
-        result = actions.execute_action(
-            "GET_WEATHER", "What's the weather like in London?"
-        )
+        result = actions.execute_action("GET_WEATHER", location="London")
 
         # Check the result contains expected weather information
         # Note: just checking for key substrings to avoid brittleness
@@ -248,47 +317,112 @@ class TestGetWeatherAction(unittest.TestCase):
         mock_get.side_effect = requests.exceptions.RequestException(
             "Testing HTTP Error"
         )
-        result = actions.execute_action(
-            "GET_WEATHER", "What's the weather like in London?"
-        )
-        self.assertIn("Sorry, I couldn't connect to the weather service.", result)
+        result = actions.execute_action("GET_WEATHER", location="London")
+        self.assertIn("Testing HTTP Error", result)
 
     @mock.patch("core.actions.requests.get")
     def test_handle_get_weather_handle_unexpected_json(self, mock_get):
         """Ensure the get_weather action handles unexpected JSON structure gracefully."""
         mock_get.return_value.json.return_value = {"unexpected_key": "unexpected_value"}
-        result = actions.execute_action(
-            "GET_WEATHER", "What's the weather like in London?"
-        )
+        result = actions.execute_action("GET_WEATHER", location="London")
         self.assertIn(
-            "Sorry, I received an unexpected response from the weather service.", result
+            "Received unexpected data format from the weather service", result
         )
 
     @mock.patch("core.actions.requests.get")
     def test_handle_get_weather_handle_general_exception(self, mock_get):
         """Ensure the get_weather action handles general exceptions gracefully."""
         mock_get.side_effect = Exception("General Exception for Testing")
-        result = actions.execute_action(
-            "GET_WEATHER", "What's the weather like in London?"
-        )
-        self.assertIn(
-            "Sorry, I couldn't fetch the weather information right now.", result
-        )
+        result = actions.execute_action("GET_WEATHER", location="London")
+        self.assertIn("An unknown issue occurred during the weather retrieval", result)
 
     @mock.patch("core.actions.requests.get")
     def test_handle_get_weather_missing_location(self, mock_get):
         """Ensure the get_weather action handles missing location in query."""
-        result = actions.execute_action("GET_WEATHER", "What's the weather like?")
-        self.assertIn("I'm sorry, I couldn't find a location in your query.", result)
+        result = actions.execute_action("GET_WEATHER", location=None)
+        self.assertIn("What location would you like to know the weather for?", result)
 
     @mock.patch("core.actions.os.getenv")
     def test_handle_get_weather_missing_api_key(self, mock_getenv):
         """Ensure the get_weather action handles missing API key."""
         mock_getenv.return_value = None
-        result = actions.execute_action(
-            "GET_WEATHER", "What's the weather like in London?"
-        )
+        result = actions.execute_action("GET_WEATHER", location="London")
         self.assertIn("Apologies, it appears the WEATHER_API_KEY is not set.", result)
+
+
+class TestWebSearchAction(IsolatedAsyncioTestCase):
+    """Tests for the Web Search action."""
+
+    @mock.patch("core.actions.scrape_and_summarize")
+    @mock.patch("core.actions.asyncio.to_thread")
+    async def test_web_search_async_success(
+        self, mock_to_thread, mock_scrape_and_summarize
+    ):
+        """Ensure the web_search_async function returns a formatted summary."""
+        # 1. Mock the synchronous search call run in a thread
+        mock_web_results = [{"title": "Python Website", "href": "https://python.org"}]
+        mock_news_results = [{"title": "Python News", "url": "https://news.python.org"}]
+        mock_to_thread.return_value = (mock_web_results, mock_news_results)
+
+        # 2. Mock the scrape_and_summarize function
+        # This is the key change: we control its output directly.
+        mock_scrape_and_summarize.side_effect = [
+            "Source: Python Website\nURL: https://python.org\nSummary: Summary for web.\n\n",
+            "Source: Python News\nURL: https://news.python.org\nSummary: Summary for news.\n\n",
+        ]
+
+        # 3. Call the function under test
+        result = await actions.web_search_async("Python")
+
+        # 4. Assert the final aggregated result
+        self.assertIn("## Web & News Search Summary:", result)
+        self.assertIn("Source: Python Website", result)
+        self.assertIn("Summary: Summary for web.", result)
+        self.assertIn("Source: Python News", result)
+        self.assertIn("Summary: Summary for news.", result)
+
+        # 5. Verify mocks were called
+        mock_to_thread.assert_called_once()
+        self.assertEqual(mock_scrape_and_summarize.call_count, 2)
+
+    def test_handle_web_search_missing_query(self):
+        """Ensure the web_search action handles a missing query."""
+        result = actions.handle_web_search(query="")
+        self.assertEqual(result, "What would you like to search for?")
+
+    @mock.patch("core.actions.asyncio.to_thread")
+    async def test_web_search_async_no_results(self, mock_to_thread):
+        """Ensure the web_search_async function handles no results found."""
+        # Mock the search to return no results
+        mock_to_thread.return_value = ([], [])
+        result = await actions.web_search_async("a_very_unlikely_query")
+        self.assertIn("No web or news results found for your query:", result)
+
+    @mock.patch("core.actions.asyncio.to_thread")
+    async def test_web_search_async_exception_in_search(self, mock_to_thread):
+        """Ensure the web_search_async function handles exceptions during search."""
+        # Mock the search to raise an exception
+        mock_to_thread.side_effect = Exception("Test search error")
+        result = await actions.web_search_async("Python")
+        self.assertIn("An error occurred during the web/news search:", result)
+        self.assertIn("Exception - Test search error", result)
+
+    @mock.patch("core.actions.asyncio.to_thread")
+    @mock.patch("core.actions.scrape_and_summarize")
+    async def test_web_search_async_exception_in_summarize(
+        self, mock_scrape_and_summarize, mock_to_thread
+    ):
+        """Ensure the web_search_async function handles exceptions during summarization."""
+        # Mock a successful search
+        mock_to_thread.return_value = ([{"href": "some_url"}], [])
+        # Mock the summarization to raise an exception
+        mock_scrape_and_summarize.side_effect = Exception("Test summarize error")
+
+        # Since asyncio.gather will raise the first exception, we expect the main
+        # function's try/except block to catch it.
+        result = await actions.web_search_async("Python")
+        self.assertIn("An error occurred during the web/news search:", result)
+        self.assertIn("Exception - Test summarize error", result)
 
 
 if __name__ == "__main__":
