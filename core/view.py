@@ -540,9 +540,12 @@ class DesktopView(IACEView):
     def clear_chat_history(self):
         """Clears the chat history from the textbox and destroys code block widgets."""
         # Destroy all code block frames
-        for frame in getattr(self, "_code_block_frames", []):
+        for item in getattr(self, "_code_block_frames", []):
             try:
-                frame.destroy()
+                if isinstance(item, tuple):
+                    item[0].destroy()
+                else:
+                    item.destroy()
             except Exception:
                 pass
         self._code_block_frames.clear()
@@ -725,14 +728,25 @@ class DesktopView(IACEView):
         if code_content.endswith("\n"):
             code_content = code_content[:-1]
 
+        # Calculate lines from string directly to avoid widget dependency
+        total_lines = code_content.count("\n") + 1
+
+        MAX_PREVIEW_LINES = 15
+        LINE_HEIGHT = 15  # Approx pixels per line (Consolas 12)
+        PADDING = 5
+
+        full_height = total_lines * LINE_HEIGHT + PADDING
+        collapsed_height = MAX_PREVIEW_LINES * LINE_HEIGHT + PADDING
+
+        use_collapsed = total_lines > MAX_PREVIEW_LINES
+        initial_height = collapsed_height if use_collapsed else full_height
+
         # Create a frame to hold the code and copy button
         code_frame = ctk.CTkFrame(
             self.chat_display,
             fg_color=self.PALETTE["surface_variant"],
             border_width=0,
         )
-        # Track the frame for later destruction
-        self._code_block_frames.append(code_frame)
 
         code_frame.grid_columnconfigure(0, weight=1)
 
@@ -745,13 +759,14 @@ class DesktopView(IACEView):
             text_color=self.PALETTE["on_surface_variant"],
             hover_color=self.PALETTE["surface"],
         )
-        copy_button.grid(row=0, column=1, sticky="ne", padx=5, pady=5)
+        # Use place to ensure it's always visible in the top right
+        copy_button.place(relx=1.0, rely=0.0, anchor="ne", x=-5, y=5)
 
         def copy_to_clipboard():
             self.root.clipboard_clear()
             self.root.clipboard_append(code_content)
             original_text = copy_button.cget("text")
-            copy_button.configure(text="Copied!")
+            copy_button.configure(text="✔")
             self.root.after(1500, lambda: copy_button.configure(text=original_text))
 
         copy_button.configure(command=copy_to_clipboard)
@@ -765,16 +780,41 @@ class DesktopView(IACEView):
             wrap="none",  # Disable word wrap for code
             corner_radius=0,
             border_width=0,
+            height=initial_height,
         )
+
+        # Set initial width based on current chat display width
+        display_width = self.chat_display.winfo_width()
+        if display_width > 100:
+            code_textbox.configure(width=display_width - 60)
+
         code_textbox.insert("1.0", code_content)
         code_textbox.configure(state="disabled")  # Make it read-only
-        code_textbox.grid(row=0, column=0, sticky="nsew", padx=(10, 40), pady=10)
+        code_textbox.grid(row=0, column=0, sticky="nsew", padx=(10, 40), pady=5)
 
-        # Adjust frame height based on code content
-        code_textbox.update_idletasks()
-        lines = int(code_textbox.index("end-1c").split(".")[0])
-        height = min(lines, 25) * 20 + 20  # Approx 20px per line, max 25 lines visible
-        code_textbox.configure(height=height)
+        if use_collapsed:
+
+            def toggle_expand():
+                if expand_button.cget("text") == "🔽 Show More":
+                    code_textbox.configure(height=full_height)
+                    expand_button.configure(text="🔼 Show Less")
+                else:
+                    code_textbox.configure(height=collapsed_height)
+                    expand_button.configure(text="🔽 Show More")
+
+            expand_button = ctk.CTkButton(
+                code_frame,
+                text="🔽 Show More",
+                command=toggle_expand,
+                height=20,
+                fg_color="transparent",
+                text_color=self.PALETTE["primary"],
+                hover_color=self.PALETTE["surface"],
+            )
+            expand_button.grid(row=1, column=0, sticky="ew", pady=(0, 5))
+
+        # Track the frame and textbox for later destruction and resizing
+        self._code_block_frames.append((code_frame, code_textbox))
 
         # Embed the frame into the main chat display
         self.chat_display.window_create(
@@ -1149,27 +1189,10 @@ class DesktopView(IACEView):
         chat_frame.grid(
             row=row, column=column, padx=(10, 10), pady=(10, 0), sticky="nsew"
         )
-        chat_frame.grid_rowconfigure(0, weight=1)  # Textbox row expands
-        chat_frame.grid_columnconfigure(0, weight=1)  # Textbox column expands
-        chat_frame.grid_columnconfigure(1, weight=0)  # Button column does not expand
-
-        self.chat_display = tk.Text(
-            chat_frame,
-            wrap=tk.WORD,
-            bg=self.PALETTE["surface"],
-            fg=self.PALETTE["on_surface"],
-            padx=10,
-            pady=10,
-            relief="flat",
-            selectbackground=self.PALETTE["primary_container"],
-            selectforeground=self.PALETTE["on_primary_container"],
-            inactiveselectbackground=self.PALETTE["secondary_container"],
-            borderwidth=0.5,
-            highlightthickness=0,
-        )
-        self.chat_display.grid(row=0, column=0, sticky="nsew")
-        self.chat_display.bind("<KeyPress>", self._prevent_modification)
-        self.chat_display.bind("<FocusIn>", self._defocus_chat_display)
+        chat_frame.grid_rowconfigure(0, weight=0)  # Button row
+        chat_frame.grid_rowconfigure(1, weight=1)  # Textbox row expands
+        chat_frame.grid_columnconfigure(0, weight=1)  # Textbox column
+        chat_frame.grid_columnconfigure(1, weight=0)  # Scrollbar column
 
         self.copy_conversation_button = ctk.CTkButton(
             chat_frame,
@@ -1185,8 +1208,32 @@ class DesktopView(IACEView):
             border_color=self.PALETTE["outline"],
         )
         self.copy_conversation_button.grid(
-            row=0, column=1, sticky="ne", padx=(0, 5), pady=(5, 0)
+            row=0, column=0, columnspan=2, sticky="ne", padx=(0, 5), pady=(5, 5)
         )
+
+        self.chat_display = tk.Text(
+            chat_frame,
+            wrap=tk.WORD,
+            bg=self.PALETTE["surface"],
+            fg=self.PALETTE["on_surface"],
+            padx=10,
+            pady=10,
+            relief="flat",
+            selectbackground=self.PALETTE["primary_container"],
+            selectforeground=self.PALETTE["on_primary_container"],
+            inactiveselectbackground=self.PALETTE["secondary_container"],
+            borderwidth=0.5,
+            highlightthickness=0,
+        )
+        self.chat_display.grid(row=1, column=0, sticky="nsew")
+
+        scrollbar = ctk.CTkScrollbar(chat_frame, command=self.chat_display.yview)
+        scrollbar.grid(row=1, column=1, sticky="ns")
+        self.chat_display.configure(yscrollcommand=scrollbar.set)
+
+        # self.chat_display.bind("<KeyPress>", self._prevent_modification)
+        # self.chat_display.bind("<FocusIn>", self._defocus_chat_display)
+        self.chat_display.bind("<Configure>", self._on_chat_resize)
 
     def _copy_conversation_to_clipboard(self):
         """Copies the entire chat history to the clipboard."""
@@ -1351,3 +1398,15 @@ class DesktopView(IACEView):
     def get_conversation_history(self) -> List:
         """Returns a list of the conversation buttons from the sidebar."""
         return self._all_conversations
+
+    def _on_chat_resize(self, event):
+        """Resizes code blocks to fit the chat display width."""
+        # Adjust width to account for padding and scrollbar
+        target_width = max(event.width - 100, 200)
+        for item in self._code_block_frames:
+            try:
+                if isinstance(item, tuple):
+                    _, textbox = item
+                    textbox.configure(width=target_width)
+            except Exception:
+                pass
