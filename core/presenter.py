@@ -4,7 +4,18 @@ from datetime import datetime
 from threading import Thread
 from typing import Any, Dict, List, Optional
 
-from core.actions import ACTION_HANDLERS, UNKNOWN_ACTION_MESSAGE
+from core.constants import (
+    ACE_DATABASE,
+    ACE_ID,
+    EMPTY_RESPONSE_MESSAGE,
+    EXIT_COMMAND,
+    INITIALISING_MESSAGE,
+    NO_DB_MESSAGE,
+    TERMINATION_MESSAGE,
+    TOOL_NOT_FOUND_MESSAGE,
+    USER_ID,
+    WELCOME_MESSAGE,
+)
 from core.database import (
     add_message,
     create_database,
@@ -16,21 +27,8 @@ from core.database import (
 )
 from core.llm import ConversationNamer
 from core.model import ACEModel
+from core.tools import TOOL_HANDLERS
 from core.view import IACEView
-
-# Constants for ACE and user identification, and the exit command
-ACE_ID: str = "ACE"
-USER_ID: str = "YOU"
-EXIT_COMMAND: str = "exit"
-ACE_DATABASE: str = "data/ace.db"
-WELCOME_MESSAGE: str = (
-    "Hello! I am ACE, your personal assistant. How can I help you today?"
-)
-GOODBYE_MESSAGE: str = "Goodbye! It was a pleasure assisting you."
-INITIALISING_MESSAGE: str = "Initialising ACE"
-TERMINATION_MESSAGE: str = "Terminating ACE"
-NO_DB_MESSAGE: str = "[INFO] ACE cannot start without a functional database. Exiting."
-EMPTY_RESPONSE_MESSAGE: str = "I'm sorry, I don't have a response for that."
 
 
 class BasePresenter:
@@ -160,13 +158,13 @@ class BasePresenter:
 
             # No actions detected
             if not actions:
-                return UNKNOWN_ACTION_MESSAGE
+                return TOOL_NOT_FOUND_MESSAGE
 
             # Process each action and collect responses
             responses = []
             for action in actions:
-                if action in ACTION_HANDLERS:
-                    handler_info = ACTION_HANDLERS[action]
+                if action in TOOL_HANDLERS:
+                    handler_info = TOOL_HANDLERS[action]
 
                     # Check if the handler requires user input
                     if handler_info.requires_user_input:
@@ -177,7 +175,7 @@ class BasePresenter:
 
             # All actions unrecognised
             if not responses:
-                return UNKNOWN_ACTION_MESSAGE
+                return TOOL_NOT_FOUND_MESSAGE
 
             return " ".join(responses)
 

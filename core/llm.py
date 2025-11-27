@@ -1,9 +1,9 @@
 """llm.py: Handles all interactions with external LLM APIs.
 
-
 This module defines the APIService protocol for flexible API switching and
-
 provides an implementation for the Google GenAI service with native tool calling.
+
+It also includes LLM-based tools for conversation naming and web page summarization.
 """
 
 import os
@@ -13,7 +13,7 @@ from typing import Any, Callable, Dict, List, Optional, Protocol, cast
 from google import genai
 from google.genai import types
 
-from .actions import ActionHandler
+from .tools import ToolHandler
 
 
 class APIService(Protocol):
@@ -26,19 +26,18 @@ class APIService(Protocol):
         self,
         model_name: str,
         system_persona: str,
-        actions: Optional[Dict[str, Callable]] = None,
+        tools: Optional[Dict[str, Callable]] = None,
     ):
-        """Initialises the API service with a system persona and available actions.
+        """Initialises the API service with a system persona and available tools.
 
         ### Args
             model_name (str): The name of the model to use.
             system_persona (str): The persona description for the LLM.
-            actions (Dict[str, Callable], optional): A dictionary of available actions the LLM can invoke. Defaults to an empty dictionary.
+            tools (Dict[str, Callable], optional): A dictionary of available tools the LLM can invoke. Defaults to an empty dictionary.
         """
 
     def __call__(self, user_query: str, chat_history: List[Dict[str, Any]]) -> str:  # type: ignore
-        """
-        Processes a user query by prompting the LLM, handling tool calls,
+        """Processes a user query by prompting the LLM, handling tool calls,
         and returning the final conversational response.
 
         Args:
@@ -61,18 +60,18 @@ class GoogleGenAIService:
         self,
         model_name: str,
         system_persona: str,
-        actions: Optional[Dict[str, Callable]] = None,
+        tools: Optional[Dict[str, Callable]] = None,
     ):
-        """Initialises the GoogleGenAIService with a system persona and available actions.
+        """Initialises the GoogleGenAIService with a system persona and available tools.
 
         ### Args
             model_name (str): The name of the model to use.
             system_persona (str): The persona description for the LLM.
-            actions (Optional[Dict[str, ActionHandler]]): A dictionary of available actions the LLM can invoke.
+            tools (Optional[Dict[str, ToolHandler]]): A dictionary of available tools the LLM can invoke.
         """
         # Setup variables
         self.model_name = model_name
-        self.actions = actions or {}
+        self.tools = tools or {}
 
         # Load LLM
         api_key = os.getenv("GEMINI_API_KEY")
@@ -90,7 +89,7 @@ class GoogleGenAIService:
 
         self.generate_content_config = types.GenerateContentConfig(
             system_instruction=enhanced_persona,
-            tools=self._create_api_tools(cast(Dict[str, ActionHandler], actions or {})),
+            tools=self._create_api_tools(cast(Dict[str, ToolHandler], tools or {})),
             tool_config=types.ToolConfig(
                 function_calling_config=types.FunctionCallingConfig(
                     mode=types.FunctionCallingConfigMode.AUTO,
@@ -147,8 +146,8 @@ class GoogleGenAIService:
                 action_args = dict(function_call.args)
 
                 # Execute the requested tool/action
-                if action_name in self.actions:
-                    handler = self.actions[action_name]
+                if action_name in self.tools:
+                    handler = self.tools[action_name]
                     try:
                         result = handler(**action_args)
                     except Exception as e:
@@ -211,19 +210,19 @@ class GoogleGenAIService:
 
         return "No response from LLM."
 
-    def _create_api_tools(self, actions: Dict[str, ActionHandler]) -> List[types.Tool]:
-        """Creates API tools for the Gemini model based on the provided actions.
+    def _create_api_tools(self, tools: Dict[str, ToolHandler]) -> List[types.Tool]:
+        """Creates API tools for the Gemini model based on the provided tools.
 
         ### Args
-            actions (Dict[str, ActionHandler]): A dictionary of available actions.
+            tools (Dict[str, ToolHandler]): A dictionary of available tools.
 
         ### Returns
             List[types.Tool]: A list of tools compatible with the Gemini model.
         """
         api_tools = []
 
-        for action_name, handler in actions.items():
-            # Skip actions that are meant to be handled internally (e.g., general enquiry fallback)
+        for action_name, handler in tools.items():
+            # Skip tools that are meant to be handled internally (e.g., general enquiry fallback)
             if action_name in ["GENERAL_ENQUIRY", "UNKNOWN_ACTION"]:
                 continue
 
@@ -367,12 +366,12 @@ class WebPageSummarizer:
     """An LLM-based tool to summarize web page content."""
 
     def __init__(self):
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
+        self.api_key = os.getenv("GEMINI_API_KEY")
+        if not self.api_key:
             raise ValueError("GEMINI_API_KEY environment variable not set.")
 
-        self.client = genai.Client(api_key=api_key)
-        self.model_name = "gemma-3-27b-it"
+        self.client = genai.Client(api_key=self.api_key)
+        self.model_name = "models/gemini-2.0-flash-lite"
 
     def __call__(self, text: str, query: str) -> str:
         """Generates a concise summary of the text based on the user's query.
@@ -384,27 +383,35 @@ class WebPageSummarizer:
         ### Returns
             str: A concise summary of the text.
         """
-        prompt_instructions = f"""
-ROLE AND TASK:
-You are an AI Summarization Specialist. Your task is to generate a concise, factual summary of the provided TEXT based on the user's original QUERY.
+        system_prompt = """
+# ROLE AND TASK
+You are an AI Summarization Specialist. Your task is to generate a concise, factual summary of the provided TEXT.
+Provide information that is relevant to the user's QUERY.
+The summary does not need to cover the exact details of the query, but should focus on the most important and relevant points from the TEXT.
 
-RULES:
-1.  The summary **must** be relevant to the user's QUERY: "{query}".
-2.  The summary **must** be a neutral, third-person summary of the key facts.
-3.  The summary should be no more than 3-4 sentences.
-4.  If the TEXT is irrelevant to the QUERY, respond with only "No relevant information found.".
-5.  You **must** respond ONLY with the summary. Do not add any preamble, explanation, or conversational text.
+## RULES
+* The summary **must** be a neutral, third-person summary of the key facts.
+* The summary should be no more than 20 sentences.
+* You **must** respond ONLY with the summary. Do not add any preamble, explanation, or conversational text.
+* You **must** return the summary in English - translate if necessary.
+* You do not need the internet or external sources to complete this task, rely solely on the provided TEXT.
+"""
+        instructions = f"""
+# TEXT
+{text}
 
-TEXT:
-{text[:15000]}
+# QUERY
+{query}
 
-SUMMARY:
+# SUMMARY
 """
         try:
             response = self.client.models.generate_content(
                 model=self.model_name,
-                contents=prompt_instructions,
-                config=types.GenerateContentConfig(temperature=0.5),
+                contents=[
+                    {"role": "model", "parts": [{"text": system_prompt}]},
+                    {"role": "user", "parts": [{"text": instructions}]},
+                ],
             )
 
             if not response.candidates:
