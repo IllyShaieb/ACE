@@ -7,7 +7,7 @@ from unittest import mock
 from core.tools import TOOL_HANDLERS, execute_tool
 
 
-@mock.patch("core.tools.temporal.datetime")
+@mock.patch("core.tools.temporal_tools.datetime")
 class TestGetTime(unittest.TestCase):
     """Ensure the GET_TIME tool is registered and functions correctly."""
 
@@ -57,7 +57,7 @@ class TestGetTime(unittest.TestCase):
         )
 
 
-@mock.patch("core.tools.temporal.datetime")
+@mock.patch("core.tools.temporal_tools.datetime")
 class TestGetDate(unittest.TestCase):
     """Ensure the GET_DATE tool is registered and functions correctly."""
 
