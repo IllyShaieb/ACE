@@ -4,8 +4,8 @@ import os
 from pathlib import Path
 from typing import Any, Dict, List
 
-from .actions import ACTION_HANDLERS
 from .llm import APIService, GoogleGenAIService
+from .tools import TOOL_HANDLERS
 
 # Constants defining the AI's persona for the system prompt
 if not os.path.exists("data/PERSONA.md"):
@@ -37,7 +37,7 @@ class ACEModel:
             self.api_service: APIService = GoogleGenAIService(
                 model_name="models/gemini-flash-latest",
                 system_persona=ai_persona,
-                actions=ACTION_HANDLERS,
+                tools=TOOL_HANDLERS,
             )
         except Exception as e:
             # We can now provide a more specific error
