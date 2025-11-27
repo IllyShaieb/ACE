@@ -9,7 +9,7 @@ import requests
 from core.tools import TOOL_HANDLERS, execute_tool
 
 
-@mock.patch("core.tools.web.requests.get")
+@mock.patch("core.tools.web_tools.requests.get")
 class TestGetWeather(unittest.TestCase):
     """Ensure the GET_WEATHER tool is registered and functions correctly."""
 
@@ -253,7 +253,9 @@ class TestWebSearch(unittest.TestCase):
             "The WEB_SEARCH tool should prompt for a query when none is provided.",
         )
 
-    @mock.patch("core.tools.web.scrape_and_summarise", return_value="Sample summary.")
+    @mock.patch(
+        "core.tools.web_tools.scrape_and_summarise", return_value="Sample summary."
+    )
     def test_web_search_with_query(self, mock_scrape_and_summarise):
         """Test the WEB_SEARCH tool with a valid query."""
 

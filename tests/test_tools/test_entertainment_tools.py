@@ -9,7 +9,7 @@ import requests
 from core.tools import TOOL_HANDLERS, execute_tool
 
 
-@mock.patch("core.tools.entertainment.requests.get")
+@mock.patch("core.tools.entertainment_tools.requests.get")
 class TestTellJoke(unittest.TestCase):
     """Ensure the TELL_JOKE tool is registered and functions correctly."""
 
@@ -119,7 +119,7 @@ class TestFlipCoin(unittest.TestCase):
                 f"The description of the tool '{tool_name}' should be '{expected_description}'.",
             )
 
-    @mock.patch("core.tools.entertainment.random.choice")
+    @mock.patch("core.tools.entertainment_tools.random.choice")
     def test_flip_coin_execution(self, mock_choice):
         """Test that the FLIP_COIN tool executes correctly."""
 
@@ -169,7 +169,7 @@ class TestRollDice(unittest.TestCase):
                 f"The description of the tool '{tool_name}' should be '{expected_description}'.",
             )
 
-    @mock.patch("core.tools.entertainment.random.randint")
+    @mock.patch("core.tools.entertainment_tools.random.randint")
     def test_roll_dice_execution(self, mock_randint):
         """Test that the ROLL_DICE tool can take multiple dice sides and returns correct results."""
 
