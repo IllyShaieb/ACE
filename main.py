@@ -1,76 +1,48 @@
-"""main.py - The entry point for the ACE program.
+"""main.py: Entry point for the ACE application.
 
-This file is used to start the ACE program and interact with the user,
-linking together the various components of the program following the
-Model-View-Presenter (MVP) architectural pattern.
+Handles the wiring of concrete components via Dependency Injection.
 """
 
-import os
+from core.models import MinimumViableModel
+from core.presenters import ConsolePresenter
+from core.views import BuiltinIOAdapter, ConsoleView
 
-from dotenv import load_dotenv
+# Configuration
+CONFIG = {
+    "WELCOME_MESSAGE": """
+###############################################################
+#           ACE - The Artificial Consciousness Engine         #
+###############################################################
 
-from core.model import ACEModel
-from core.presenter import ConsolePresenter, DesktopPresenter
-from core.view import ConsoleView, DesktopView
-
-# Load environment variables from .env file
-load_dotenv()
-
-# Define available applications with their models, views, and presenters
-APPS = {
-    "1": ("Desktop Application", ACEModel, DesktopView, DesktopPresenter),
-    "2": ("Console Application", ACEModel, ConsoleView, ConsolePresenter),
+I am a simple implementation of an AI assistant, designed to
+demonstrate the core architecture of ACE.
+    - Type 'exit' to quit the application.
+    - Ask me anything or just say hello!
+""",
 }
 
 
-def select_app(mode_override: str = "0") -> str:
-    """Prompt the user to select an application mode.
-
-    Args:
-        mode_override (str): If not "0", this value is used to select the mode directly.
-
-    Returns:
-        str: The selected application mode key.
-    """
-    match mode_override:
-        case "0":
-            print("Select the application mode:")
-            for key, (description, *_) in APPS.items():
-                print(f"  {key}. {description}")
-
-            choice = input("Enter your choice: ").strip()
-            while choice not in APPS:
-                choice = input("Invalid choice. Please try again: ").strip()
-            return choice
-        case _:
-            return mode_override
-
-
 def main():
-    """Main function to start the ACE application."""
+    """Initialize the model, view, and presenter, then run the application."""
+    # 1. Create the low-level I/O hardware
+    io_adapter = BuiltinIOAdapter()
 
-    # Check for mode override from environment variable
-    mode_override = os.getenv("ACE_MODE_OVERRIDE", "0")
-    choice = select_app(mode_override)
+    # 2. Initialize the Passive View with the adapter
+    view = ConsoleView(io_adapter=io_adapter)
 
-    selected_app = APPS[choice]
-    print(f"Starting {selected_app[0]}...")
+    # 3. Initialize the Minimum Viable Model (The Brain)
+    model = MinimumViableModel()
 
-    # Instantiate selected app
-    model_class = selected_app[1]
-    view_class = selected_app[2]
-    presenter_class = selected_app[3]
+    # 4. Inject View and Model into the Presenter (The Switchboard)
+    presenter = ConsolePresenter(
+        model=model, view=view, welcome_message=CONFIG["WELCOME_MESSAGE"]
+    )
 
-    model = model_class()
-    view = view_class()
-    presenter = presenter_class(model, view)
-
-    # Start the application
-    presenter.run()
-
-    # Clean up and exit
-    print(f"Exiting {selected_app[0]}...")
-    return
+    # 5. Execute
+    try:
+        presenter.run()
+    except KeyboardInterrupt:
+        print("\nACE safely interrupted. Goodbye!")
 
 
 if __name__ == "__main__":
