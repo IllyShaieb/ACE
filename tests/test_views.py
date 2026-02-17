@@ -8,15 +8,15 @@ from core.protocols import IOAdapterProtocol, Sender
 from core.views import ConsoleView
 
 
-class TestConsoleView(unittest.TestCase):
+class TestConsoleView(unittest.IsolatedAsyncioTestCase):
     """Test the ConsoleView's ability to display messages and receive user input."""
 
-    def setUp(self):
+    async def asyncSetUp(self):
         """Set up common test components."""
         self.mock_io = Mock(spec=IOAdapterProtocol)
         self.view = ConsoleView(io_adapter=self.mock_io)
 
-    def test_start_loop_emits_signal(self):
+    async def test_start_loop_emits_signal(self):
         """Verify that input triggers the on_user_input signal."""
         # ARRANGE: Create mock handler and connect to the view's on_user_input signal
         mock_handler = Mock()
@@ -26,26 +26,26 @@ class TestConsoleView(unittest.TestCase):
         self.view.events.on_user_input.connect(lambda _: self.view.stop())
 
         # ACT: Simulate the start loop
-        self.view.start()
+        await self.view.start()
 
         # ASSERT: Ensure the handler was called with the expected input and the adapter
         # was called to get user input
         mock_handler.assert_called_once_with("Hello ACE")
         self.mock_io.get_input.assert_called_once()
 
-    def test_stop_breaks_loop(self):
+    async def test_stop_breaks_loop(self):
         """Verify that `stop()` correctly terminates the `start()` loop immediately."""
         # ARRANGE: Stop the view before starting to ensure it doesn't enter the loop
         self.view.stop()
 
         # ACT: Simulate the start loop
-        self.view.start()
+        await self.view.start()
 
         # ASSERT: Ensure the adapter's get_input method was never called, confirming
         # the loop was not entered
         self.mock_io.get_input.assert_not_called()
 
-    def test_get_input_delegates_to_io_adapter(self):
+    async def test_get_input_delegates_to_io_adapter(self):
         """Verify that `get_user_input()` correctly delegates to the IO adapter."""
         # ARRANGE: Set up the mock IO adapter to return a specific input
         expected_input = "Test input"
@@ -59,7 +59,7 @@ class TestConsoleView(unittest.TestCase):
         self.assertEqual(result, expected_input)
         self.mock_io.get_input.assert_called_once_with("Prompt: ")
 
-    def test_display_message_delegates_to_io_adapter(self):
+    async def test_display_message_delegates_to_io_adapter(self):
         """Verify that `display_message()` correctly delegates to the IO adapter."""
         # ARRANGE: Create a message to display
         message = "Hello, World!"
@@ -71,7 +71,7 @@ class TestConsoleView(unittest.TestCase):
         # correct message
         self.mock_io.display_output.assert_called_once_with(message)
 
-    def test_show_error_delegates_to_io_adapter(self):
+    async def test_show_error_delegates_to_io_adapter(self):
         """Verify that `show_error()` correctly delegates to the IO adapter."""
         # ARRANGE: Create an error message to display
         error_message = "An error occurred!"
@@ -83,7 +83,7 @@ class TestConsoleView(unittest.TestCase):
         # correct error message (assuming show_error uses display_output for simplicity)
         self.mock_io.display_output.assert_called_once_with(f"ERROR: {error_message}")
 
-    def test_show_loading_placeholder(self):
+    async def test_show_loading_placeholder(self):
         """Verify that `show_loading()` starts and stops the loading indicator correctly."""
         # ARRANGE: Create a mock function to execute during loading
         mock_function = Mock()

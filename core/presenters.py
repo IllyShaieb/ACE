@@ -25,14 +25,14 @@ class ConsolePresenter:
         # Connect view events to presenter methods
         self.view.events.on_user_input.connect(self.handle_user_input)
 
-    def run(self) -> None:
+    async def run(self) -> None:
         """Display the welcome message (if any) and start the view."""
         if self.welcome_message:
             self.view.display_message(Sender.INFO, self.welcome_message)
 
-        self.view.start()
+        await self.view.start()
 
-    def handle_user_input(self, user_input: str) -> None:
+    async def handle_user_input(self, user_input: str) -> None:
         """Process user input and update the view accordingly.
 
         Args:
@@ -52,5 +52,5 @@ class ConsolePresenter:
             return
 
         # Process the user input through the model and get a response
-        response = self.model.process_query(user_input)
+        response = await self.model.process_query(user_input)
         self.view.display_message(Sender.ACE, response)

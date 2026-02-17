@@ -6,7 +6,7 @@ class MinimumViableModel:
     """A simple model implementation that processes user queries and returns responses based on
     basic keyword recognition."""
 
-    def process_query(self, query: str) -> str:
+    async def process_query(self, query: str) -> str:
         """Process a user query and return a response.
 
         Args:

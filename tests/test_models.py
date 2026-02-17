@@ -6,14 +6,14 @@ import unittest
 from core.models import MinimumViableModel
 
 
-class TestMinimumViableModel(unittest.TestCase):
+class TestMinimumViableModel(unittest.IsolatedAsyncioTestCase):
     """Test the MinimumViableModel's ability to process queries and return responses."""
 
-    def setUp(self):
+    async def asyncSetUp(self):
         """Set up common test components."""
         self.model = MinimumViableModel()
 
-    def test_process_query_returns_expected_response(self):
+    async def test_process_query_returns_expected_response(self):
         """Verify that `process_query()` returns the expected response for a given query."""
         # ARRANGE: Define a sample queries and expected responses
         test_cases = [
@@ -48,7 +48,7 @@ class TestMinimumViableModel(unittest.TestCase):
         for query, expected_response, description in test_cases:
             with self.subTest(msg=description):
                 # ACT: Process the query using the model
-                response = self.model.process_query(query)
+                response = await self.model.process_query(query)
 
                 # ASSERT: Verify the response matches the expected output
                 self.assertEqual(response, expected_response)

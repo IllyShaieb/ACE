@@ -46,7 +46,7 @@ class ConsoleView:
         """Return the view's persistent events instance."""
         return self._events
 
-    def start(self) -> None:
+    async def start(self) -> None:
         """Start the view, allowing it to display information and receive user input."""
         while self._running:
             user_input = self.io_adapter.get_input("YOU: ")
@@ -56,7 +56,7 @@ class ConsoleView:
                 self.stop()
                 break
 
-            self.events.on_user_input.emit(user_input)
+            await self.events.on_user_input.emit(user_input)
 
     def stop(self) -> None:
         """Stop the view, cleaning up any resources if necessary."""
