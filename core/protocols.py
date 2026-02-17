@@ -16,8 +16,8 @@ class ModelProtocol(Protocol):
     """Protocol for the model component, defining the expected interface for data
     management and business logic."""
 
-    def process_query(self, query: str) -> str:
-        """Process a user query and return a response."""
+    async def process_query(self, query: str) -> str:
+        """Process a user query asynchronously and return a response."""
         ...
 
 
@@ -64,7 +64,7 @@ class ViewProtocol(Protocol):
         """Return the view's events for user interaction."""
         ...
 
-    def start(self) -> None:
+    async def start(self) -> None:
         """Start the view, allowing it to display information and receive user input."""
         ...
 
@@ -103,6 +103,6 @@ class PresenterProtocol(Protocol):
         """Run the presenter, starting the main application loop."""
         ...
 
-    def handle_user_input(self, user_input: str) -> None:
+    async def handle_user_input(self, user_input: str) -> None:
         """Handle user input, process it through the model, and update the view."""
         ...

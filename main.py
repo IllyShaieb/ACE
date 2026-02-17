@@ -3,6 +3,8 @@
 Handles the wiring of concrete components via Dependency Injection.
 """
 
+import asyncio
+
 from core.models import MinimumViableModel
 from core.presenters import ConsolePresenter
 from core.views import BuiltinIOAdapter, ConsoleView
@@ -22,7 +24,7 @@ demonstrate the core architecture of ACE.
 }
 
 
-def main():
+async def main_async():
     """Initialize the model, view, and presenter, then run the application."""
     # 1. Create the low-level I/O hardware
     io_adapter = BuiltinIOAdapter()
@@ -40,10 +42,10 @@ def main():
 
     # 5. Execute
     try:
-        presenter.run()
+        await presenter.run()
     except KeyboardInterrupt:
         print("\nACE safely interrupted. Goodbye!")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main_async())
