@@ -31,10 +31,19 @@ def discover_tools(services: Optional[Dict[str, Any]] = None) -> List[Any]:
     # Iterate over all members of the current module that are classes.
     current_module = sys.modules[__name__]
     for name, obj in inspect.getmembers(current_module, inspect.isclass):
-        # Check if the class is a tool
-        # 1. It must have an 'execute' method.
-        # 2. Must have "Tool" at the end of its name.
-        if hasattr(obj, "execute") and name.endswith("Tool"):
+        # Check if the class is a tool based on the following criteria:
+        is_tool = {
+            # 1. It must have an 'execute' method.
+            "has_execute": hasattr(obj, "execute"),
+            # 2. Must have "Tool" at the end of its name.
+            "name_ends_with_tool": name.endswith("Tool"),
+            # 3. Must have all properties: name, description, parameters_schema
+            "has_name": hasattr(obj, "name"),
+            "has_description": hasattr(obj, "description"),
+            "has_parameters_schema": hasattr(obj, "parameters_schema"),
+        }
+
+        if all(is_tool.values()):
             try:
                 # If the class has an __init__ method that accepts parameters,
                 # we can pass services to it.
