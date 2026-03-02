@@ -1,30 +1,11 @@
 """core.views: This module defines the view classes for the ACE application, responsible for displaying
 information and receiving user input."""
 
+import asyncio
 from typing import Callable
 
 from core.events import ViewEvents
 from core.protocols import IOAdapterProtocol, Sender
-
-
-class BuiltinIOAdapter:
-    """
-    The 'Standard' implementation of I/O.
-
-    Simply wraps Python's built-in functions to satisfy the IOAdapter contract.
-    """
-
-    def get_input(self, prompt: str) -> str:
-        return input(prompt)
-
-    def display_output(self, message: str) -> None:
-        print(message)
-
-    def start_loading_indicator(self, message: str) -> None:
-        return
-
-    def stop_loading_indicator(self) -> None:
-        return
 
 
 class ConsoleView:
@@ -49,20 +30,23 @@ class ConsoleView:
     async def start(self) -> None:
         """Start the view, allowing it to display information and receive user input."""
         while self._running:
-            user_input = self.io_adapter.get_input("YOU: ")
+            user_input = await asyncio.to_thread(self.io_adapter.get_input, "YOU: ")
 
             # Check for exit command to stop the view and end the application
             if user_input.strip().lower() == "exit":
                 self.stop()
                 break
 
+            self.io_adapter.display_output("")
             await self.events.on_user_input.emit(user_input)
 
     def stop(self) -> None:
         """Stop the view, cleaning up any resources if necessary."""
         self._running = False
 
-    def show_loading(self, message: str, function: Callable, **func_args: dict) -> None:
+    async def show_loading(
+        self, message: str, function: Callable, **func_args: dict
+    ) -> None:
         """Show a loading indicator with a message while executing a function, then hide it when done.
 
         Args:
@@ -71,8 +55,15 @@ class ConsoleView:
             func_args (dict): Additional keyword arguments to pass to the function.
         """
         self.io_adapter.start_loading_indicator(message)
-        function(**func_args)
-        self.io_adapter.stop_loading_indicator()
+        try:
+            # Await the function if it's a coroutine, otherwise call it directly
+            if callable(function):
+                result = function(**func_args)
+                if hasattr(result, "__await__"):
+                    return await result
+                return result
+        finally:
+            self.io_adapter.stop_loading_indicator()
 
     def get_user_input(self, prompt: str) -> str:
         """Get input from the user with a given prompt."""
@@ -87,6 +78,7 @@ class ConsoleView:
                 formatted_message = f"{sender.value}: {message}"
 
         self.io_adapter.display_output(formatted_message)
+        self.io_adapter.display_output("")
 
     def show_error(self, error_message: str) -> None:
         """Show an error message to the user."""

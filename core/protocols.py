@@ -2,7 +2,7 @@
 the expected interfaces for various components."""
 
 from enum import Enum
-from typing import Callable, Protocol, runtime_checkable
+from typing import Any, Callable, Dict, Optional, Protocol, runtime_checkable
 
 from core.events import ViewEvents
 
@@ -72,7 +72,9 @@ class ViewProtocol(Protocol):
         """Stop the view, cleaning up any resources if necessary."""
         ...
 
-    def show_loading(self, message: str, function: Callable, **func_args: dict) -> None:
+    async def show_loading(
+        self, message: str, function: Callable, **func_args: dict
+    ) -> None:
         """Show a loading indicator with a message while executing a function, then hide it when done."""
         ...
 
@@ -99,10 +101,88 @@ class PresenterProtocol(Protocol):
     """Protocol for the presenter component, defining the expected interface for
     mediating between the model and view."""
 
-    def run(self) -> None:
+    async def run(self) -> None:
         """Run the presenter, starting the main application loop."""
         ...
 
     async def handle_user_input(self, user_input: str) -> None:
         """Handle user input, process it through the model, and update the view."""
+        ...
+
+
+#######################################################################################
+#                                   TOOL PROTOCOLS                                    #
+#######################################################################################
+
+
+@runtime_checkable
+class ToolProtocol(Protocol):
+    """Protocol for tools, defining the expected interface for functional tools that
+    ACE can use."""
+
+    @property
+    def name(self) -> str:
+        """Return the name of the tool."""
+        ...
+
+    @property
+    def description(self) -> str:
+        """Return a brief description of the tool's functionality."""
+        ...
+
+    @property
+    def parameters_schema(self) -> Dict[str, Any]:
+        """Return a schema defining the parameters required by the tool."""
+        ...
+
+    def execute(self, **kwargs: Any) -> Any:
+        """Execute the tool's functionality with the given parameters."""
+        ...
+
+
+###########################################################################################
+#                                SERVICES PROTOCOLS                                       #
+###########################################################################################
+class WeatherUnits(Enum):
+    """Enum to represent units of measurement for weather information."""
+
+    STANDARD = "standard"
+    METRIC = "metric"
+    IMPERIAL = "imperial"
+
+
+@runtime_checkable
+class HTTPClientAdapterProtocol(Protocol):
+    """Protocol for an HTTP client adapter, defining the expected interface for making
+    HTTP requests."""
+
+    def get(
+        self,
+        url: str,
+        params: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, Any]] = None,
+    ) -> Any:
+        """Make a GET request to the specified URL with optional query parameters and headers."""
+        ...
+
+    def post(
+        self,
+        url: str,
+        data: Optional[Any] = None,
+        json: Optional[Dict[str, Any]] = None,
+        headers: Optional[Dict[str, Any]] = None,
+    ) -> Any:
+        """Make a POST request to the specified URL with form data or JSON payload and optional headers."""
+        ...
+
+
+@runtime_checkable
+class WeatherServiceProtocol(Protocol):
+    """Protocol for a weather service, defining the expected interface for fetching
+    weather information."""
+
+    def get_current_weather(
+        self, location: str, units: WeatherUnits = WeatherUnits.STANDARD
+    ) -> Dict[str, str]:
+        """Get the current weather for a given location."""
         ...
