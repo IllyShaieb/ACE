@@ -68,8 +68,10 @@ class TestConsoleView(unittest.IsolatedAsyncioTestCase):
         self.view.display_message(Sender.INFO, message)
 
         # ASSERT: Ensure the adapter's display_output method was called with the
-        # correct message
-        self.mock_io.display_output.assert_called_once_with(message)
+        # correct message followed by a blank line
+        self.mock_io.display_output.assert_any_call(message)
+        self.mock_io.display_output.assert_called_with("")
+        self.assertEqual(self.mock_io.display_output.call_count, 2)
 
     async def test_show_error_delegates_to_io_adapter(self):
         """Verify that `show_error()` correctly delegates to the IO adapter."""
@@ -89,7 +91,7 @@ class TestConsoleView(unittest.IsolatedAsyncioTestCase):
         mock_function = Mock()
 
         # ACT: Call the view's show_loading method
-        self.view.show_loading("Loading data", mock_function)
+        await self.view.show_loading("Loading data", mock_function)
 
         # ASSERT: Ensure the adapter's start_loading_indicator and stop_loading_indicator
         # methods were called with the correct message
@@ -99,5 +101,4 @@ class TestConsoleView(unittest.IsolatedAsyncioTestCase):
 
 
 if __name__ == "__main__":
-    unittest.main()
     unittest.main()

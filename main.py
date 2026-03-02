@@ -4,10 +4,18 @@ Handles the wiring of concrete components via Dependency Injection.
 """
 
 import asyncio
+import os
 
-from core.models import MinimumViableModel
+from dotenv import load_dotenv
+from google import genai
+
+from core.adapters import BuiltinIOAdapter, RequestsHTTPAdapter
+from core.models import GeminiIntelligenceModel, ThinkingLevel
 from core.presenters import ConsolePresenter
-from core.views import BuiltinIOAdapter, ConsoleView
+from core.services import OpenWeatherMapService
+from core.views import ConsoleView
+
+load_dotenv()
 
 # Configuration
 CONFIG = {
@@ -16,31 +24,61 @@ CONFIG = {
 #           ACE - The Artificial Consciousness Engine         #
 ###############################################################
 
-I am a simple implementation of an AI assistant, designed to
-demonstrate the core architecture of ACE.
-    - Type 'exit' to quit the application.
-    - Ask me anything or just say hello!
+Type your queries below. To exit, type 'exit' or press Ctrl+C.
+
 """,
+    "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY"),
+    "OPENWEATHERMAP_API_KEY": os.getenv("OPENWEATHERMAP_API_KEY"),
 }
+
+
+def verify_config():
+    """Verify that all required configuration values are present."""
+    missing_keys = [key for key, value in CONFIG.items() if not value]
+    if missing_keys:
+        raise ValueError(
+            f"Missing required configuration values: {', '.join(missing_keys)}. "
+            "Please set them in the .env file or environment variables."
+        )
 
 
 async def main_async():
     """Initialize the model, view, and presenter, then run the application."""
-    # 1. Create the low-level I/O hardware
-    io_adapter = BuiltinIOAdapter()
+    # 1. Verify configuration before starting the application
+    verify_config()
 
-    # 2. Initialize the Passive View with the adapter
+    # 2. Create the low-level I/O hardware
+    io_adapter = BuiltinIOAdapter()
+    http_adapter = RequestsHTTPAdapter()
+
+    # 3. Initialize the Passive View with the adapter
     view = ConsoleView(io_adapter=io_adapter)
 
-    # 3. Initialize the Minimum Viable Model (The Brain)
-    model = MinimumViableModel()
+    # 4. Initialize the Gemini Intelligence Model (The Brain)
+    services_registry = {
+        "weather_service": OpenWeatherMapService(
+            http_client_adapter=http_adapter, api_key=CONFIG["OPENWEATHERMAP_API_KEY"]
+        ),
+    }
+    # Specify fallback models in order of preference
+    fallback_models = [
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-2.0-flash-lite",
+    ]
+    model = GeminiIntelligenceModel(
+        client=genai.Client(api_key=CONFIG["GEMINI_API_KEY"]),
+        services=services_registry,
+        model="gemini-2.5-flash-lite",
+        fallback_models=fallback_models,
+    )
 
-    # 4. Inject View and Model into the Presenter (The Switchboard)
+    # 5. Inject View and Model into the Presenter (The Switchboard)
     presenter = ConsolePresenter(
         model=model, view=view, welcome_message=CONFIG["WELCOME_MESSAGE"]
     )
 
-    # 5. Execute
+    # 6. Execute
     try:
         await presenter.run()
     except KeyboardInterrupt:
@@ -48,4 +86,9 @@ async def main_async():
 
 
 if __name__ == "__main__":
-    asyncio.run(main_async())
+    try:
+        asyncio.run(main_async())
+    except KeyboardInterrupt:
+        pass
+    finally:
+        print("\nACE safely interrupted. Goodbye!")
