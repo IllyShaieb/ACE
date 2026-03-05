@@ -3,10 +3,14 @@
 import contextlib
 import inspect
 import io
+import os
 import random
+import re
 import sys
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Tuple
+
+import pytz
 
 from core.protocols import WeatherServiceProtocol, WeatherUnits
 
@@ -75,7 +79,12 @@ class ClockTool:
     @property
     def description(self) -> str:
         """Return a brief description of the tool's functionality."""
-        return "Provides the current date and time."
+        return (
+            "Returns current date/time with UTC offset and timezone name. "
+            "Omit 'timezone' for local time—never ask the user for it. "
+            "For cross-timezone questions, call twice: once without timezone (local) "
+            "and once with the target (e.g. 'Asia/Tokyo'), then compare UTC offsets."
+        )
 
     @property
     def parameters_schema(self) -> Dict[str, Any]:
@@ -85,31 +94,59 @@ class ClockTool:
             "properties": {
                 "format": {
                     "type": "STRING",
-                    "description": "Specify what to return: 'time', 'date', or 'both'. Defaults to 'both'.",
+                    "description": "'time', 'date', or 'both'. Defaults to 'both'.",
                     "enum": ["time", "date", "both"],
-                }
+                },
+                "timezone": {
+                    "type": "STRING",
+                    "description": "IANA timezone name (e.g. 'Asia/Tokyo'). Omit for local time.",
+                },
             },
             "required": [],
         }
 
-    def execute(self, format: str = "both", **kwargs: Any) -> str:
+    def execute(
+        self, format: str = "both", timezone: Optional[str] = None, **kwargs: Any
+    ) -> str:
         """Get the current date and time in the specified format.
 
         Args:
             format (str): Specify what to return: 'time', 'date', or 'both'.
                 Defaults to 'both'.
+            timezone (Optional[str]): An optional timezone to convert the date and time to,
+                specified as a string like 'Asia/Singapore'. If not provided, defaults to either the system's
+                local timezone or the value of the 'DEFAULT_TIMEZONE' environment variable.
 
         Returns:
-            str: The current date and/or time as an unambiguous ISO 8601 string.
-                Formatting for presentation is handled by the model's persona.
+            str: The current date and time in the specified format, including the UTC offset and timezone name.
         """
-        now = datetime.now()
-        if format == "time":
-            return now.strftime("%H:%M:%S")
-        elif format == "date":
-            return now.strftime("%Y-%m-%d")
+        # 1. Resolve Timezone String
+        timezone_str = timezone or os.getenv("DEFAULT_TIMEZONE")
 
-        return now.strftime("%Y-%m-%dT%H:%M:%S")
+        # Determine the current time, applying the specified timezone if provided.
+        # If no timezone is specified, fall back to the system's local time.
+        if timezone_str:
+            tz = pytz.timezone(timezone_str)
+            now = datetime.now(pytz.utc).astimezone(tz)
+        else:
+            now = datetime.now().astimezone()
+
+        # 2. Define Formats
+        format_map = {
+            "date": "%Y-%m-%d",
+            "time": "%H:%M:%S %z (%Z)",
+        }
+
+        formatted = now.strftime(format_map.get(format, "%Y-%m-%dT%H:%M:%S %z (%Z)"))
+
+        # 3. Sometimes the %Z abbreviation is missing it will show a number so need to
+        # default to the IANA timezone string.
+        search_pattern = r"\([+-]\d+\)"
+        if re.search(search_pattern, formatted):
+            tzname = now.tzname() or ""
+            label = timezone_str if re.match(r"^[+-]\d+$", tzname) else tzname
+            formatted = re.sub(search_pattern, f"({label})", formatted)
+        return formatted
 
 
 class CharacterCounterTool:
@@ -404,16 +441,30 @@ class CodeTool:
 
 
 if __name__ == "__main__":
-    from core.adapters import RequestsHTTPAdapter
-    from core.services import OpenWeatherMapService
+    # from core.adapters import RequestsHTTPAdapter
+    # from core.services import OpenWeatherMapService
 
-    api_key = "3276c0032fa9dccb1680ef10491a1190"
+    # api_key = "3276c0032fa9dccb1680ef10491a1190"
 
-    adapter = RequestsHTTPAdapter()
-    weather_service = OpenWeatherMapService(
-        api_key=api_key, http_client_adapter=adapter
+    # adapter = RequestsHTTPAdapter()
+    # weather_service = OpenWeatherMapService(
+    #     api_key=api_key, http_client_adapter=adapter
+    # )
+    # weather_tool = WeatherTool(weather_service=weather_service)
+
+    # result = weather_tool.execute(location="London,GB")
+    # print(result)
+
+    # Test the ClockTool
+    clock_tool = ClockTool()
+    print("Date and Time (UTC):", clock_tool.execute())
+    print("Time (UTC):", clock_tool.execute(format="time"))
+    print("Date (UTC):", clock_tool.execute(format="date"))
+    print(
+        "Date and Time (Asia/Singapore):",
+        clock_tool.execute(timezone="Asia/Singapore"),
     )
-    weather_tool = WeatherTool(weather_service=weather_service)
-
-    result = weather_tool.execute(location="London,GB")
-    print(result)
+    print(
+        "Date and Time (Tokyo):",
+        clock_tool.execute(timezone="Asia/Tokyo"),
+    )
