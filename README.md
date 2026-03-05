@@ -35,8 +35,12 @@ uv sync
 
 ## Setup
 Before using ACE, you need to set up the following environment variables:
-- `GEMINI_API_KEY`: Your API key for accessing Google Gemini API (https://ai.google.dev/gemini-api/docs).
-- `OPENWEATHERMAP_API_KEY`: Your API key for the OpenWeatherMap API (https://openweathermap.org/api) to enable the WeatherTool.
+| Variable | Description |
+|---|---|
+| `GEMINI_API_KEY` | Your API key for accessing Google Gemini API (https://ai.google.dev/gemini-api/docs). |
+| `OPENWEATHERMAP_API_KEY` | Your API key for the OpenWeatherMap API (https://openweathermap.org/api) to enable the WeatherTool. |
+| `DEFAULT_LOCATION` | A default location (e.g., `London`) for the tools to use when no location is specified in a query. |
+| `DEFAULT_TIMEZONE` | A default time-zone (e.g., `Europe/London`) for the tools to use when no time-zone is specified in a query. |
 
 *These can be set in a `.env` file or exported as environment variables.*
 
