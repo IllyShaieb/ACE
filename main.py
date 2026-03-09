@@ -61,17 +61,20 @@ async def main_async():
         ),
         "location_service": IPInfoLocationService(http_client_adapter=http_adapter),
     }
-    # Specify fallback models in order of preference
-    fallback_models = [
+
+    # Specify a list of available models for the Gemini Intelligence Model, starting with the most
+    # capable model and including fallback options. This allows the model to gracefully degrade to
+    # less capable models if the most capable one is unavailable or encounters issues.
+    available_models = [
+        "gemini-3.1-flash-lite-preview",
         "gemini-2.5-flash",
-        "gemini-2.0-flash",
-        "gemini-2.0-flash-lite",
+        "gemini-2.5-flash-lite",
     ]
     model = GeminiIntelligenceModel(
         client=genai.Client(api_key=CONFIG["GEMINI_API_KEY"]),
         services=services_registry,
-        model="gemini-2.5-flash-lite",
-        fallback_models=fallback_models,
+        model=available_models[0],  # Start with the most capable model
+        fallback_models=available_models[1:],  # All except the most capable model,
     )
 
     # 5. Inject View and Model into the Presenter (The Switchboard)
