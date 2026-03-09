@@ -1,77 +1,98 @@
-"""main.py - The entry point for the ACE program.
+"""main.py: Entry point for the ACE application.
 
-This file is used to start the ACE program and interact with the user,
-linking together the various components of the program following the
-Model-View-Presenter (MVP) architectural pattern.
+Handles the wiring of concrete components via Dependency Injection.
 """
 
+import asyncio
 import os
 
 from dotenv import load_dotenv
+from google import genai
 
-from core.model import ACEModel
-from core.presenter import ConsolePresenter, DesktopPresenter
-from core.view import ConsoleView, DesktopView
+from core.adapters import RequestsHTTPAdapter, RichIOAdapter
+from core.models import GeminiIntelligenceModel
+from core.presenters import ConsolePresenter
+from core.services import IPInfoLocationService, OpenWeatherMapService
+from core.views import ConsoleView
 
-# Load environment variables from .env file
 load_dotenv()
 
-# Define available applications with their models, views, and presenters
-APPS = {
-    "1": ("Desktop Application", ACEModel, DesktopView, DesktopPresenter),
-    "2": ("Console Application", ACEModel, ConsoleView, ConsolePresenter),
+# Configuration
+CONFIG = {
+    "WELCOME_MESSAGE": """
+###############################################################
+#           ACE - The Artificial Consciousness Engine         #
+###############################################################
+
+Type your queries below. To exit, type 'exit' or press Ctrl+C.
+
+""",
+    "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY"),
+    "OPENWEATHERMAP_API_KEY": os.getenv("OPENWEATHERMAP_API_KEY"),
 }
 
 
-def select_app(mode_override: str = "0") -> str:
-    """Prompt the user to select an application mode.
-
-    Args:
-        mode_override (str): If not "0", this value is used to select the mode directly.
-
-    Returns:
-        str: The selected application mode key.
-    """
-    match mode_override:
-        case "0":
-            print("Select the application mode:")
-            for key, (description, *_) in APPS.items():
-                print(f"  {key}. {description}")
-
-            choice = input("Enter your choice: ").strip()
-            while choice not in APPS:
-                choice = input("Invalid choice. Please try again: ").strip()
-            return choice
-        case _:
-            return mode_override
+def verify_config():
+    """Verify that all required configuration values are present."""
+    missing_keys = [key for key, value in CONFIG.items() if not value]
+    if missing_keys:
+        raise ValueError(
+            f"Missing required configuration values: {', '.join(missing_keys)}. "
+            "Please set them in the .env file or environment variables."
+        )
 
 
-def main():
-    """Main function to start the ACE application."""
+async def main_async():
+    """Initialize the model, view, and presenter, then run the application."""
+    # 1. Verify configuration before starting the application
+    verify_config()
 
-    # Check for mode override from environment variable
-    mode_override = os.getenv("ACE_MODE_OVERRIDE", "0")
-    choice = select_app(mode_override)
+    # 2. Create the low-level I/O hardware
+    io_adapter = RichIOAdapter()
+    http_adapter = RequestsHTTPAdapter()
 
-    selected_app = APPS[choice]
-    print(f"Starting {selected_app[0]}...")
+    # 3. Initialize the Passive View with the adapter
+    view = ConsoleView(io_adapter=io_adapter)
 
-    # Instantiate selected app
-    model_class = selected_app[1]
-    view_class = selected_app[2]
-    presenter_class = selected_app[3]
+    # 4. Initialize the Gemini Intelligence Model (The Brain)
+    services_registry = {
+        "weather_service": OpenWeatherMapService(
+            http_client_adapter=http_adapter, api_key=CONFIG["OPENWEATHERMAP_API_KEY"]
+        ),
+        "location_service": IPInfoLocationService(http_client_adapter=http_adapter),
+    }
 
-    model = model_class()
-    view = view_class()
-    presenter = presenter_class(model, view)
+    # Specify a list of available models for the Gemini Intelligence Model, starting with the most
+    # capable model and including fallback options. This allows the model to gracefully degrade to
+    # less capable models if the most capable one is unavailable or encounters issues.
+    available_models = [
+        "gemini-3.1-flash-lite-preview",
+        "gemini-2.5-flash",
+        "gemini-2.5-flash-lite",
+    ]
+    model = GeminiIntelligenceModel(
+        client=genai.Client(api_key=CONFIG["GEMINI_API_KEY"]),
+        services=services_registry,
+        model=available_models[0],  # Start with the most capable model
+        fallback_models=available_models[1:],  # All except the most capable model,
+    )
 
-    # Start the application
-    presenter.run()
+    # 5. Inject View and Model into the Presenter (The Switchboard)
+    presenter = ConsolePresenter(
+        model=model, view=view, welcome_message=CONFIG["WELCOME_MESSAGE"]
+    )
 
-    # Clean up and exit
-    print(f"Exiting {selected_app[0]}...")
-    return
+    # 6. Execute
+    try:
+        await presenter.run()
+    except KeyboardInterrupt:
+        print("\nACE safely interrupted. Goodbye!")
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        asyncio.run(main_async())
+    except KeyboardInterrupt:
+        pass
+    finally:
+        print("\nACE safely interrupted. Goodbye!")

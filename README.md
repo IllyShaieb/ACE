@@ -9,7 +9,7 @@
 | ⚙️ [Setup](#setup)                              | Environment variable configuration           |
 | 💡 [Usage](#usage)                              | How to run and interact with ACE             |
 | 🧠 [How ACE Works](#how-ace-works)              | Explanation of ACE's internal logic          |
-| 🧩 [Adding New Action Handlers](#adding-new-action-handlers) | Guide to extending ACE with custom actions |
+| 🧩 [Adding New Tools](#adding-new-tools) | Guide to extending ACE with custom tools |
 
 ## Introduction
 
@@ -30,16 +30,19 @@ pip install uv
 Finally, install the dependencies for ACE by running the following command:
 
 ```bash
-uv install
+uv sync
 ```
 
 ## Setup
 Before using ACE, you need to set up the following environment variables:
-- `WEATHER_API_KEY`: Your API key for accessing weather data (https://www.weatherapi.com/).
-- `ACE_MODE_OVERRIDE`: Set to `1` to force GUI mode, `2` to force Console mode, or `0` to prompt the user each time at startup.
-- `GEMINI_API_KEY`: Your API key for accessing Google Gemini API (https://ai.google.dev/gemini-api/docs).
+| Variable | Description |
+|---|---|
+| `GEMINI_API_KEY` | Your API key for accessing Google Gemini API (https://ai.google.dev/gemini-api/docs). |
+| `OPENWEATHERMAP_API_KEY` | Your API key for the OpenWeatherMap API (https://openweathermap.org/api) to enable the WeatherTool. |
+| `DEFAULT_LOCATION` | A default location (e.g., `London`) for the tools to use when no location is specified in a query. |
+| `DEFAULT_TIMEZONE` | A default time-zone (e.g., `Europe/London`) for the tools to use when no time-zone is specified in a query. |
 
-*This can be set in a `.env` file or exported as an environment variable.*
+*These can be set in a `.env` file or exported as environment variables.*
 
 ## Usage
 
@@ -55,11 +58,11 @@ This will start the ACE digital assistant, and you can interact with it by typin
 
 ACE operates using a modern Large Language Model (LLM) architecture with Tool-Calling capabilities, allowing it to move beyond simple chat and perform complex, real-world actions.
 
-1. **Receives the Query & Context:** You submit a prompt (e.g., "What is the weather in London?"). The LLM reads your request along with the entire prior conversation history (the context) to understand your intent.
+1. **Receives the Query & Context:** You submit a prompt (e.g., "What is the time right now?"). The LLM reads your request along with the entire prior conversation history (the context) to understand your intent.
 
-2. **Intelligent Tool Selection:** The LLM, acting as a superb interpreter, automatically determines if one of the application’s available Python functions—which we call "Tools"—is required. For the weather, it identifies the get_weather tool and extracts the necessary parameter ("London").
+2. **Intelligent Tool Selection:** The LLM automatically determines if one of the application's available Tools is required. For the time query, it identifies the `get_date_time` tool and extracts any relevant parameters.
 
-3. **Executes the Action:** The system momentarily pauses the chat to execute the actual Python function (core.actions.handle_get_weather(location="London")), capturing the raw result (e.g., "15°C, partly cloudy").
+3. **Executes the Action:** The system momentarily pauses the chat to call the corresponding Tool class's `execute()` method (e.g., `ClockTool().execute(format="time")`), capturing the raw result.
 
 4. **Formulates and Delivers the Answer:** The raw tool output is sent back to the LLM, which then processes it and formats it into a polite, polished, and persona-aligned response for display in your interface.
 
@@ -67,73 +70,92 @@ ACE operates using a modern Large Language Model (LLM) architecture with Tool-Ca
 
 | Component               | Role                                  |
 |-------------------------|----------------------------------------------|
-| `main.py`               | The main **Entry Point**. It initialises the selected View, Model, and Presenter.         |
-| `core/model.py`         | The Model Interface. A thin wrapper that provides a consistent interface to the LLM API's capabilities. |
-| `core/view.py`            | The **User Interface** (IACEView protocol). Contains the `ConsoleView` and `DesktopView` (customtkinter) frontends.    |
-| `core/presenter.py`    | The **Orchestrator** (Model-View-Presenter logic). It manages the application loop, loads chat history, and coordinates the flow between the View and the Model. |
-| `core/llm.py`          | The **API Gateway**. Handles all direct interaction with the Gemini LLM, defining the LLM's available Tools and executing tool-calls. |
-| `core/actions.py`      | The **Tool Registry**. Defines all extensible Python functions (Tools) that the LLM can be instructed to invoke. |
-| `core/database.py`   | The **Data Store**. Manages all SQLite database operations for persistently recording conversations. |
+| `main.py`               | The main **Entry Point**. Wires the concrete components together via Dependency Injection and starts the application. |
+| `core/models.py`        | The **Intelligence Layer**. Contains `GeminiIntelligenceModel` (powered by the Gemini API) and the simpler `MinimumViableModel`. Implements the three-pass tool-calling loop: Intent → Execution → Synthesis. |
+| `core/views.py`         | The **User Interface**. Contains `ConsoleView` (the console frontend) and `BuiltinIOAdapter` (wraps Python's built-in I/O). |
+| `core/presenters.py`    | The **Orchestrator**. `ConsolePresenter` mediates between the View and the Model, reacting to view events and driving the application loop. |
+| `core/protocols.py`     | The **Contract Layer**. Defines `Protocol` interfaces (`ModelProtocol`, `ViewProtocol`, `IOAdapterProtocol`, `ToolProtocol`, etc.) that decouple components and enable Dependency Injection. |
+| `core/tools.py`         | The **Tool Registry**. Defines class-based Tools (e.g., `ClockTool`, `CharacterCounterTool`, `CoinFlipTool`) that the LLM can invoke. Tools are auto-discovered by `discover_tools()`. |
+| `core/events.py`        | The **Event Bus**. Provides the `Signal` class and `ViewEvents` dataclass for decoupled, event-driven communication between the View and Presenter. |
 
-## Adding New Actions (Tools)
+## Adding New Tools
 
-Adding new tools extremely simple:
+Adding a new tool is straightforward. Tools are class-based and automatically discovered at startup by `discover_tools()` — no registration or wiring needed.
 
-1.  **Open `core/actions.py`**.
-2.  **Create your Python function**. Make sure it has typed arguments.
-3.  **Add the decorator** `@register_handler` above your function, providing the following parameters:
-    - `action_name` (str): The unique name of the action.
-    - `description` (str): A brief description of what the action does. This helps the LLM understand when to use it.
-    - `requires_input` (bool, optional): Whether the action requires user input. Defaults to `False`.
+1. **Open `core/tools.py`**.
+2. **Create a new class** that satisfies the `ToolProtocol` interface by implementing three properties and one method:
+    - `name` (str property): The unique tool name the LLM will reference.
+    - `description` (str property): A brief description of what the tool does. This helps the LLM understand when to use it.
+    - `parameters_schema` (dict property): A JSON-schema-style dict describing the tool's parameters.
+    - `execute(**kwargs)`: The method that performs the tool's action and returns its result.
 
 ### Example:
 
 ```python
 import random
+from typing import Any, Dict
 
-@register_handler("RANDOM_NUMBER", description="Generates a random number between two integers.", requires_input=True)
-def generate_random_number(min_value: int, max_value: int) -> int:
-    """Generates a random number between min_value and max_value."""
-    return random.randint(min_value, max_value)
+class RandomNumberTool:
+    """A tool that generates a random integer between two values."""
+
+    @property
+    def name(self) -> str:
+        return "generate_random_number"
+
+    @property
+    def description(self) -> str:
+        return "Generates a random integer between min_value and max_value (inclusive)."
+
+    @property
+    def parameters_schema(self) -> Dict[str, Any]:
+        return {
+            "type": "OBJECT",
+            "properties": {
+                "min_value": {"type": "INTEGER", "description": "The minimum value."},
+                "max_value": {"type": "INTEGER", "description": "The maximum value."},
+            },
+            "required": ["min_value", "max_value"],
+        }
+
+    def execute(self, min_value: int, max_value: int, **kwargs: Any) -> int:
+        """Return a random integer between min_value and max_value."""
+        return random.randint(min_value, max_value)
 ```
 
-### Technical Note: The Action Handler Registry
+### How Auto-Discovery Works
 
-The `@register_handler` decorator automatically stores your function in the central `ACTION_HANDLERS` dictionary as an `ActionHandler` object. If a handler is registered with a name that already exists, the new function will automatically override the original. A warning is issued to the developer when this occurs, permitting advanced features like intentional patching or local testing overrides.
+`discover_tools()` in `core/tools.py` uses `inspect` to scan the module at startup. Any class that meets ALL of the following criteria will be automatically instantiated and passed to the model:
 
-**Best practice:** Use unique action names unless you intentionally want to override an existing handler (e.g., in tests or plugins).
+1. Has a class name ending with the word `"Tool"` (e.g., `WeatherTool`).
+2. Has a callable `execute` method.
+3. Has a `name` property.
+4. Has a `description` property.
+5. Has a `parameters_schema` property.
 
-**Example of overriding:**
+*Note: The metadata attributes (`name`, `description`, `parameters_schema`) MUST be defined as class variables or `@property` decorators so the auto-discovery engine can read them before instantiation. Do not define them as instance variables inside `__init__`.*
+
+There is no manual registration step.
+
+### Testing Your Tool
+
+Add a test for your new tool in [`tests/test_tools.py`](tests/test_tools.py):
 
 ```python
-@register_handler("MY_ACTION", description="First version of MY_ACTION")
-def first_handler():
-    return "First version"
+class TestRandomNumberTool(unittest.TestCase):
+    """Tests for the RandomNumberTool."""
 
-# This will override the previous handler for "MY_ACTION"
-@register_handler("MY_ACTION", description="Second version of MY_ACTION")
-def second_handler():
-    return "Second version"
+    def setUp(self):
+        self.tool = tools.RandomNumberTool()
 
-# Now, execute_action("MY_ACTION") will return "Second version"
+    def test_execute_returns_integer_in_range(self):
+        """Ensure execute() returns an integer within the specified range."""
+        result = self.tool.execute(min_value=1, max_value=10)
+        self.assertIsInstance(result, int)
+        self.assertGreaterEqual(result, 1)
+        self.assertLessEqual(result, 10)
 ```
 
-### Testing Your Handler
-
-Add a test for your new handler in [`tests/test_actions.py`](tests/test_actions.py):
-
-```python
-class TestMyCustomAction(unittest.TestCase):
-    """Tests for the MY_CUSTOM_ACTION handler."""
-
-    def test_handle_my_custom_action(self):
-        """Ensure the MY_CUSTOM_ACTION handler returns the expected response."""
-        result = actions.execute_action("MY_CUSTOM_ACTION")
-        self.assertIsInstance(result, str)
-        self.assertEqual(result, "This is my custom action response!")
-```
-
-This ensures your handler is registered and works as expected.
+This ensures your tool is correctly implemented and callable.
 
 ## Contributing
 
@@ -145,4 +167,4 @@ This section is under development. The license details will be provided soon. St
 
 ## Contact
 
-Feel free to reach out to me on [GitHub](shaiebilly+ace@gmail.com) if you have any questions or feedback about ACE. I would love to hear from you!
+Feel free to reach out to me via [email](mailto:shaiebilly+ace@gmail.com) if you have any questions or feedback about ACE. I would love to hear from you!
