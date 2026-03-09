@@ -186,3 +186,26 @@ class WeatherServiceProtocol(Protocol):
     ) -> Dict[str, str]:
         """Get the current weather for a given location."""
         ...
+
+    def get_future_weather(
+        self,
+        location: str,
+        units: WeatherUnits = WeatherUnits.STANDARD,
+        forecast_type: str = "daily",
+    ) -> Dict[str, str]:
+        """Get the future weather for a given location.
+
+        Args:
+            forecast_type: 'daily' for the next 5 days, 'hourly' for the next 12 hours.
+        """
+        ...
+
+
+@runtime_checkable
+class LocationServiceProtocol(Protocol):
+    """Protocol for a location service, defining the expected interface for fetching
+    location information."""
+
+    def get_location(self) -> Dict[str, str]:
+        """Get the location information based on the client's IP address."""
+        ...
