@@ -46,15 +46,19 @@ class TestConsolePresenter(unittest.IsolatedAsyncioTestCase):
         model_response = (
             "The current date and time is Monday, January 01, 2026 at 12:00 PM."
         )
-        self.mock_model.process_query.return_value = model_response
+        self.mock_view.show_loading = AsyncMock(return_value=model_response)
 
         # ACT: Handle the user input
         await self.presenter.handle_user_input(user_input)
 
         # ASSERT: Verify the model processed the query and the view was updated
 
-        # 1. Check that the model's `process_query()` was called with the correct user input
-        self.mock_model.process_query.assert_awaited_once_with(user_input)
+        # 1. Check that the view's `show_loading()` was called with the correct user input
+        self.mock_view.show_loading.assert_awaited_once_with(
+            "Thinking...",
+            self.mock_model.process_query,
+            query=user_input,
+        )
 
         # 2. Check that the view's `display_message()` was called with the correct sender and response
         self.mock_view.display_message.assert_called_once_with(
