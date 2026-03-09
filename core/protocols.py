@@ -41,8 +41,8 @@ class IOAdapterProtocol(Protocol):
         """Get input from the user with a given prompt."""
         ...
 
-    def display_output(self, message: str) -> None:
-        """Display a message to the user."""
+    def display_output(self, message: str, sender: Optional["Sender"] = None) -> None:
+        """Display a message to the user, with optional sender-specific styling."""
         ...
 
     def start_loading_indicator(self, message: str) -> None:

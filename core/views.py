@@ -37,7 +37,6 @@ class ConsoleView:
                 self.stop()
                 break
 
-            self.io_adapter.display_output("")
             await self.events.on_user_input.emit(user_input)
 
     def stop(self) -> None:
@@ -71,14 +70,7 @@ class ConsoleView:
 
     def display_message(self, sender: Sender, message: str) -> None:
         """Display a message to the user."""
-        match sender:
-            case Sender.INFO:
-                formatted_message = message
-            case _:
-                formatted_message = f"{sender.value}: {message}"
-
-        self.io_adapter.display_output(formatted_message)
-        self.io_adapter.display_output("")
+        self.io_adapter.display_output(message, sender=sender)
 
     def show_error(self, error_message: str) -> None:
         """Show an error message to the user."""

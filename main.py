@@ -9,10 +9,10 @@ import os
 from dotenv import load_dotenv
 from google import genai
 
-from core.adapters import BuiltinIOAdapter, RequestsHTTPAdapter
-from core.models import GeminiIntelligenceModel, ThinkingLevel
+from core.adapters import RequestsHTTPAdapter, RichIOAdapter
+from core.models import GeminiIntelligenceModel
 from core.presenters import ConsolePresenter
-from core.services import OpenWeatherMapService
+from core.services import IPInfoLocationService, OpenWeatherMapService
 from core.views import ConsoleView
 
 load_dotenv()
@@ -48,7 +48,7 @@ async def main_async():
     verify_config()
 
     # 2. Create the low-level I/O hardware
-    io_adapter = BuiltinIOAdapter()
+    io_adapter = RichIOAdapter()
     http_adapter = RequestsHTTPAdapter()
 
     # 3. Initialize the Passive View with the adapter
@@ -59,6 +59,7 @@ async def main_async():
         "weather_service": OpenWeatherMapService(
             http_client_adapter=http_adapter, api_key=CONFIG["OPENWEATHERMAP_API_KEY"]
         ),
+        "location_service": IPInfoLocationService(http_client_adapter=http_adapter),
     }
     # Specify fallback models in order of preference
     fallback_models = [

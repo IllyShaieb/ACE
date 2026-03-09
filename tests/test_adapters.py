@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import requests
 
 from core import adapters
+from core.protocols import Sender
 
 ##################################################################################
 #                                  VIEW ADAPTERS                                 #
@@ -42,6 +43,18 @@ class TestBuiltinIOAdapter(unittest.TestCase):
 
         # ASSERT: Verify that the print function was called with the correct message
         mock_print.assert_called_once_with("Hello, World!")
+
+    @patch("builtins.print")
+    def test_display_output_with_sender_info(self, mock_print):
+        """Test that display_output prints the bare message for INFO sender."""
+        self.adapter.display_output("System ready", sender=Sender.INFO)
+        mock_print.assert_any_call("System ready")
+
+    @patch("builtins.print")
+    def test_display_output_with_sender_prefixes_label(self, mock_print):
+        """Test that display_output prefixes non-INFO senders with their value."""
+        self.adapter.display_output("Hello!", sender=Sender.ACE)
+        mock_print.assert_any_call("ACE: Hello!")
 
 
 ##################################################################################
