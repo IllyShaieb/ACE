@@ -2,7 +2,7 @@
 the expected interfaces for various components."""
 
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, Protocol, runtime_checkable
+from typing import Any, Callable, Dict, List, Optional, Protocol, runtime_checkable
 
 from core.events import ViewEvents
 
@@ -208,4 +208,58 @@ class LocationServiceProtocol(Protocol):
 
     def get_location(self) -> Dict[str, str]:
         """Get the location information based on the client's IP address."""
+        ...
+
+
+###########################################################################################
+#                                  STORAGE PROTOCOLS                                      #
+###########################################################################################
+
+
+@runtime_checkable
+class DatabaseServiceProtocol(Protocol):
+    """Protocol for a generic database service, providing standard low-level DB operations.
+
+    Uses CRUD-like methods for executing SQL queries and managing transactions, abstracting
+    away the underlying database implementation details.
+    """
+
+    def create_table(self, configuration: Dict[str, Any]) -> None:
+        """Create a table in the database based on the provided configuration."""
+        ...
+
+    def delete_table(self, table_name: str) -> None:
+        """Delete an existing table by name."""
+        ...
+
+    def insert(
+        self,
+        table: str,
+        data: Dict[str, Any],
+        conditions: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Inserts new data into a database"""
+        ...
+
+    def select(
+        self,
+        headers: Optional[List[str]] = None,
+        conditions: Optional[Dict[str, Any]] = None,
+        limit: Optional[int] = None,
+        distinct: bool = False,
+    ) -> List:
+        """Extracts data from a database"""
+        ...
+
+    def update(
+        self,
+        table: str,
+        updates: Dict[str, Any],
+        conditions: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Updates data in a database"""
+        ...
+
+    def delete(self, table: str, conditions: Optional[Dict[str, Any]] = None) -> None:
+        """Deletes data from a database"""
         ...
