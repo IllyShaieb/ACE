@@ -419,6 +419,7 @@ class SQLiteDatabaseService:
         connection = None
         try:
             with sqlite3.connect(self.database_path) as connection:
+                connection.row_factory = sqlite3.Row  # Enable named column access
                 cursor = connection.cursor()
                 columns = ", ".join(headers) if headers else "*"
                 distinct_clause = "DISTINCT " if distinct else ""

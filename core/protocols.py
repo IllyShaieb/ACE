@@ -236,13 +236,13 @@ class DatabaseServiceProtocol(Protocol):
         self,
         table: str,
         data: Dict[str, Any],
-        conditions: Optional[Dict[str, Any]] = None,
     ) -> None:
         """Inserts new data into a database"""
         ...
 
     def select(
         self,
+        table: str,
         headers: Optional[List[str]] = None,
         conditions: Optional[Dict[str, Any]] = None,
         limit: Optional[int] = None,
@@ -262,4 +262,34 @@ class DatabaseServiceProtocol(Protocol):
 
     def delete(self, table: str, conditions: Optional[Dict[str, Any]] = None) -> None:
         """Deletes data from a database"""
+        ...
+
+
+@runtime_checkable
+class ConversationStorageAdapterProtocol(Protocol):
+    """Protocol for a conversation storage adapter, defining the expected interface for
+    storing and retrieving conversation history."""
+
+    def create_session(self, title: Optional[str] = None) -> str:
+        """Create a new conversation session and return its unique identifier."""
+        ...
+
+    def save_message(self, session_id: str, role: str, content: str) -> None:
+        """Save a message to the conversation history for a given session."""
+        ...
+
+    def get_session_messages(self, session_id: str) -> List[Dict[str, str]]:
+        """Retrieve the conversation history for a given session ID."""
+        ...
+
+    def get_recent_sessions(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Retrieve a list of recent conversation sessions, including session IDs and metadata."""
+        ...
+
+    def update_session_title(self, session_id: str, title: str) -> None:
+        """Update the title of a conversation session."""
+        ...
+
+    def delete_session(self, session_id: str) -> None:
+        """Delete a conversation session and its associated messages."""
         ...
