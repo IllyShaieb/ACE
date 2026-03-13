@@ -477,7 +477,7 @@ class TestSQLiteDatabaseService(unittest.TestCase):
         # ASSERT: Verify that `sqlite3.connect()` was called with the correct database name
         mock_connect.assert_called_with(":memory:")
         mock_cursor.execute.assert_called_with(
-            "CREATE TABLE test_table (id INTEGER PRIMARY KEY, name TEXT)"
+            "CREATE TABLE IF NOT EXISTS test_table (id INTEGER PRIMARY KEY, name TEXT)"
         )
 
     @patch("core.services.sqlite3.connect")

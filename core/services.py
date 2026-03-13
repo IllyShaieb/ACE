@@ -323,14 +323,14 @@ class SQLiteDatabaseService:
         connection = None
         try:
             with sqlite3.connect(self.database_path) as connection:
+                # Set to output rows as dictionaries for easier access to column values by name
+                connection.row_factory = sqlite3.Row
                 cursor = connection.cursor()
                 columns_def = ", ".join(
                     f"{col_name} {col_type}"
                     for col_name, col_type in configuration["columns"].items()
                 )
-                create_table_query = (
-                    f"CREATE TABLE {configuration['table_name']} ({columns_def})"
-                )
+                create_table_query = f"CREATE TABLE IF NOT EXISTS {configuration['table_name']} ({columns_def})"
                 cursor.execute(create_table_query)
                 connection.commit()
         except sqlite3.Error as e:

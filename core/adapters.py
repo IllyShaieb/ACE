@@ -200,7 +200,8 @@ class DatabaseConversationStorageAdapter:
             {
                 "table_name": "messages",
                 "columns": {
-                    "session_id": "TEXT PRIMARY KEY",
+                    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+                    "session_id": "TEXT",
                     "timestamp": "TIMESTAMP",
                     "sender": "TEXT",
                     "content": "TEXT",
