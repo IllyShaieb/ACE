@@ -206,7 +206,8 @@ class TestDatabaseConversationStorageAdapter(unittest.TestCase):
                 "updated_at": "TIMESTAMP",
             },
             "messages": {
-                "session_id": "TEXT PRIMARY KEY",
+                "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+                "session_id": "TEXT",
                 "timestamp": "TIMESTAMP",
                 "sender": "TEXT",
                 "content": "TEXT",
