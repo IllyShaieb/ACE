@@ -5,14 +5,23 @@ Handles the wiring of concrete components via Dependency Injection.
 
 import asyncio
 import os
+from pathlib import Path
 
 from dotenv import load_dotenv
 from google import genai
 
-from core.adapters import RequestsHTTPAdapter, RichIOAdapter
+from core.adapters import (
+    RequestsHTTPAdapter,
+    RichIOAdapter,
+    DatabaseConversationStorageAdapter,
+)
 from core.models import GeminiIntelligenceModel
 from core.presenters import ConsolePresenter
-from core.services import IPInfoLocationService, OpenWeatherMapService
+from core.services import (
+    IPInfoLocationService,
+    OpenWeatherMapService,
+    SQLiteDatabaseService,
+)
 from core.views import ConsoleView
 
 load_dotenv()
@@ -29,6 +38,7 @@ Type your queries below. To exit, type 'exit' or press Ctrl+C.
 """,
     "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY"),
     "OPENWEATHERMAP_API_KEY": os.getenv("OPENWEATHERMAP_API_KEY"),
+    "DATABASE_PATH": Path("data", "ace_conversations.db"),
 }
 
 
@@ -60,6 +70,7 @@ async def main_async():
             http_client_adapter=http_adapter, api_key=CONFIG["OPENWEATHERMAP_API_KEY"]
         ),
         "location_service": IPInfoLocationService(http_client_adapter=http_adapter),
+        "database_service": SQLiteDatabaseService(CONFIG["DATABASE_PATH"]),
     }
 
     # Specify a list of available models for the Gemini Intelligence Model, starting with the most
@@ -70,8 +81,13 @@ async def main_async():
         "gemini-2.5-flash",
         "gemini-2.5-flash-lite",
     ]
+    storage_adapter = DatabaseConversationStorageAdapter(
+        services_registry["database_service"]
+    )
+
     model = GeminiIntelligenceModel(
         client=genai.Client(api_key=CONFIG["GEMINI_API_KEY"]),
+        storage_adapter=storage_adapter,
         services=services_registry,
         model=available_models[0],  # Start with the most capable model
         fallback_models=available_models[1:],  # All except the most capable model,
@@ -79,7 +95,10 @@ async def main_async():
 
     # 5. Inject View and Model into the Presenter (The Switchboard)
     presenter = ConsolePresenter(
-        model=model, view=view, welcome_message=CONFIG["WELCOME_MESSAGE"]
+        model=model,
+        view=view,
+        welcome_message=CONFIG["WELCOME_MESSAGE"],
+        storage_adapter=storage_adapter,
     )
 
     # 6. Execute
