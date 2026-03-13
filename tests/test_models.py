@@ -10,7 +10,7 @@ from google.genai import errors as genai_errors
 from google.genai import types
 
 from core.models import GeminiIntelligenceModel, MinimumViableModel
-from core.protocols import ToolProtocol
+from core.protocols import ToolProtocol, ConversationStorageAdapterProtocol
 
 
 class TestMinimumViableModel(unittest.IsolatedAsyncioTestCase):
@@ -67,6 +67,7 @@ class TestGeminiIntelligenceModel(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         """Set up common test components."""
         self.mock_client = Mock(spec=genai.Client)
+        self.mock_storage = MagicMock(spec=ConversationStorageAdapterProtocol)
 
         # Configure the cache mock: Mock.name is a special attribute so we must set
         # it explicitly via configure_mock to ensure it returns a predictable string.
@@ -74,7 +75,9 @@ class TestGeminiIntelligenceModel(unittest.IsolatedAsyncioTestCase):
         mock_cache.configure_mock(name="cachedContents/test-cache-id")
         self.mock_client.caches.create.return_value = mock_cache
 
-        self.model = GeminiIntelligenceModel(self.mock_client, tools=[])
+        self.model = GeminiIntelligenceModel(
+            self.mock_client, tools=[], storage_adapter=self.mock_storage
+        )
 
     def _create_mock_response(
         self, text: Optional[str] = None, function_call: Optional[MagicMock] = None
@@ -155,6 +158,9 @@ class TestGeminiIntelligenceModel(unittest.IsolatedAsyncioTestCase):
 
     async def test_chat_session_references_cache(self):
         """Verify that the chat session is configured to use the context cache."""
+        # ACT: Load a session to trigger chat creation
+        self.model.load_session()
+
         # ASSERT: The chat was created with a cached_content reference
         self.mock_client.chats.create.assert_called_once()
 
@@ -199,7 +205,10 @@ class TestGeminiIntelligenceModel(unittest.IsolatedAsyncioTestCase):
         )
 
         # ACT: Construct the model; this should not raise
-        fallback_model = GeminiIntelligenceModel(fallback_client, tools=[])
+        fallback_model = GeminiIntelligenceModel(
+            fallback_client, tools=[], storage_adapter=self.mock_storage
+        )
+        fallback_model.load_session()
 
         # ASSERT: No cache is stored
         self.assertIsNone(fallback_model._cache)

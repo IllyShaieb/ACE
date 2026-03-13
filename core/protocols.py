@@ -20,6 +20,10 @@ class ModelProtocol(Protocol):
         """Process a user query asynchronously and return a response."""
         ...
 
+    def load_session(self, session_id: Optional[str] = None) -> None:
+        """Load a conversation session by ID, or start a new session if no ID is provided."""
+        ...
+
 
 #######################################################################################
 #                                   VIEW PROTOCOLS                                    #
@@ -51,6 +55,10 @@ class IOAdapterProtocol(Protocol):
 
     def stop_loading_indicator(self) -> None:
         """Stop the loading indicator."""
+        ...
+
+    def get_session_choice(self, sessions: List[Dict[str, Any]]) -> Optional[str]:
+        """Display a list of recent sessions and prompt the user to select one."""
         ...
 
 
@@ -88,6 +96,10 @@ class ViewProtocol(Protocol):
 
     def show_error(self, error_message: str) -> None:
         """Show an error message to the user."""
+        ...
+
+    def get_session_choice(self, sessions: List[Dict[str, Any]]) -> Optional[str]:
+        """Display a list of recent sessions and prompt the user to select one."""
         ...
 
 

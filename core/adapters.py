@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional
 import requests
 import rich
 from rich.markdown import Markdown
+from rich.table import Table
 
 from core.protocols import DatabaseServiceProtocol, Sender
 
@@ -100,6 +101,55 @@ class RichIOAdapter:
     def stop_loading_indicator(self) -> None:
         if self._loading_indicator:
             self._loading_indicator.stop()
+
+    def get_session_choice(self, sessions: List[Dict[str, Any]]) -> Optional[str]:
+        """Displays a formatted table of recent chats and asks the user to choose.
+
+        Args:
+            sessions (List[Dict[str, Any]]): A list of recent conversation sessions, where each session is a dictionary
+                containing information about the session, such as 'title', 'updated_at', and 'session_id'.
+
+        Returns:
+            Optional[str]: The session_id of the selected conversation session, or None if the user chooses to start a new conversation.
+        """
+        # If there are no sessions, inform the user and return None to start a new chat
+        if not sessions:
+            self.console.print(
+                "[italic cyan]No previous conversations found. Starting a new chat...[/italic cyan]\n"
+            )
+            return None
+
+        # Display sessions in a rich table
+        table = Table(title="Recent Conversations", title_style="bold magenta")
+        table.add_column("#", style="cyan", justify="right")
+        table.add_column("Title", style="green")
+        table.add_column("Last Updated", style="yellow")
+
+        for idx, session in enumerate(sessions, 1):
+            table.add_row(
+                str(idx), session.get("title", ""), session.get("updated_at", "")
+            )
+
+        self.console.print(table)
+        self.console.print("[cyan]0[/cyan]: Start a [bold]New Conversation[/bold]")
+
+        # Create a mapping of valid choices to session IDs
+        choices = {str(i): s["session_id"] for i, s in enumerate(sessions, 1)}
+        choices["0"] = None
+
+        # Prompt the user to select a session until a valid choice is made
+        while True:
+            choice = (
+                self.console.input("\nSelect a conversation (default 0): ").strip()
+                or "0"
+            )
+            if choice in choices and choice != "0":
+                selected = sessions[int(choice) - 1]
+                self.console.print(
+                    f"\n[italic green]Resuming: {selected.get('title', '')}[/italic green]\n\n"
+                )
+            return choices[choice]
+            self.console.print("[red]Invalid selection. Please try again.[/red]")
 
 
 #################################################################################

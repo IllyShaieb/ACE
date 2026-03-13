@@ -75,3 +75,7 @@ class ConsoleView:
     def show_error(self, error_message: str) -> None:
         """Show an error message to the user."""
         self.io_adapter.display_output(f"ERROR: {error_message}")
+
+    def get_session_choice(self, sessions: list) -> str | None:
+        """Display a list of recent sessions and prompt the user to select one."""
+        return self.io_adapter.get_session_choice(sessions)
