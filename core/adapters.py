@@ -403,3 +403,112 @@ class DatabaseConversationStorageAdapter:
         self.database_service.delete(
             table="sessions", conditions={"session_id": session_id}
         )
+
+
+class DatabaseLogStorageAdapter:
+    """Adapter for storing logs in a database using a provided database service."""
+
+    def __init__(self, database_service: DatabaseServiceProtocol):
+        """Initialize the adapter with a database service that implements the DatabaseServiceProtocol.
+
+        Args:
+            database_service (DatabaseServiceProtocol): An instance of a database service that provides
+                methods for creating tables, inserting data, updating data, and querying data.
+        """
+        self.database_service = database_service
+
+        self.database_service.create_table(
+            {
+                "table_name": "logs",
+                "columns": {
+                    "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+                    "timestamp": "TIMESTAMP",
+                    "level": "TEXT",
+                    "source": "TEXT",
+                    "message": "TEXT",
+                    "details": "TEXT",
+                },
+            }
+        )
+
+    def log_event(
+        self, level: str, source: str, message: str, details: Optional[str] = None
+    ) -> None:
+        """Log an event with a given level, source, message, and optional details.
+
+        Args:
+            level (str): The severity level of the log (e.g., "INFO", "ERROR").
+            source (str): The source or component that generated the log event.
+            message (str): A brief message describing the log event.
+            details (Optional[str]): Optional additional details about the log event, such as stack traces or context information.
+        """
+        self.database_service.insert(
+            table="logs",
+            data={
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "level": level,
+                "source": source,
+                "message": message,
+                "details": details,
+            },
+        )
+
+    def get_recent_logs(
+        self, limit: int = 100, level: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Retrieve a list of recent log entries, optionally filtered by level.
+
+        Args:
+            limit (int): The maximum number of log entries to retrieve.
+            level (Optional[str]): If provided, only log entries with this level will be returned.
+
+        Returns:
+            List[Dict[str, Any]]: A list of log entries, where each entry is a dictionary containing 'timestamp',
+                'level', 'source', 'message', and 'details'.
+        """
+        # Set the conditions
+        conditions = {}
+        if level:
+            conditions["level"] = level
+
+        logs = self.database_service.select(
+            table="logs",
+            headers=["id", "timestamp", "level", "source", "message", "details"],
+            conditions=conditions,
+        )
+
+        log_list = []
+        for log in logs:
+            log_list.append(
+                {
+                    "id": log["id"],
+                    "timestamp": log["timestamp"],
+                    "level": log["level"],
+                    "source": log["source"],
+                    "message": log["message"],
+                    "details": log["details"],
+                }
+            )
+
+        sorted_logs = sorted(log_list, key=lambda x: x["timestamp"], reverse=True)
+
+        if limit is not None and limit > 0:
+            return sorted_logs[:limit]
+        return sorted_logs
+
+    def delete_logs(
+        self, level: Optional[str] = None, source: Optional[str] = None
+    ) -> None:
+        """Delete log entries, optionally filtered by level and source.
+
+        Args:
+            level (Optional[str]): If provided, only log entries with this level will be deleted.
+            source (Optional[str]): If provided, only log entries from this source will be deleted.
+        """
+        conditions = {}
+        if level:
+            conditions["level"] = level
+        if source:
+            conditions["source"] = source
+
+        self.database_service.delete(table="logs", conditions=conditions)

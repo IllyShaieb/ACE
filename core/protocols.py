@@ -305,3 +305,26 @@ class ConversationStorageAdapterProtocol(Protocol):
     def delete_session(self, session_id: str) -> None:
         """Delete a conversation session and its associated messages."""
         ...
+
+
+class LogStorageAdapterProtocol(Protocol):
+    """Protocol for a log storage adapter, defining the expected interface for
+    storing and retrieving application logs."""
+
+    def log_event(
+        self, level: str, source: str, message: str, details: Optional[str] = None
+    ) -> None:
+        """Log an event with a given level, source, message, and optional details."""
+        ...
+
+    def get_recent_logs(
+        self, limit: int = 100, level: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Retrieve a list of recent log entries, optionally filtered by level."""
+        ...
+
+    def delete_logs(
+        self, level: Optional[str] = None, source: Optional[str] = None
+    ) -> None:
+        """Delete log entries, optionally filtered by level and source."""
+        ...

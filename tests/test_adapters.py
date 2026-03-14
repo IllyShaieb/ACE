@@ -554,5 +554,280 @@ class TestDatabaseConversationStorageAdapter(unittest.TestCase):
         )
 
 
+class TestDatabaseLogStorageAdapter(unittest.TestCase):
+    """Test the DatabaseLogStorageAdapter's ability to log messages using a database service."""
+
+    def setUp(self) -> None:
+        self.maxDiff = None  # Allow full diff output for assertion failures
+
+    def test_initialise_adapter(self):
+        """Test that the DatabaseLogStorageAdapter initialises the database and creates necessary tables."""
+        # ARRANGE: Create an instance of the DatabaseLogStorageAdapter with a mock database service
+        mock_database_service = MagicMock(spec=DatabaseServiceProtocol)
+        expected_config = {
+            "logs": {
+                "id": "INTEGER PRIMARY KEY AUTOINCREMENT",
+                "timestamp": "TIMESTAMP",
+                "level": "TEXT",
+                "source": "TEXT",
+                "message": "TEXT",
+                "details": "TEXT",
+            }
+        }
+
+        # ACT: Initialise the DatabaseLogStorageAdapter
+        _ = adapters.DatabaseLogStorageAdapter(database_service=mock_database_service)
+
+        # ASSERT: Verify that the database service creates the necessary table for logs
+        for table_name, columns in expected_config.items():
+            with self.subTest(
+                table=table_name,
+                msg=f"Table '{table_name}' should be created with the correct columns",
+            ):
+                mock_database_service.create_table.assert_any_call(
+                    {
+                        "table_name": table_name,
+                        "columns": columns,
+                    }
+                )
+
+    @patch("core.adapters.datetime")
+    def test_log_event(self, mock_datetime):
+        """Test that the log_event method saves a log entry to the database."""
+        # ARRANGE: Create an instance of the DatabaseLogStorageAdapter with a mock database service
+        mock_database_service = MagicMock(spec=DatabaseServiceProtocol)
+        adapter = adapters.DatabaseLogStorageAdapter(
+            database_service=mock_database_service
+        )
+
+        mock_datetime.now.return_value.strftime.return_value = "2026-03-12 12:00:00"
+
+        test_cases = [
+            {
+                "level": "INFO",
+                "source": "TestModule",
+                "message": "This is a test log message.",
+                "details": None,
+                "description": "Log message without details",
+            },
+            {
+                "level": "ERROR",
+                "source": "TestModule",
+                "message": "An error occurred.",
+                "details": '{"error_code": 123, "error_message": "Something went wrong."}',
+                "description": "Log message with details",
+            },
+        ]
+
+        for case in test_cases:
+            with self.subTest(case["description"]):
+                # ACT: Call the log_event method of the adapter
+                adapter.log_event(
+                    level=case["level"],
+                    source=case["source"],
+                    message=case["message"],
+                    details=case["details"],
+                )
+
+                # ASSERT: Verify that the database service's insert method was called with the correct parameters
+                # to save the log entry
+                mock_database_service.insert.assert_called_with(
+                    table="logs",
+                    data={
+                        "timestamp": "2026-03-12 12:00:00",
+                        "level": case["level"],
+                        "source": case["source"],
+                        "message": case["message"],
+                        "details": case["details"],
+                    },
+                )
+
+    def test_get_recent_logs(self):
+        """Test that the get_recent_logs method retrieves recent log entries from the database."""
+        # ARRANGE: Create an instance of the DatabaseLogStorageAdapter with a mock database service
+        mock_database_service = MagicMock(spec=DatabaseServiceProtocol)
+        adapter = adapters.DatabaseLogStorageAdapter(
+            database_service=mock_database_service
+        )
+
+        mock_logs_list = [
+            {
+                "id": 2,
+                "timestamp": "2026-03-12 12:01:00",
+                "level": "ERROR",
+                "source": "TestModule",
+                "message": "An error occurred.",
+                "details": '{"error_code": 123, "error_message": "Something went wrong."}',
+            },
+            {
+                "id": 1,
+                "timestamp": "2026-03-12 12:00:00",
+                "level": "INFO",
+                "source": "TestModule",
+                "message": "This is a test log message.",
+                "details": None,
+            },
+        ]
+
+        # Patch the select method to simulate filtering by level and limit
+        def select_side_effect(table, headers, conditions=None, limit=None):
+            # Simulate filtering by level
+            filtered = mock_logs_list
+            if conditions and "level" in conditions:
+                filtered = [
+                    log for log in filtered if log["level"] == conditions["level"]
+                ]
+
+            # Simulate limit (None, 0, negative, or positive)
+            if limit is not None and limit > 0:
+                filtered = filtered[:limit]
+
+            return filtered
+
+        mock_database_service.select.side_effect = select_side_effect
+
+        test_cases = [
+            {
+                "limit": None,
+                "level": None,
+                "expected_logs": mock_logs_list,
+                "description": "Get recent logs with no limit and no level",
+            },
+            {
+                "limit": 1,
+                "level": None,
+                "expected_logs": [mock_logs_list[0]],
+                "description": "Get recent logs with a limit of 1 and no level",
+            },
+            {
+                "limit": 0,
+                "level": None,
+                "expected_logs": mock_logs_list,
+                "description": "Get recent logs with a limit of 0 (should return all) and no level",
+            },
+            {
+                "limit": 10,
+                "level": None,
+                "expected_logs": mock_logs_list,
+                "description": "Get recent logs with a limit greater than the number of logs (should return all) and no level",
+            },
+            {
+                "limit": -1,
+                "level": None,
+                "expected_logs": mock_logs_list,
+                "description": "Get recent logs with a negative limit (should return all) and no level",
+            },
+            {
+                "limit": None,
+                "level": "ERROR",
+                "expected_logs": [mock_logs_list[0]],
+                "description": "Get recent logs with no limit and a specific level",
+            },
+            {
+                "limit": None,
+                "level": "WARNING",
+                "expected_logs": [],
+                "description": "Get recent logs with no limit and a level that has no logs",
+            },
+            {
+                "limit": None,
+                "level": "INFO",
+                "expected_logs": [mock_logs_list[1]],
+                "description": "Get recent logs with no limit and INFO level",
+            },
+            {
+                "limit": 1,
+                "level": "INFO",
+                "expected_logs": [mock_logs_list[1]],
+                "description": "Get recent logs with a limit of 1 and INFO level",
+            },
+            {
+                "limit": 1,
+                "level": "ERROR",
+                "expected_logs": [mock_logs_list[0]],
+                "description": "Get recent logs with a limit of 1 and ERROR level",
+            },
+            {
+                "limit": 1,
+                "level": "WARNING",
+                "expected_logs": [],
+                "description": "Get recent logs with a limit of 1 and a level that has no logs",
+            },
+        ]
+
+        for case in test_cases:
+            with self.subTest(case["description"]):
+                # ACT: Call the get_recent_logs method of the adapter
+                logs = adapter.get_recent_logs(limit=case["limit"], level=case["level"])
+
+                # ASSERT: Verify that the database service's select method was called with the correct parameters
+                conditions = {}
+                if case["level"] is not None:
+                    conditions["level"] = case["level"]
+
+                mock_database_service.select.assert_called_with(
+                    table="logs",
+                    headers=[
+                        "id",
+                        "timestamp",
+                        "level",
+                        "source",
+                        "message",
+                        "details",
+                    ],
+                    conditions=conditions,
+                )
+
+                self.assertEqual(logs, case["expected_logs"])
+
+    def test_delete_logs(self):
+        """Test that the delete_logs method deletes log entries from the database based on specified conditions."""
+        # ARRANGE: Create an instance of the DatabaseLogStorageAdapter with a mock database service
+        mock_database_service = MagicMock(spec=DatabaseServiceProtocol)
+        adapter = adapters.DatabaseLogStorageAdapter(
+            database_service=mock_database_service
+        )
+
+        test_cases = [
+            {
+                "description": "Delete logs with no specific level or source (delete all logs)",
+                "level": None,
+                "source": None,
+            },
+            {
+                "description": "Delete logs with a specific level",
+                "level": "ERROR",
+                "source": None,
+            },
+            {
+                "description": "Delete logs with a specific source",
+                "level": None,
+                "source": "TestModule",
+            },
+            {
+                "description": "Delete logs with a specific level and source",
+                "level": "INFO",
+                "source": "TestModule",
+            },
+        ]
+
+        for case in test_cases:
+            with self.subTest(case["description"]):
+                # ACT: Call the delete_logs method of the adapter
+                adapter.delete_logs(level=case["level"], source=case["source"])
+
+                # ASSERT: Verify that the database service's delete method was called with the correct parameters
+                conditions = {}
+                if case["level"] is not None:
+                    conditions["level"] = case["level"]
+                if case["source"] is not None:
+                    conditions["source"] = case["source"]
+
+                mock_database_service.delete.assert_called_with(
+                    table="logs",
+                    conditions=conditions,
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
