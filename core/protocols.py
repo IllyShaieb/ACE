@@ -2,7 +2,7 @@
 the expected interfaces for various components."""
 
 from enum import Enum
-from typing import Any, Callable, Dict, Optional, Protocol, runtime_checkable
+from typing import Any, Callable, Dict, List, Optional, Protocol, runtime_checkable
 
 from core.events import ViewEvents
 
@@ -18,6 +18,10 @@ class ModelProtocol(Protocol):
 
     async def process_query(self, query: str) -> str:
         """Process a user query asynchronously and return a response."""
+        ...
+
+    def load_session(self, session_id: Optional[str] = None) -> None:
+        """Load a conversation session by ID, or start a new session if no ID is provided."""
         ...
 
 
@@ -51,6 +55,10 @@ class IOAdapterProtocol(Protocol):
 
     def stop_loading_indicator(self) -> None:
         """Stop the loading indicator."""
+        ...
+
+    def get_session_choice(self, sessions: List[Dict[str, Any]]) -> Optional[str]:
+        """Display a list of recent sessions and prompt the user to select one."""
         ...
 
 
@@ -88,6 +96,10 @@ class ViewProtocol(Protocol):
 
     def show_error(self, error_message: str) -> None:
         """Show an error message to the user."""
+        ...
+
+    def get_session_choice(self, sessions: List[Dict[str, Any]]) -> Optional[str]:
+        """Display a list of recent sessions and prompt the user to select one."""
         ...
 
 
@@ -208,4 +220,111 @@ class LocationServiceProtocol(Protocol):
 
     def get_location(self) -> Dict[str, str]:
         """Get the location information based on the client's IP address."""
+        ...
+
+
+###########################################################################################
+#                                  STORAGE PROTOCOLS                                      #
+###########################################################################################
+
+
+@runtime_checkable
+class DatabaseServiceProtocol(Protocol):
+    """Protocol for a generic database service, providing standard low-level DB operations.
+
+    Uses CRUD-like methods for executing SQL queries and managing transactions, abstracting
+    away the underlying database implementation details.
+    """
+
+    def create_table(self, configuration: Dict[str, Any]) -> None:
+        """Create a table in the database based on the provided configuration."""
+        ...
+
+    def delete_table(self, table_name: str) -> None:
+        """Delete an existing table by name."""
+        ...
+
+    def insert(
+        self,
+        table: str,
+        data: Dict[str, Any],
+    ) -> None:
+        """Inserts new data into a database"""
+        ...
+
+    def select(
+        self,
+        table: str,
+        headers: Optional[List[str]] = None,
+        conditions: Optional[Dict[str, Any]] = None,
+        limit: Optional[int] = None,
+        distinct: bool = False,
+    ) -> List:
+        """Extracts data from a database"""
+        ...
+
+    def update(
+        self,
+        table: str,
+        updates: Dict[str, Any],
+        conditions: Optional[Dict[str, Any]] = None,
+    ) -> None:
+        """Updates data in a database"""
+        ...
+
+    def delete(self, table: str, conditions: Optional[Dict[str, Any]] = None) -> None:
+        """Deletes data from a database"""
+        ...
+
+
+@runtime_checkable
+class ConversationStorageAdapterProtocol(Protocol):
+    """Protocol for a conversation storage adapter, defining the expected interface for
+    storing and retrieving conversation history."""
+
+    def create_session(self, title: Optional[str] = None) -> str:
+        """Create a new conversation session and return its unique identifier."""
+        ...
+
+    def save_message(self, session_id: str, role: str, content: str) -> None:
+        """Save a message to the conversation history for a given session."""
+        ...
+
+    def get_session_messages(self, session_id: str) -> List[Dict[str, str]]:
+        """Retrieve the conversation history for a given session ID."""
+        ...
+
+    def get_recent_sessions(self, limit: int = 10) -> List[Dict[str, Any]]:
+        """Retrieve a list of recent conversation sessions, including session IDs and metadata."""
+        ...
+
+    def update_session_title(self, session_id: str, title: str) -> None:
+        """Update the title of a conversation session."""
+        ...
+
+    def delete_session(self, session_id: str) -> None:
+        """Delete a conversation session and its associated messages."""
+        ...
+
+
+class LogStorageAdapterProtocol(Protocol):
+    """Protocol for a log storage adapter, defining the expected interface for
+    storing and retrieving application logs."""
+
+    def log_event(
+        self, level: str, source: str, message: str, details: Optional[str] = None
+    ) -> None:
+        """Log an event with a given level, source, message, and optional details."""
+        ...
+
+    def get_recent_logs(
+        self, limit: int = 100, level: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
+        """Retrieve a list of recent log entries, optionally filtered by level."""
+        ...
+
+    def delete_logs(
+        self, level: Optional[str] = None, source: Optional[str] = None
+    ) -> None:
+        """Delete log entries, optionally filtered by level and source."""
         ...
