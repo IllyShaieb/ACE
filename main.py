@@ -14,6 +14,7 @@ from core.adapters import (
     RequestsHTTPAdapter,
     RichIOAdapter,
     DatabaseConversationStorageAdapter,
+    DatabaseLogStorageAdapter,
 )
 from core.models import GeminiIntelligenceModel
 from core.presenters import ConsolePresenter
@@ -39,6 +40,7 @@ Type your queries below. To exit, type 'exit' or press Ctrl+C.
     "GEMINI_API_KEY": os.getenv("GEMINI_API_KEY"),
     "OPENWEATHERMAP_API_KEY": os.getenv("OPENWEATHERMAP_API_KEY"),
     "DATABASE_PATH": Path("data", "ace_conversations.db"),
+    "LOG_PATH": Path("data", "ace_logs.db"),
 }
 
 
@@ -61,16 +63,30 @@ async def main_async():
     io_adapter = RichIOAdapter()
     http_adapter = RequestsHTTPAdapter()
 
-    # 3. Initialize the Passive View with the adapter
+    # 3. Create storage services and adapters
+    logging_service = SQLiteDatabaseService(CONFIG["LOG_PATH"])
+    log_adapter = DatabaseLogStorageAdapter(logging_service)
+
+    database_service = SQLiteDatabaseService(
+        CONFIG["DATABASE_PATH"], log_storage_adapter=log_adapter
+    )
+    storage_adapter = DatabaseConversationStorageAdapter(database_service)
+
+    # 4. Initialize the Passive View with the adapter
     view = ConsoleView(io_adapter=io_adapter)
 
-    # 4. Initialize the Gemini Intelligence Model (The Brain)
+    # 5. Initialize the Gemini Intelligence Model (The Brain)
     services_registry = {
         "weather_service": OpenWeatherMapService(
-            http_client_adapter=http_adapter, api_key=CONFIG["OPENWEATHERMAP_API_KEY"]
+            http_client_adapter=http_adapter,
+            api_key=CONFIG["OPENWEATHERMAP_API_KEY"],
+            log_storage_adapter=log_adapter,
         ),
-        "location_service": IPInfoLocationService(http_client_adapter=http_adapter),
-        "database_service": SQLiteDatabaseService(CONFIG["DATABASE_PATH"]),
+        "location_service": IPInfoLocationService(
+            http_client_adapter=http_adapter, log_storage_adapter=log_adapter
+        ),
+        "database_service": database_service,
+        "logging_service": logging_service,
     }
 
     # Specify a list of available models for the Gemini Intelligence Model, starting with the most
@@ -81,9 +97,6 @@ async def main_async():
         "gemini-2.5-flash",
         "gemini-2.5-flash-lite",
     ]
-    storage_adapter = DatabaseConversationStorageAdapter(
-        services_registry["database_service"]
-    )
 
     model = GeminiIntelligenceModel(
         client=genai.Client(api_key=CONFIG["GEMINI_API_KEY"]),
@@ -91,17 +104,19 @@ async def main_async():
         services=services_registry,
         model=available_models[0],  # Start with the most capable model
         fallback_models=available_models[1:],  # All except the most capable model,
+        log_storage_adapter=log_adapter,
     )
 
-    # 5. Inject View and Model into the Presenter (The Switchboard)
+    # 6. Inject View and Model into the Presenter (The Switchboard)
     presenter = ConsolePresenter(
         model=model,
         view=view,
         welcome_message=CONFIG["WELCOME_MESSAGE"],
         storage_adapter=storage_adapter,
+        log_storage_adapter=log_adapter,
     )
 
-    # 6. Execute
+    # 7. Execute
     try:
         await presenter.run()
     except KeyboardInterrupt:
@@ -113,5 +128,3 @@ if __name__ == "__main__":
         asyncio.run(main_async())
     except KeyboardInterrupt:
         pass
-    finally:
-        print("\nACE safely interrupted. Goodbye!")

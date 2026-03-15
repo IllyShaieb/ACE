@@ -5,28 +5,63 @@ import sqlite3
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-from core.protocols import HTTPClientAdapterProtocol, WeatherUnits
+from core.protocols import (
+    HTTPClientAdapterProtocol,
+    LogStorageAdapterProtocol,
+    WeatherUnits,
+)
 
 
 class OpenWeatherMapService:
     """Service for fetching weather information from the OpenWeatherMap API."""
 
-    def __init__(self, http_client_adapter: HTTPClientAdapterProtocol, api_key: str):
+    def __init__(
+        self,
+        http_client_adapter: HTTPClientAdapterProtocol,
+        api_key: str,
+        log_storage_adapter: Optional[LogStorageAdapterProtocol] = None,
+    ):
         """Initialize the OpenWeatherMapService with an HTTP client adapter and API key.
 
         Args:
             http_client_adapter (HTTPClientAdapterProtocol): An adapter for making HTTP requests.
             api_key (str): The API key for accessing the OpenWeatherMap API.
+            log_storage_adapter (Optional[LogStorageAdapterProtocol]): An optional adapter for logging events related to the weather service. Defaults to None.
         """
         self.http_client_adapter = http_client_adapter
         self.api_key = api_key
+        self.log_storage_adapter = log_storage_adapter
         self.geo_url = "http://api.openweathermap.org/geo/1.0/direct"
         self.weather_url = "https://api.openweathermap.org/data/3.0/onecall"
+
+        degree_sign = "\N{DEGREE SIGN}"
         self.unit_symbols = {
-            WeatherUnits.METRIC: {"temperature": "°C", "wind_speed": "m/s"},
-            WeatherUnits.IMPERIAL: {"temperature": "°F", "wind_speed": "mph"},
+            WeatherUnits.METRIC: {
+                "temperature": f"{degree_sign}C",
+                "wind_speed": "m/s",
+            },
+            WeatherUnits.IMPERIAL: {
+                "temperature": f"{degree_sign}F",
+                "wind_speed": "mph",
+            },
             WeatherUnits.STANDARD: {"temperature": "K", "wind_speed": "m/s"},
         }
+
+    def _log_event(
+        self, level: str, source: str, message: str, details: Optional[str] = None
+    ) -> None:
+        """Log an event to the log storage adapter.
+
+        Args:
+            level (str): The severity level of the event (e.g., "INFO", "ERROR").
+            source (str): The source of the event (e.g., "model", "tool").
+            message (str): A descriptive message about the event.
+            details (Optional[str]): Additional details or context about the event.
+        """
+        if self.log_storage_adapter:
+            self.log_storage_adapter.log_event(
+                level=level, source=source, message=message, details=details
+            )
 
     def get_current_weather(
         self, location: str, units: WeatherUnits = WeatherUnits.STANDARD
@@ -43,6 +78,12 @@ class OpenWeatherMapService:
         Returns:
             Dict[str, str]: The current weather information for the specified location.
         """
+        self._log_event(
+            level="INFO",
+            source="weather_service",
+            message=f"Fetching current weather for location: {location} with units: {units.value}",
+        )
+
         # 1. Get the unit symbols based on the specified units
         symbols = self.unit_symbols[units or WeatherUnits.STANDARD]
 
@@ -50,8 +91,20 @@ class OpenWeatherMapService:
         try:
             lat, lon = self._get_geocoding(location).values()
         except ValueError as e:
+            self._log_event(
+                level="ERROR",
+                source="weather_service",
+                message=f"Geocoding failed for location: {location}",
+                details=str(e),
+            )
             raise ValueError(f"Could not find location: {location}") from e
         except RuntimeError as e:
+            self._log_event(
+                level="ERROR",
+                source="weather_service",
+                message=f"Geocoding API connection failed for location: {location}",
+                details=str(e),
+            )
             raise RuntimeError(f"Geocoding API connection failed: {e}") from e
 
         # 3. Construct the parameters for the weather API call using the geocoding information
@@ -70,6 +123,12 @@ class OpenWeatherMapService:
                 self.weather_url, params=weather_params
             )
         except RuntimeError as e:
+            self._log_event(
+                level="ERROR",
+                source="weather_service",
+                message=f"Failed to fetch weather data for location: {location}",
+                details=str(e),
+            )
             raise RuntimeError(f"Failed to fetch weather data: {e}")
 
         current_weather = weather_response.get("current", {})
@@ -108,6 +167,12 @@ class OpenWeatherMapService:
             ValueError: If the location cannot be found.
             RuntimeError: If there is a problem connecting to the APIs.
         """
+        self._log_event(
+            level="INFO",
+            source="weather_service",
+            message=f"Fetching future weather for location: {location} with units: {units.value} and forecast type: {forecast_type}",
+        )
+
         # 1. Get the unit symbols based on the specified units
         symbols = self.unit_symbols[units or WeatherUnits.STANDARD]
 
@@ -115,8 +180,20 @@ class OpenWeatherMapService:
         try:
             lat, lon = self._get_geocoding(location).values()
         except ValueError as e:
+            self._log_event(
+                level="ERROR",
+                source="weather_service",
+                message=f"Could not find location: {location}",
+                details=str(e),
+            )
             raise ValueError(f"Could not find location: {location}") from e
         except RuntimeError as e:
+            self._log_event(
+                level="ERROR",
+                source="weather_service",
+                message=f"Geocoding API connection failed for location: {location}",
+                details=str(e),
+            )
             raise RuntimeError(f"Geocoding API connection failed: {e}") from e
 
         # 3. Construct the parameters for the weather API call using the geocoding information
@@ -135,6 +212,12 @@ class OpenWeatherMapService:
                 self.weather_url, params=weather_params
             )
         except RuntimeError as e:
+            self._log_event(
+                level="ERROR",
+                source="weather_service",
+                message=f"Failed to fetch weather data for location: {location}",
+                details=str(e),
+            )
             raise RuntimeError(f"Failed to fetch weather data: {e}")
 
         match forecast_type:
@@ -254,15 +337,19 @@ class IPInfoLocationService:
         self,
         http_client_adapter: HTTPClientAdapterProtocol,
         api_key: Optional[str] = None,
+        log_storage_adapter: Optional[LogStorageAdapterProtocol] = None,
     ):
         """Initialize the IPInfoLocationService with an HTTP client adapter and API key.
 
         Args:
             http_client_adapter (HTTPClientAdapterProtocol): An adapter for making HTTP requests.
             api_key (Optional[str]): The API key for accessing the ipinfo.io API.
+            log_storage_adapter (Optional[LogStorageAdapterProtocol]): An optional adapter for
+                logging events related to the location service. Defaults to None.
         """
         self.http_client_adapter = http_client_adapter
         self.api_key = api_key
+        self.log_storage_adapter = log_storage_adapter
 
         url_config = {
             "base": "https://ipinfo.io",
@@ -277,12 +364,34 @@ class IPInfoLocationService:
             else url_config["base"] + url_config["endpoints"]["free"]
         )
 
+    def _log_event(
+        self, level: str, source: str, message: str, details: Optional[str] = None
+    ) -> None:
+        """Log an event to the log storage adapter.
+
+        Args:
+            level (str): The severity level of the event (e.g., "INFO", "ERROR").
+            source (str): The source of the event (e.g., "model", "tool").
+            message (str): A descriptive message about the event.
+            details (Optional[str]): Additional details or context about the event.
+        """
+        if self.log_storage_adapter:
+            self.log_storage_adapter.log_event(
+                level=level, source=source, message=message, details=details
+            )
+
     def get_location(self) -> Dict[str, str]:
         """Get the location information based on the client's IP address.
 
         Returns:
             Dict[str, str]: The location information including city, region, country, and coordinates.
         """
+        self._log_event(
+            level="INFO",
+            source="location_service",
+            message="Fetching location information based on IP address",
+        )
+
         try:
             if self.api_key:
                 response = self.http_client_adapter.get(
@@ -297,6 +406,12 @@ class IPInfoLocationService:
                 "loc": response.get("loc"),  # Latitude and Longitude
             }
         except RuntimeError as e:
+            self._log_event(
+                level="ERROR",
+                source="location_service",
+                message="Failed to fetch location information based on IP address",
+                details=str(e),
+            )
             raise RuntimeError(f"Failed to fetch location data: {e}")
 
 
@@ -305,8 +420,36 @@ class SQLiteDatabaseService:
     as well as performing CRUD operations.
     """
 
-    def __init__(self, database_path: str) -> None:
+    def __init__(
+        self,
+        database_path: str,
+        log_storage_adapter: Optional[LogStorageAdapterProtocol] = None,
+    ) -> None:
+        """Initialise the SQLiteDatabaseService with the path to the database file.
+
+        Args:
+            database_path (str): The file path to the SQLite database.
+            log_storage_adapter (Optional[LogStorageAdapterProtocol]): An optional adapter for logging events related to the database service.
+                Defaults to None.
+        """
         self.database_path = database_path
+        self.log_storage_adapter = log_storage_adapter
+
+    def _log_event(
+        self, level: str, source: str, message: str, details: Optional[str] = None
+    ) -> None:
+        """Log an event to the log storage adapter.
+
+        Args:
+            level (str): The severity level of the event (e.g., "INFO", "ERROR").
+            source (str): The source of the event (e.g., "model", "tool").
+            message (str): A descriptive message about the event.
+            details (Optional[str]): Additional details or context about the event.
+        """
+        if self.log_storage_adapter:
+            self.log_storage_adapter.log_event(
+                level=level, source=source, message=message, details=details
+            )
 
     def create_table(self, configuration: Dict[str, Any]) -> None:
         """Create a table in the database based on the provided configuration.
@@ -334,6 +477,12 @@ class SQLiteDatabaseService:
                 cursor.execute(create_table_query)
                 connection.commit()
         except sqlite3.Error as e:
+            self._log_event(
+                level="ERROR",
+                source="database_service",
+                message=f"Failed to create table: {configuration.get('table_name')}",
+                details=str(e),
+            )
             raise RuntimeError(f"Failed to create table: {e}")
         finally:
             if connection is not None:
@@ -356,6 +505,12 @@ class SQLiteDatabaseService:
                 cursor.execute(drop_table_query)
                 connection.commit()
         except sqlite3.Error as e:
+            self._log_event(
+                level="ERROR",
+                source="database_service",
+                message=f"Failed to delete table: {table_name}",
+                details=str(e),
+            )
             raise RuntimeError(f"Failed to delete table: {e}")
         finally:
             if connection is not None:
@@ -387,6 +542,12 @@ class SQLiteDatabaseService:
                 cursor.execute(insert_query, parameters)
                 connection.commit()
         except sqlite3.Error as e:
+            self._log_event(
+                level="ERROR",
+                source="database_service",
+                message=f"Failed to insert data into table: {table}",
+                details=str(e),
+            )
             raise RuntimeError(f"Failed to insert data: {e}")
         finally:
             if connection is not None:
@@ -439,6 +600,12 @@ class SQLiteDatabaseService:
                 cursor.execute(select_query, parameters)
                 return cursor.fetchall()
         except sqlite3.Error as e:
+            self._log_event(
+                level="ERROR",
+                source="database_service",
+                message=f"Failed to select data from table: {table}",
+                details=str(e),
+            )
             raise RuntimeError(f"Failed to select data: {e}")
         finally:
             if connection is not None:
@@ -478,6 +645,12 @@ class SQLiteDatabaseService:
                 cursor.execute(update_query, parameters)
                 connection.commit()
         except sqlite3.Error as e:
+            self._log_event(
+                level="ERROR",
+                source="database_service",
+                message=f"Failed to update data in table: {table}",
+                details=str(e),
+            )
             raise RuntimeError(f"Failed to update data: {e}")
         finally:
             if connection is not None:
@@ -510,6 +683,12 @@ class SQLiteDatabaseService:
                 cursor.execute(delete_query, parameters)
                 connection.commit()
         except sqlite3.Error as e:
+            self._log_event(
+                level="ERROR",
+                source="database_service",
+                message=f"Failed to delete data from table: {table}",
+                details=str(e),
+            )
             raise RuntimeError(f"Failed to delete data: {e}")
         finally:
             if connection is not None:
