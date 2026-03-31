@@ -1,4 +1,4 @@
-"""tests.test_views: Ensure that the view layer correctly displays information and receives user input,
+""" "tests.views.test_console: Test the ConsoleView's ability to display messages and receive user input,
 adhering to the expected interface defined by the ViewProtocol."""
 
 import unittest
