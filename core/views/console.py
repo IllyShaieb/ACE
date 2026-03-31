@@ -1,5 +1,5 @@
-"""core.views: This module defines the view classes for the ACE application, responsible for displaying
-information and receiving user input."""
+"""core.views.console: This module defines the ConsoleView class, which implements the view layer for a console-based interface,
+responsible for displaying information and receiving user input."""
 
 import asyncio
 from typing import Callable
