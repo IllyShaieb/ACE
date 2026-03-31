@@ -1,4 +1,9 @@
-"""tests.test_presenters: Ensure that the presenter layer correctly mediates between the model and view, handling user input and updating the view accordingly. This includes testing the logic for processing user commands, managing state transitions, and ensuring that the presenter correctly updates the view based on changes in the model."""
+"""tests.presenters.console: This module contains unit tests for the ConsolePresenter class, ensuring that
+it correctly processes user input and updates the console view accordingly.
+
+The tests cover various scenarios, including handling valid input, managing exit commands, and ensuring
+that empty input is ignored.
+"""
 
 import unittest
 from unittest.mock import AsyncMock, Mock

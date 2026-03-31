@@ -1,5 +1,5 @@
-"""core.presenters: This module defines the presenter classes for the ACE application,
-mediating between the model and view components."""
+"""core.presenters.console: This module defines the ConsolePresenter class, which mediates between the
+model and console-based view components of the ACE application."""
 
 from typing import Optional
 
