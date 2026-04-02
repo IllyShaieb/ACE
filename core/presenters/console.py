@@ -1,15 +1,14 @@
-"""core.presenters: This module defines the presenter classes for the ACE application,
-mediating between the model and view components."""
+"""core.presenters.console: This module defines the ConsolePresenter class, which mediates between the
+model and console-based view components of the ACE application."""
 
 from typing import Optional
 
-from core.protocols import (
+from core.adapters.protocols import (
     ConversationStorageAdapterProtocol,
     LogStorageAdapterProtocol,
-    ModelProtocol,
-    Sender,
-    ViewProtocol,
 )
+from core.models.protocols import ModelProtocol
+from core.views.protocols import Sender, ViewProtocol
 
 
 class ConsolePresenter:
@@ -20,7 +19,7 @@ class ConsolePresenter:
         model: ModelProtocol,
         view: ViewProtocol,
         welcome_message: str = "",
-        storage_adapter: ConversationStorageAdapterProtocol = None,
+        storage_adapter: Optional[ConversationStorageAdapterProtocol] = None,
         log_storage_adapter: Optional[LogStorageAdapterProtocol] = None,
     ):
         """Initialize the presenter with the given model and view.
@@ -30,9 +29,9 @@ class ConsolePresenter:
             view (ViewProtocol): The view component to update based on model changes.
             welcome_message (str): The welcome message to display when the presenter runs.
                 Defaults to an empty string if not provided.
-            storage_adapter (ConversationStorageAdapterProtocol, optional): The storage adapter for conversation sessions.
+            storage_adapter (Optional[ConversationStorageAdapterProtocol]): The storage adapter for conversation sessions.
                 Defaults to None if not provided.
-            log_storage_adapter (LogStorageAdapterProtocol, optional): The storage adapter for log storage.
+            log_storage_adapter (Optional[LogStorageAdapterProtocol]): The storage adapter for log storage.
                 Defaults to None if not provided.
         """
         self.model = model
