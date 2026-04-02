@@ -1,5 +1,10 @@
-"""core.adapters: This module defines adapters for the ACE application, providing
-a layer of abstraction for different APIs the tools might depend on."""
+"""core.adapters: Manages external connections and I/O for the ACE application.
+
+Adapters handle the technical details of interacting with outside systems—such as
+making HTTP requests, executing database queries, or managing terminal input.
+
+They fetch and deliver raw data, but contain no application-specific business logic.
+"""
 
 from .http import RequestsHTTPAdapter
 from .io import BuiltinIOAdapter, RichIOAdapter
