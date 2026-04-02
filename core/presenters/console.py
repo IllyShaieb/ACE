@@ -19,7 +19,7 @@ class ConsolePresenter:
         model: ModelProtocol,
         view: ViewProtocol,
         welcome_message: str = "",
-        storage_adapter: ConversationStorageAdapterProtocol = None,
+        storage_adapter: Optional[ConversationStorageAdapterProtocol] = None,
         log_storage_adapter: Optional[LogStorageAdapterProtocol] = None,
     ):
         """Initialize the presenter with the given model and view.
@@ -29,9 +29,9 @@ class ConsolePresenter:
             view (ViewProtocol): The view component to update based on model changes.
             welcome_message (str): The welcome message to display when the presenter runs.
                 Defaults to an empty string if not provided.
-            storage_adapter (ConversationStorageAdapterProtocol, optional): The storage adapter for conversation sessions.
+            storage_adapter (Optional[ConversationStorageAdapterProtocol]): The storage adapter for conversation sessions.
                 Defaults to None if not provided.
-            log_storage_adapter (LogStorageAdapterProtocol, optional): The storage adapter for log storage.
+            log_storage_adapter (Optional[LogStorageAdapterProtocol]): The storage adapter for log storage.
                 Defaults to None if not provided.
         """
         self.model = model
