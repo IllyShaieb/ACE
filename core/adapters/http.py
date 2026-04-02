@@ -1,6 +1,4 @@
-"""core.adapters.services: This module defines adapters for external services that the ACE application might
-depend on.
-"""
+"""core.adapters.http: This module defines the HTTP adapter for making requests using the 'requests' library."""
 
 from typing import Any, Dict, Optional
 

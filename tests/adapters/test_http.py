@@ -1,5 +1,4 @@
-"""tests.adapters.test_services: Ensures that the service adapters in the ACE application are functioning
-correctly."""
+"""tests.adapters.test_http: Ensures that the HTTP adapter in the ACE application is functioning correctly."""
 
 import unittest
 from unittest.mock import MagicMock, patch
@@ -18,7 +17,7 @@ class TestRequestsHTTPAdapter(unittest.TestCase):
         self.adapter = adapters.RequestsHTTPAdapter()
         self.test_url = "https://api.example.com/test"
 
-    @patch("core.adapters.services.requests.get")
+    @patch("core.adapters.http.requests.get")
     def test_get_success(self, mock_get):
         """Test that the GET method makes a GET request using the 'requests' library."""
         # ARRANGE: Set up the mock response for the GET request
@@ -40,7 +39,7 @@ class TestRequestsHTTPAdapter(unittest.TestCase):
         )
         self.assertEqual(result, {"key": "value"})
 
-    @patch("core.adapters.services.requests.get")
+    @patch("core.adapters.http.requests.get")
     def test_get_failure(self, mock_get):
         """Test that the GET method raises an exception for HTTP errors."""
         # ARRANGE: Set up the mock to raise an HTTP error
@@ -56,7 +55,7 @@ class TestRequestsHTTPAdapter(unittest.TestCase):
 
         self.assertIn("HTTP GET failed", str(context.exception))
 
-    @patch("core.adapters.services.requests.post")
+    @patch("core.adapters.http.requests.post")
     def test_post_success(self, mock_post):
         """Test that the POST method makes a POST request using the 'requests' library."""
         # ARRANGE: Set up the mock response and test data for the POST request
@@ -111,7 +110,7 @@ class TestRequestsHTTPAdapter(unittest.TestCase):
                 )
                 self.assertEqual(result, {"key": "value"})
 
-    @patch("core.adapters.services.requests.post")
+    @patch("core.adapters.http.requests.post")
     def test_post_failure(self, mock_post):
         """Test that the POST method raises an exception for HTTP errors."""
         # ARRANGE: Set up the mock to raise an HTTP error
