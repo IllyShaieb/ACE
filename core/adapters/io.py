@@ -10,7 +10,7 @@ import rich
 from rich.markdown import Markdown
 from rich.table import Table
 
-from core.protocols import Sender
+from core.views.protocols import Sender
 
 
 class BuiltinIOAdapter:

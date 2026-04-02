@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import MagicMock
 
 from core import services
-from core.protocols import HTTPClientAdapterProtocol
+from core.adapters.protocols import HTTPClientAdapterProtocol
 
 
 class TestIPInfoLocationService(unittest.TestCase):

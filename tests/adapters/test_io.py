@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from core import adapters
-from core.protocols import Sender
+from core.views.protocols import Sender
 
 
 class TestBuiltinIOAdapter(unittest.TestCase):

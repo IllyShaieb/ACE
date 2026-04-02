@@ -4,7 +4,11 @@ information based on mocked service responses."""
 import unittest
 from unittest.mock import Mock, patch
 
-from core import protocols
+from core.services.protocols import (
+    LocationServiceProtocol,
+    WeatherServiceProtocol,
+    WeatherUnits,
+)
 from core.tools import weather
 
 
@@ -13,24 +17,22 @@ class TestWeatherTool(unittest.TestCase):
 
     def setUp(self):
         """Set up the mock weather service before each test."""
-        self.mock_weather_service = Mock(spec=protocols.WeatherServiceProtocol)
+        self.mock_weather_service = Mock(spec=WeatherServiceProtocol)
 
         self.tool = weather.WeatherTool(
             weather_service=self.mock_weather_service,
-            location_service=Mock(spec=protocols.LocationServiceProtocol),
+            location_service=Mock(spec=LocationServiceProtocol),
         )
 
-    def _mock_current_weather_service_response(
-        self, units: protocols.WeatherUnits
-    ) -> dict:
+    def _mock_current_weather_service_response(self, units: WeatherUnits) -> dict:
         """Helper method to set up the mock weather service response based on units.
 
         Args:
-            units (protocols.WeatherUnits): The unit system to use for the weather information.
+            units (WeatherUnits): The unit system to use for the weather information.
         Returns:
             dict: A mock weather information dictionary corresponding to the specified units.
         """
-        if units == protocols.WeatherUnits.METRIC:
+        if units == WeatherUnits.METRIC:
             return {
                 "temperature": "20°C",
                 "feels_like": "18°C",
@@ -38,7 +40,7 @@ class TestWeatherTool(unittest.TestCase):
                 "wind_speed": "5 m/s",
                 "humidity": "70%",
             }
-        elif units == protocols.WeatherUnits.IMPERIAL:
+        elif units == WeatherUnits.IMPERIAL:
             return {
                 "temperature": "77°F",
                 "feels_like": "79°F",
@@ -56,17 +58,17 @@ class TestWeatherTool(unittest.TestCase):
             }
 
     def _mock_future_weather_service_response(
-        self, units: protocols.WeatherUnits, forecast_type: str
+        self, units: WeatherUnits, forecast_type: str
     ) -> dict:
         """Helper method to set up the mock future weather service response based on units and forecast type.
 
         Args:
-            units (protocols.WeatherUnits): The unit system to use for the weather information.
+            units (WeatherUnits): The unit system to use for the weather information.
             forecast_type (str): The type of forecast ('daily' or 'hourly').
         Returns:
             dict: A mock future weather information dictionary corresponding to the specified units and forecast type.
         """
-        if units == protocols.WeatherUnits.METRIC:
+        if units == WeatherUnits.METRIC:
             if forecast_type == "daily":
                 return {
                     "forecast": {
@@ -77,7 +79,7 @@ class TestWeatherTool(unittest.TestCase):
                 return {
                     "forecast": {"Hour": {"Temperature": "14°C", "Condition": "cloudy"}}
                 }
-        elif units == protocols.WeatherUnits.IMPERIAL:
+        elif units == WeatherUnits.IMPERIAL:
             if forecast_type == "daily":
                 return {
                     "forecast": {
@@ -104,7 +106,7 @@ class TestWeatherTool(unittest.TestCase):
     def test_execute_returns_weather_information(self):
         """Verify that execute() returns a dictionary containing weather information."""
         # ARRANGE
-        weather_units = protocols.WeatherUnits
+        weather_units = WeatherUnits
         test_cases = [
             {
                 "location": "New York,US",
@@ -166,7 +168,7 @@ class TestWeatherTool(unittest.TestCase):
     def test_execute_returns_future_weather(self):
         """Verify that execute() routes 'daily' and 'hourly' forecast types through get_future_weather()."""
         # ARRANGE
-        weather_units = protocols.WeatherUnits
+        weather_units = WeatherUnits
         test_cases = [
             {
                 "description": "forecast_type='daily' should call get_future_weather with forecast_type='daily'.",

@@ -4,8 +4,9 @@ adhering to the expected interface defined by the ViewProtocol."""
 import unittest
 from unittest.mock import Mock
 
-from core.protocols import IOAdapterProtocol, Sender
+from core.adapters.protocols import IOAdapterProtocol
 from core.views import ConsoleView
+from core.views.protocols import Sender
 
 
 class TestConsoleView(unittest.IsolatedAsyncioTestCase):

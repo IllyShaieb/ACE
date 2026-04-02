@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from core.protocols import DatabaseServiceProtocol
+from core.services.protocols import DatabaseServiceProtocol
 
 
 class DatabaseConversationStorageAdapter:

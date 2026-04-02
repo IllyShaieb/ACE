@@ -3,13 +3,12 @@ model and console-based view components of the ACE application."""
 
 from typing import Optional
 
-from core.protocols import (
+from core.adapters.protocols import (
     ConversationStorageAdapterProtocol,
     LogStorageAdapterProtocol,
-    ModelProtocol,
-    Sender,
-    ViewProtocol,
 )
+from core.models.protocols import ModelProtocol
+from core.views.protocols import Sender, ViewProtocol
 
 
 class ConsolePresenter:

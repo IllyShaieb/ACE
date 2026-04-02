@@ -8,8 +8,9 @@ that empty input is ignored.
 import unittest
 from unittest.mock import AsyncMock, Mock
 
+from core.models.protocols import ModelProtocol
 from core.presenters import ConsolePresenter
-from core.protocols import ModelProtocol, Sender, ViewProtocol
+from core.views.protocols import Sender, ViewProtocol
 
 
 class TestConsolePresenter(unittest.IsolatedAsyncioTestCase):

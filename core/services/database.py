@@ -3,7 +3,7 @@
 import sqlite3
 from typing import Any, Dict, List, Optional
 
-from core.protocols import LogStorageAdapterProtocol
+from core.adapters.protocols import LogStorageAdapterProtocol
 
 
 class SQLiteDatabaseService:
