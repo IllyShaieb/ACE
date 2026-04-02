@@ -84,6 +84,21 @@ def discover_tools(services: Optional[Dict[str, Any]] = None) -> List[Any]:
                 try:
                     # Match required __init__ arguments to available services
                     signature = inspect.signature(obj)
+                    required_params = [
+                        p
+                        for p in signature.parameters.values()
+                        if p.default is inspect.Parameter.empty
+                        and p.kind
+                        in (
+                            inspect.Parameter.POSITIONAL_ONLY,
+                            inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                            inspect.Parameter.KEYWORD_ONLY,
+                        )
+                    ]
+                    if any(p.name not in services for p in required_params):
+                        # Skip tools that require dependencies we do not currently have.
+                        continue
+
                     init_args = {
                         p.name: services[p.name]
                         for p in signature.parameters.values()
