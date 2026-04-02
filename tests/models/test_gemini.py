@@ -10,7 +10,7 @@ from google.genai import errors as genai_errors
 from google.genai import types
 
 from core.adapters.protocols import ConversationStorageAdapterProtocol
-from core.models import GeminiIntelligenceModel, MinimumViableModel
+from core.models import GeminiIntelligenceModel
 from core.tools.protocols import ToolProtocol
 
 
