@@ -1,5 +1,5 @@
-"""core.adapters.views: This module defines view adapters for the ACE application, providing
-a layer of abstraction for different view rendering engines the tools might depend on.
+"""core.adapters.io: This module defines I/O adapters for the ACE application, providing
+a layer of abstraction for different input/output implementations.
 """
 
 import sys

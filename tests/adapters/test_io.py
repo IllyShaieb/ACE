@@ -1,5 +1,5 @@
-"""tests.adapters.test_views: Ensures that the view adapters in the ACE application are functioning correctly
-and rendering views as expected.
+"""tests.adapters.test_io: Ensures that the IO adapters in the ACE application are functioning correctly
+and handling input/output as expected.
 """
 
 import unittest
