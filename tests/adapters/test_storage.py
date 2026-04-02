@@ -3,7 +3,7 @@ import uuid
 from unittest.mock import MagicMock, patch
 
 from core import adapters
-from core.protocols import DatabaseServiceProtocol
+from core.services.protocols import DatabaseServiceProtocol
 
 
 class TestDatabaseConversationStorageAdapter(unittest.TestCase):

@@ -3,19 +3,18 @@ Gemini API to provide advanced language processing capabilities for the ACE appl
 """
 
 import os
-
 from typing import Any, Dict, List, Optional
 
 from google import genai
 from google.genai import errors, types
 
-from core.protocols import (
-    ToolProtocol,
+from core.adapters.protocols import (
     ConversationStorageAdapterProtocol,
     LogStorageAdapterProtocol,
 )
-from core.tools import discover_tools
 from core.models.base import ThinkingLevel
+from core.tools import discover_tools
+from core.tools.protocols import ToolProtocol
 
 
 class GeminiIntelligenceModel:

@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 from unittest.mock import MagicMock
 
 from core import services
-from core.protocols import HTTPClientAdapterProtocol, WeatherUnits
+from core.adapters.protocols import HTTPClientAdapterProtocol
+from core.services.protocols import WeatherUnits
 
 
 class TestOpenWeatherMapService(unittest.TestCase):

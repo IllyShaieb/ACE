@@ -9,8 +9,9 @@ from google import genai
 from google.genai import errors as genai_errors
 from google.genai import types
 
+from core.adapters.protocols import ConversationStorageAdapterProtocol
 from core.models import GeminiIntelligenceModel, MinimumViableModel
-from core.protocols import ToolProtocol, ConversationStorageAdapterProtocol
+from core.tools.protocols import ToolProtocol
 
 
 class TestGeminiIntelligenceModel(unittest.IsolatedAsyncioTestCase):

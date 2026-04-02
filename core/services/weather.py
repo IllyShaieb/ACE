@@ -3,11 +3,8 @@
 from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
-from core.protocols import (
-    HTTPClientAdapterProtocol,
-    LogStorageAdapterProtocol,
-    WeatherUnits,
-)
+from core.adapters.protocols import HTTPClientAdapterProtocol, LogStorageAdapterProtocol
+from core.services.protocols import WeatherUnits
 
 
 class OpenWeatherMapService:

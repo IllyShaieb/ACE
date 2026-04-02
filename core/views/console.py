@@ -4,8 +4,9 @@ responsible for displaying information and receiving user input."""
 import asyncio
 from typing import Callable
 
+from core.adapters.protocols import IOAdapterProtocol
 from core.events import ViewEvents
-from core.protocols import IOAdapterProtocol, Sender
+from core.views.protocols import Sender
 
 
 class ConsoleView:

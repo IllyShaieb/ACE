@@ -3,7 +3,11 @@
 import os
 from typing import Any, Dict, Optional
 
-from core.protocols import LocationServiceProtocol, WeatherServiceProtocol, WeatherUnits
+from core.services.protocols import (
+    LocationServiceProtocol,
+    WeatherServiceProtocol,
+    WeatherUnits,
+)
 
 
 class WeatherTool:

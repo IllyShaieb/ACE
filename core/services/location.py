@@ -2,7 +2,7 @@
 
 from typing import Dict, Optional
 
-from core.protocols import HTTPClientAdapterProtocol, LogStorageAdapterProtocol
+from core.adapters.protocols import HTTPClientAdapterProtocol, LogStorageAdapterProtocol
 
 
 class IPInfoLocationService:
