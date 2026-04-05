@@ -56,12 +56,12 @@ uv run main.py
 This will start the ACE digital assistant, and you can interact with it by typing in commands and questions in a natural language format.
 
 ## Architecture
-See the [Architecture Documentation](docs/architecture.md) for a detailed overview of how ACE works and its core components.
+See the [Architecture Documentation](docs/ARCHITECTURE.md) for a detailed overview of how ACE works and its core components.
 
 ## Contributing
-ACE is an open-source project, and contributions are welcome! Whether you want to report a bug or suggest a new feature, or even contribute code, your help is appreciated. Please read the [Contributing Guidelines](CONTRIBUTING.md) for more information on how to get involved.
+ACE is an open-source project, and contributions are welcome! Whether you want to report a bug or suggest a new feature, or even contribute code, your help is appreciated. Please read the [Contributing Guidelines](docs/CONTRIBUTING.md) for more information on how to get involved.
 
-Also, please see the [Development Documentation](docs/development.md) for guidelines on developing new features and tools within the ACE framework.
+Also, please see the [Development Documentation](docs/DEVELOPMENT.md) for guidelines on developing new features and tools within the ACE framework.
 
 ## License
 See the [LICENSE](LICENSE) file for information on the licensing of ACE.
