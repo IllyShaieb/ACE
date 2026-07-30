@@ -16,6 +16,10 @@ class View(Protocol):
 
     def display_text(self, text: str) -> None: ...
 
+    def show_loading(self) -> None: ...
+
+    def hide_loading(self) -> None: ...
+
 
 class Presenter:
     """The Presenter class acts as an intermediary between the model and view."""
@@ -39,5 +43,15 @@ class Presenter:
         Args:
             text (str): The text submitted by the user.
         """
+
+        # Show a loading indicator while processing the text
+        self.view.show_loading()
+
+        # Process the text using the model
         result = self.model.process_text(text)
+
+        # Hide the loading indicator after processing
+        self.view.hide_loading()
+
+        # Display the processed text in the view
         self.view.display_text(result)
