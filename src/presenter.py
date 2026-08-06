@@ -45,6 +45,9 @@ class Presenter:
         Args:
             text (str): The text submitted by the user.
         """
+        # Return silently if no text is provided
+        if not text.strip():
+            return
 
         # Show a loading indicator while processing the text
         self.view.show_loading()

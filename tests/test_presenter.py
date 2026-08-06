@@ -72,3 +72,24 @@ def test_presenter_handles_errors_gracefully():
         ("hide_loading", (), {}),
         ("display_error", ("Error: Processing error",), {}),
     ]
+
+
+def test_presenter_rejects_empty_or_whitespace_input():
+    """Test that the presenter rejects empty or whitespace-only input."""
+    # ARRANGE: Create mock instances of the model and view
+    mock_model = MagicMock(spec=Model)
+    mock_view = MagicMock(spec=View)
+
+    # ACT: Create a presenter instance with the mock model and view
+    presenter = Presenter(model=mock_model, view=mock_view)
+
+    # Simulate a user submitting empty or whitespace-only text through the view
+    mock_view.on_submit("   ")
+
+    # ASSERT: Verify that the presenter returns early and does not call
+    # further methods on the model or view
+    mock_view.show_loading.assert_not_called()
+    mock_view.hide_loading.assert_not_called()
+    mock_view.display_text.assert_not_called()
+    mock_view.display_error.assert_not_called()
+    mock_model.process_text.assert_not_called()
