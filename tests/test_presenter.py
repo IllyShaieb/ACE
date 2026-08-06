@@ -49,3 +49,26 @@ def test_presenter_shows_and_hides_loading_indicator():
         ("hide_loading", (), {}),
         ("display_text", ("Processed text",), {}),
     ]
+
+
+def test_presenter_handles_errors_gracefully():
+    """Test that the presenter handles errors gracefully when processing text."""
+    # ARRANGE: Create mock instances of the model and view
+    mock_model = MagicMock(spec=Model)
+    mock_view = MagicMock(spec=View)
+
+    # Simulate an error in the model's process_text method
+    mock_model.process_text.side_effect = Exception("Processing error")
+
+    # ACT: Create a presenter instance with the mock model and view
+    presenter = Presenter(model=mock_model, view=mock_view)
+
+    # Simulate a user submitting text through the view
+    mock_view.on_submit("Hello, World!")
+
+    # ASSERT: Verify that the loading indicator is shown and hidden correctly
+    assert mock_view.mock_calls == [
+        ("show_loading", (), {}),
+        ("hide_loading", (), {}),
+        ("display_error", ("Error: Processing error",), {}),
+    ]

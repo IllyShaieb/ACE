@@ -20,6 +20,8 @@ class View(Protocol):
 
     def hide_loading(self) -> None: ...
 
+    def display_error(self, message: str) -> None: ...
+
 
 class Presenter:
     """The Presenter class acts as an intermediary between the model and view."""
@@ -47,11 +49,18 @@ class Presenter:
         # Show a loading indicator while processing the text
         self.view.show_loading()
 
-        # Process the text using the model
-        result = self.model.process_text(text)
+        try:
+            # Process the text using the model
+            result = self.model.process_text(text)
 
-        # Hide the loading indicator after processing
-        self.view.hide_loading()
+            # Hide the loading indicator after processing
+            self.view.hide_loading()
+
+        except Exception as e:
+            # Handle any errors that occur during processing
+            self.view.hide_loading()
+            self.view.display_error(f"Error: {str(e)}")
+            return
 
         # Display the processed text in the view
         self.view.display_text(result)
