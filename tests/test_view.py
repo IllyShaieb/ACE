@@ -64,3 +64,25 @@ def test_show_loading_disables_controls_and_updates_button_text(qtbot):
     assert (
         view.submit_button.text() == "..."
     ), "Submit button text should be '...' during loading."
+
+
+def test_hide_loading_enables_controls_and_restores_button_text(qtbot):
+    """Test that the view correctly hides the loading indicator by enabling controls and
+    restoring the submit button text."""
+    # ARRANGE: Create a PyQt6View instance and show loading first
+    view = PyQt6View()
+    qtbot.addWidget(view)
+    view.show_loading()
+
+    # ACT: Call the hide_loading method
+    view.hide_loading()
+
+    # ASSERT: Verify that the text input and submit button are enabled
+    # and the submit button text is restored to "Submit"
+    assert view.input_box.isEnabled(), "Input box should be enabled after loading."
+    assert (
+        view.submit_button.isEnabled()
+    ), "Submit button should be enabled after loading."
+    assert (
+        view.submit_button.text() == "Submit"
+    ), "Submit button text should be 'Submit' after loading."
