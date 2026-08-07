@@ -41,3 +41,26 @@ def test_display_text_appends_to_output_area(qtbot):
         assert (
             message in output_area_text
         ), f"Output area should contain the message: {message}"
+
+
+def test_show_loading_disables_controls_and_updates_button_text(qtbot):
+    """Test that the view correctly shows a loading indicator by disabling controls and
+    updating the submit button text."""
+    # ARRANGE: Create a PyQt6View instance
+    view = PyQt6View()
+    qtbot.addWidget(view)
+
+    # ACT: Call the show_loading method
+    view.show_loading()
+
+    # ASSERT: Verify that the text input and submit button are disabled
+    # and the submit button text is changed to "..."
+    assert (
+        not view.input_box.isEnabled()
+    ), "Input box should be disabled during loading."
+    assert (
+        not view.submit_button.isEnabled()
+    ), "Submit button should be disabled during loading."
+    assert (
+        view.submit_button.text() == "..."
+    ), "Submit button text should be '...' during loading."

@@ -49,7 +49,11 @@ class PyQt6View(QWidget):
         """
         self.output_area.append(text)
 
-    def show_loading(self) -> None: ...
+    def show_loading(self) -> None:
+        """Show a loading indicator by disabling the input box and changing the submit button text."""
+        self.input_box.setDisabled(True)
+        self.submit_button.setDisabled(True)
+        self.submit_button.setText("...")
 
     def hide_loading(self) -> None: ...
 
@@ -61,6 +65,7 @@ if __name__ == "__main__":
     view = PyQt6View()
 
     def _on_submit(text: str) -> None:
+        view.show_loading()
         view.display_text(f"Submitted: {text}")
 
     view.on_submit = _on_submit
