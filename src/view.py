@@ -3,7 +3,13 @@
 from typing import Callable
 
 from PyQt6.QtWidgets import QApplication, QWidget
-from PyQt6.QtWidgets import QTextEdit, QPushButton, QVBoxLayout
+from PyQt6.QtWidgets import (
+    QTextEdit,
+    QPushButton,
+    QVBoxLayout,
+    QHBoxLayout,
+    QTextBrowser,
+)
 
 
 class PyQt6View(QWidget):
@@ -18,10 +24,16 @@ class PyQt6View(QWidget):
         self.input_box = QTextEdit()
         self.submit_button = QPushButton("Submit")
         self.submit_button.clicked.connect(self._handle_submit)
+        self.output_area = QTextBrowser()
 
         layout = QVBoxLayout()
-        layout.addWidget(self.input_box)
-        layout.addWidget(self.submit_button)
+
+        input_row = QHBoxLayout()
+        input_row.addWidget(self.input_box, 1)
+        input_row.addWidget(self.submit_button)
+
+        layout.addWidget(self.output_area, 4)
+        layout.addLayout(input_row, 1)
         self.setLayout(layout)
 
     def _handle_submit(self):
@@ -29,7 +41,13 @@ class PyQt6View(QWidget):
             self.on_submit(self.input_box.toPlainText())
         self.input_box.clear()
 
-    def display_text(self, text: str) -> None: ...
+    def display_text(self, text: str) -> None:
+        """Display the given text in the output area.
+
+        Args:
+            text (str): The text to display.
+        """
+        self.output_area.append(text)
 
     def show_loading(self) -> None: ...
 
@@ -41,6 +59,10 @@ class PyQt6View(QWidget):
 if __name__ == "__main__":
     app = QApplication([])
     view = PyQt6View()
-    view.on_submit = lambda text: print(f"Submitted: {text}")
+
+    def _on_submit(text: str) -> None:
+        view.display_text(f"Submitted: {text}")
+
+    view.on_submit = _on_submit
     view.show()
     app.exec()
