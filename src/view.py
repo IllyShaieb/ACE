@@ -61,7 +61,13 @@ class PyQt6View(QWidget):
         self.submit_button.setDisabled(False)
         self.submit_button.setText("Submit")
 
-    def display_error(self, message: str) -> None: ...
+    def display_error(self, message: str) -> None:
+        """Display an error message in the output area.
+
+        Args:
+            message (str): The error message to display.
+        """
+        self.output_area.append(f'<span style="color: red;">{message}</span>')
 
 
 if __name__ == "__main__":
@@ -69,8 +75,32 @@ if __name__ == "__main__":
     view = PyQt6View()
 
     def _on_submit(text: str) -> None:
+        """Handle the event when the user submits text through the view.
+
+        Args:
+            text (str): The text submitted by the user.
+        """
+        from time import sleep
+
+        # Return silently if no text is provided
+        if not text.strip():
+            return
+
+        # Display the user's message immediately.
+        view.display_text(f"You: {text}")
         view.show_loading()
-        view.display_text(f"Submitted: {text}")
+
+        sleep(1)  # Simulate processing delay
+
+        # Display a mock response based on the input text
+        if "error" in text.lower():
+            view.display_error(
+                "Error: Simulated error: something went wrong while processing your text."
+            )
+        else:
+            view.display_text("ACE: This is a simple demo response.")
+
+        view.hide_loading()
 
     view.on_submit = _on_submit
     view.show()

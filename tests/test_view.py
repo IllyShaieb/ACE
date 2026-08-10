@@ -86,3 +86,20 @@ def test_hide_loading_enables_controls_and_restores_button_text(qtbot):
     assert (
         view.submit_button.text() == "Submit"
     ), "Submit button text should be 'Submit' after loading."
+
+
+def test_display_error_shows_error_message(qtbot):
+    """Test that the view correctly displays an error message in the output area."""
+    # ARRANGE: Create a PyQt6View instance
+    view = PyQt6View()
+    qtbot.addWidget(view)
+
+    # ACT: Call the display_error method with an error message
+    error_message = "[ERROR] An error occurred."
+    view.display_error(error_message)
+
+    # ASSERT: Verify that the output area contains the error message
+    output_area_text = view.output_area.toPlainText()
+    assert (
+        error_message in output_area_text
+    ), f"Output area should contain the error message: {error_message}"
