@@ -22,6 +22,8 @@ class PyQt6View(QWidget):
         super().__init__()
         self.on_submit = None
         self.input_box = QTextEdit()
+        self.input_box.setPlaceholderText("Type your message here...")
+
         self.submit_button = QPushButton("Submit")
         self.submit_button.clicked.connect(self._handle_submit)
         self.output_area = QTextBrowser()
