@@ -2,6 +2,7 @@
 
 from typing import Callable
 
+from PyQt6.QtCore import QEvent, Qt
 from PyQt6.QtWidgets import QApplication, QWidget
 from PyQt6.QtWidgets import (
     QTextEdit,
@@ -27,6 +28,9 @@ class PyQt6View(QWidget):
         self.submit_button = QPushButton("Submit")
         self.submit_button.clicked.connect(self._handle_submit)
         self.output_area = QTextBrowser()
+
+        # Ctrl + Return shortcut for submission
+        self.input_box.installEventFilter(self)
 
         layout = QVBoxLayout()
 
@@ -72,6 +76,26 @@ class PyQt6View(QWidget):
             message (str): The error message to display.
         """
         self.output_area.append(f'<span style="color: red;">{message}</span>')
+
+    def eventFilter(self, source, event):  # type: ignore
+        """Event filter to handle Ctrl + Return key press in the input box.
+
+        Args:
+            source: The source of the event.
+            event: The event object.
+
+        Returns:
+            bool: True if the event is handled, False otherwise.
+        """
+        if (
+            source is self.input_box
+            and event.type() == QEvent.Type.KeyPress
+            and event.key() == Qt.Key.Key_Return
+            and event.modifiers() & Qt.KeyboardModifier.ControlModifier
+        ):
+            self._handle_submit()
+            return True
+        return super().eventFilter(source, event)
 
 
 if __name__ == "__main__":

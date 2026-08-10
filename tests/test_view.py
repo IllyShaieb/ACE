@@ -1,6 +1,7 @@
 """Ensure the view module correctly handles user interactions and displays information."""
 
 from unittest.mock import MagicMock
+from PyQt6.QtCore import Qt
 from src.view import PyQt6View
 
 
@@ -22,6 +23,40 @@ def test_submit_user_input_via_button(qtbot):
     assert (
         view.input_box.toPlainText() == ""
     ), "Input box should be cleared after submission."
+
+
+def test_submit_user_input_via_ctrl_return_twice(qtbot):
+    """Test that Ctrl+Return works for consecutive submissions."""
+    # ARRANGE: Create a mock callback function and pass it to a PyQt6View instance
+    mock_callback = MagicMock()
+    view = PyQt6View()
+    qtbot.addWidget(view)
+    view.on_submit = mock_callback
+    view.input_box.setFocus()
+
+    # ACT: Submit two messages with Ctrl+Return
+    first_input = "First message"
+    second_input = "Second message"
+
+    view.input_box.setPlainText(first_input)
+    qtbot.keyClick(
+        view.input_box,
+        Qt.Key.Key_Return,
+        Qt.KeyboardModifier.ControlModifier,
+    )
+
+    view.input_box.setPlainText(second_input)
+    qtbot.keyClick(
+        view.input_box,
+        Qt.Key.Key_Return,
+        Qt.KeyboardModifier.ControlModifier,
+    )
+
+    # ASSERT: Verify both submissions are handled and input is cleared each time
+    mock_callback.assert_any_call(first_input)
+    assert view.input_box.toPlainText() == ""
+    mock_callback.assert_any_call(second_input)
+    assert view.input_box.toPlainText() == ""
 
 
 def test_display_text_appends_to_output_area(qtbot):
