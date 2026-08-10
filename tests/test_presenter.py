@@ -2,7 +2,6 @@
 
 from unittest.mock import MagicMock
 from src.presenter import Presenter, Model, View
-import pytest
 
 
 def test_presenter_attaches_callback_and_handles_user_submit():
@@ -25,7 +24,8 @@ def test_presenter_attaches_callback_and_handles_user_submit():
     ), "Presenter should attach a callback to the view's on_submit method."
 
     mock_model.process_text.assert_called_once_with("Hello, World!")
-    mock_view.display_text.assert_called_once_with("Processed text")
+    mock_view.display_text.assert_any_call("You: Hello, World!")
+    mock_view.display_text.assert_any_call("ACE: Processed text")
 
 
 def test_presenter_shows_and_hides_loading_indicator():
@@ -43,11 +43,14 @@ def test_presenter_shows_and_hides_loading_indicator():
     mock_view.on_submit("Hello, World!")
 
     # ASSERT: Verify that the loading indicator is shown and hidden correctly
-    # Should be show loading -> process text -> hide loading -> display text
+    # Should be display user text -> show loading -> process text -> hide loading -> display ACE text
     assert mock_view.mock_calls == [
+        ("display_text", ("You: Hello, World!",), {}),
+        ("display_text", ("",), {}),
         ("show_loading", (), {}),
         ("hide_loading", (), {}),
-        ("display_text", ("Processed text",), {}),
+        ("display_text", ("ACE: Processed text",), {}),
+        ("display_text", ("",), {}),
     ]
 
 
@@ -68,9 +71,12 @@ def test_presenter_handles_errors_gracefully():
 
     # ASSERT: Verify that the loading indicator is shown and hidden correctly
     assert mock_view.mock_calls == [
+        ("display_text", ("You: Hello, World!",), {}),
+        ("display_text", ("",), {}),
         ("show_loading", (), {}),
         ("hide_loading", (), {}),
-        ("display_error", ("Error: Processing error",), {}),
+        ("display_error", ("[ERROR] Processing error",), {}),
+        ("display_text", ("",), {}),
     ]
 
 
