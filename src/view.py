@@ -54,12 +54,14 @@ class PyQt6View(QWidget):
         self.input_box.setDisabled(True)
         self.submit_button.setDisabled(True)
         self.submit_button.setText("...")
+        self.repaint()  # Force the UI to update immediately to show the loading state
 
     def hide_loading(self) -> None:
         """Hide the loading indicator by enabling the input box and restoring the submit button text."""
         self.input_box.setDisabled(False)
         self.submit_button.setDisabled(False)
         self.submit_button.setText("Submit")
+        self.repaint()  # Force the UI to update immediately to show the normal state
 
     def display_error(self, message: str) -> None:
         """Display an error message in the output area.
