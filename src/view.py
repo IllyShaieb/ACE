@@ -42,6 +42,8 @@ class PyQt6View(QWidget):
         layout.addLayout(input_row, 1)
         self.setLayout(layout)
 
+        self.input_box.setFocus()
+
     def _handle_submit(self):
         if self.on_submit:
             self.on_submit(self.input_box.toPlainText())
@@ -67,6 +69,7 @@ class PyQt6View(QWidget):
         self.input_box.setDisabled(False)
         self.submit_button.setDisabled(False)
         self.submit_button.setText("Submit")
+        self.input_box.setFocus()
         self.repaint()  # Force the UI to update immediately to show the normal state
 
     def display_error(self, message: str) -> None:
