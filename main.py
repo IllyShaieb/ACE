@@ -2,9 +2,10 @@
 
 from typing import Callable, NoReturn, TypedDict
 
+from PyQt6.QtWidgets import QApplication
+
 from src.presenter import Presenter
 from src.view import PyQt6View
-from PyQt6.QtWidgets import QApplication
 
 
 class PatternEntry(TypedDict):
