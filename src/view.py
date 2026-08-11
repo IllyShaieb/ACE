@@ -40,6 +40,8 @@ class PyQt6View(QWidget):
         super().__init__()
         self.on_submit = None
 
+        self.setWindowTitle("ACE")
+
         self._is_dark_mode = theme in [Theme.DARK]
         self.styles_dir = (
             styles_dir or Path(__file__).parent.parent / "assets" / "styles"
