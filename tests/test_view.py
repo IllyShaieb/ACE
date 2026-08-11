@@ -1,8 +1,10 @@
 """Ensure the view module correctly handles user interactions and displays information."""
 
 from unittest.mock import MagicMock
+
 from PyQt6.QtCore import Qt
-from src.view import PyQt6View
+
+from src.view import PyQt6View, Theme
 
 
 def test_submit_user_input_via_button(qtbot):
@@ -138,3 +140,54 @@ def test_display_error_shows_error_message(qtbot):
     assert (
         error_message in output_area_text
     ), f"Output area should contain the error message: {error_message}"
+
+
+def test_view_defaults_to_dark_theme(qtbot):
+    """Test that the view defaults to a dark theme."""
+    # ARRANGE: Create a PyQt6View instance
+    view = PyQt6View()
+    qtbot.addWidget(view)
+
+    # ACT: Nothing to do here since we are just checking the default theme
+
+    # ASSERT: Verify view._is_dark_mode is True and verify the view's styleSheet
+    # contains dark palette properties.
+    assert view._is_dark_mode, "View should default to dark mode."
+    assert (
+        "background-color: #1e1e1e;" in view.styleSheet()
+    ), "View should have dark background color in styleSheet."
+
+
+def test_view_can_switch_to_light_theme(qtbot):
+    """Test that the view can switch to a light theme."""
+    # ARRANGE: Create a PyQt6View instance with light theme
+    view = PyQt6View(theme=Theme.LIGHT)
+    qtbot.addWidget(view)
+
+    # ACT: Nothing to do here since we are just checking the light theme
+
+    # ASSERT: Verify view._is_dark_mode is False and verify the view's styleSheet
+    # contains light palette properties.
+    assert not view._is_dark_mode, "View should be in light mode."
+    assert (
+        "background-color: #f5f7fb;" in view.styleSheet()
+    ), "View should have light background color in styleSheet."
+
+
+def test_view_can_switch_theme_via_button(qtbot):
+    """Test that the view can switch themes via the theme button."""
+    # ARRANGE: Create a PyQt6View instance with light theme
+    view = PyQt6View(theme=Theme.LIGHT)
+    qtbot.addWidget(view)
+
+    # ACT: Click the theme button to switch to dark mode
+    qtbot.mouseClick(view.theme_button, Qt.MouseButton.LeftButton)
+
+    # ASSERT: Verify view._is_dark_mode is True and verify the view's styleSheet
+    # contains dark palette properties.
+    assert (
+        view._is_dark_mode
+    ), "View should be in dark mode after clicking the theme button."
+    assert (
+        "background-color: #1e1e1e;" in view.styleSheet()
+    ), "View should have dark background color in styleSheet after switching themes."

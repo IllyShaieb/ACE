@@ -1,16 +1,26 @@
 """The view module defines the user interface components of the application."""
 
+from enum import Enum
+from pathlib import Path
 from typing import Callable
 
 from PyQt6.QtCore import QEvent, Qt
-from PyQt6.QtWidgets import QApplication, QWidget
 from PyQt6.QtWidgets import (
-    QTextEdit,
-    QPushButton,
-    QVBoxLayout,
+    QApplication,
     QHBoxLayout,
+    QPushButton,
     QTextBrowser,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
 )
+
+
+class Theme(Enum):
+    """An enumeration representing the available themes for the application."""
+
+    DARK = "dark"
+    LIGHT = "light"
 
 
 class PyQt6View(QWidget):
@@ -18,10 +28,28 @@ class PyQt6View(QWidget):
 
     on_submit: Callable[[str], None] | None
 
-    def __init__(self):
-        """Initialise the view with a PyQt6 widget."""
+    def __init__(
+        self, styles_dir: Path | None = None, theme: Theme = Theme.DARK
+    ) -> None:
+        """Initialise the view with a PyQt6 widget.
+
+        Args:
+            styles_dir (Path): The directory containing the QSS style files.
+            theme (Theme): The theme to apply to the view.
+        """
         super().__init__()
         self.on_submit = None
+
+        self._is_dark_mode = theme in [Theme.DARK]
+        self.styles_dir = (
+            styles_dir or Path(__file__).parent.parent / "assets" / "styles"
+        )
+
+        self.theme_button = QPushButton()
+        self.theme_button.clicked.connect(self.toggle_theme)
+
+        self._apply_theme()
+
         self.input_box = QTextEdit()
         self.input_box.setPlaceholderText("Type your message here...")
 
@@ -34,6 +62,8 @@ class PyQt6View(QWidget):
 
         layout = QVBoxLayout()
 
+        layout.addWidget(self.theme_button, 0, Qt.AlignmentFlag.AlignRight)
+
         input_row = QHBoxLayout()
         input_row.addWidget(self.input_box, 1)
         input_row.addWidget(self.submit_button)
@@ -43,6 +73,25 @@ class PyQt6View(QWidget):
         self.setLayout(layout)
 
         self.input_box.setFocus()
+
+    def toggle_theme(self) -> None:
+        """Toggle between dark and light themes."""
+        self._is_dark_mode = not self._is_dark_mode
+        self._apply_theme()
+
+    def _apply_theme(self) -> None:
+        """Load and apply QSS stylesheet based on current _is_dark_mode state."""
+        theme_name = "dark" if self._is_dark_mode else "light"
+        qss_file = self.styles_dir / f"{theme_name}.qss"
+
+        # Update button icon to show what clicking it will do (or current state)
+        self.theme_button.setText("☀️" if self._is_dark_mode else "🌙")
+
+        if qss_file.exists():
+            with open(qss_file, "r", encoding="utf-8") as f:
+                self.setStyleSheet(f.read())
+        else:
+            print(f"Warning: QSS file {qss_file} not found.")
 
     def _handle_submit(self):
         if self.on_submit:
