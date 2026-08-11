@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Callable
 
 from PyQt6.QtCore import QEvent, Qt
+from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
     QApplication,
     QHBoxLayout,
@@ -40,6 +41,10 @@ class PyQt6View(QWidget):
         super().__init__()
         self.on_submit = None
 
+
+        self.setWindowIcon(
+            QIcon(str(Path(__file__).parent.parent / "assets" / "app-icon.svg"))
+        )
         self.setWindowTitle("ACE")
 
         self._is_dark_mode = theme in [Theme.DARK]
