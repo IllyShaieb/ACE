@@ -41,11 +41,11 @@ class PyQt6View(QWidget):
         super().__init__()
         self.on_submit = None
 
+        self.setWindowTitle("ACE")
 
         self.setWindowIcon(
             QIcon(str(Path(__file__).parent.parent / "assets" / "app-icon.svg"))
         )
-        self.setWindowTitle("ACE")
 
         self._is_dark_mode = theme in [Theme.DARK]
         self.styles_dir = (
@@ -92,7 +92,18 @@ class PyQt6View(QWidget):
         qss_file = self.styles_dir / f"{theme_name}.qss"
 
         # Update button icon to show what clicking it will do (or current state)
-        self.theme_button.setText("☀️" if self._is_dark_mode else "🌙")
+        if self._is_dark_mode:
+            self.theme_button.setText("☀️")
+            self.theme_button.setStyleSheet(
+                "QPushButton { background-color: transparent; border: none; font-size: 18px; }"
+                "QPushButton:hover { background-color: rgba(255, 255, 255, 0.1); border-radius: 4px; }"
+            )
+        else:
+            self.theme_button.setText("🌙")
+            self.theme_button.setStyleSheet(
+                "QPushButton { background-color: transparent; border: none; font-size: 18px; }"
+                "QPushButton:hover { background-color: rgba(0, 0, 0, 0.1); border-radius: 4px; }"
+            )
 
         if qss_file.exists():
             with open(qss_file, "r", encoding="utf-8") as f:
