@@ -99,3 +99,22 @@ def test_presenter_rejects_empty_or_whitespace_input():
     mock_view.display_text.assert_not_called()
     mock_view.display_error.assert_not_called()
     mock_model.process_text.assert_not_called()
+
+
+def test_presenter_handles_model_change():
+    """Test that the presenter correctly handles model changes."""
+    # ARRANGE: Create mock instances of the model and view
+    mock_model = MagicMock(spec=Model)
+    mock_view = MagicMock(spec=View)
+
+    # ACT: Create a presenter instance with the mock model and view
+    presenter = Presenter(model=mock_model, view=mock_view)
+
+    # Simulate a user changing the model selection through the view
+    new_model_name = "NewModel"
+    mock_view.on_model_change(new_model_name)
+
+    # ASSERT: Verify that the presenter's handle_model_change method updates the model's name
+    assert (
+        mock_model.model_name == new_model_name
+    ), "Presenter should update the model's name on model change."

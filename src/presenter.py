@@ -15,6 +15,7 @@ class View(Protocol):
     """A view is responsible for displaying information to the user and capturing user input."""
 
     on_submit: Callable[[str], None] | None
+    on_model_change: Callable[[str], None] | None
 
     def display_text(self, text: str) -> None: ...
 
@@ -40,6 +41,7 @@ class Presenter:
 
         # Connect the view to the presenter
         self.view.on_submit = self.handle_submit
+        self.view.on_model_change = self.handle_model_change
 
     def handle_submit(self, text: str) -> None:
         """Handle the event when the user submits text through the view.
@@ -75,3 +77,12 @@ class Presenter:
         # Display the processed text in the view
         self.view.display_text(f"ACE: {result}")
         self.view.display_text("")
+
+    def handle_model_change(self, model_name: str) -> None:
+        """Handle the event when the user changes the model selection in the view.
+
+        Args:
+            model_name (str): The name of the newly selected model.
+        """
+        # Update the model's name to reflect the new selection
+        self.model.model_name = model_name
