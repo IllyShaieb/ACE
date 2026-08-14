@@ -262,3 +262,9 @@ QSlider::handle:horizontal {
 QSlider::handle:horizontal:hover {
     background-color: #1d4ed8;
 }
+
+QComboBox::down-arrow {
+    image: url(assets/arrow-down-black.svg);
+    width: 12px;
+    height: 12px;
+}

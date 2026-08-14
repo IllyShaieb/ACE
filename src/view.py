@@ -8,6 +8,7 @@ from PyQt6.QtCore import QEvent, Qt
 from PyQt6.QtGui import QIcon
 from PyQt6.QtWidgets import (
     QApplication,
+    QComboBox,
     QHBoxLayout,
     QPushButton,
     QTextBrowser,
@@ -28,6 +29,7 @@ class PyQt6View(QWidget):
     """A view class built using PyQt6."""
 
     on_submit: Callable[[str], None] | None
+    on_model_change: Callable[[str], None] | None
 
     def __init__(
         self, styles_dir: Path | None = None, theme: Theme = Theme.DARK
@@ -52,6 +54,24 @@ class PyQt6View(QWidget):
             styles_dir or Path(__file__).parent.parent / "assets" / "styles"
         )
 
+        self.model_selection = QComboBox()
+        model_choices = [
+            ("🦙 Llama 3.1 8B Instant", "llama-3.1-8b-instant"),
+            ("🦙 Llama 3.3 70B Versatile", "llama-3.3-70b-versatile"),
+            ("🤖 OpenAI GPT-OSS 120B", "openai/gpt-oss-120b"),
+            ("🤖 OpenAI GPT-OSS 20B", "openai/gpt-oss-20b"),
+            ("⚡ Groq Compound", "groq/compound"),
+            ("⚡ Groq Compound Mini", "groq/compound-mini"),
+        ]
+        for label, model_name in model_choices:
+            self.model_selection.addItem(label, model_name)
+
+        self.model_selection.setCurrentIndex(1)  # Default to "llama-3.3-70b-versatile"
+        self.current_model = (
+            self.model_selection.currentData() or self.model_selection.currentText()
+        )
+        self.model_selection.currentIndexChanged.connect(self.toggle_model)
+
         self.theme_button = QPushButton()
         self.theme_button.clicked.connect(self.toggle_theme)
 
@@ -69,12 +89,15 @@ class PyQt6View(QWidget):
 
         layout = QVBoxLayout()
 
-        layout.addWidget(self.theme_button, 0, Qt.AlignmentFlag.AlignRight)
+        top_row = QHBoxLayout()
+        top_row.addWidget(self.model_selection, 1)
+        top_row.addWidget(self.theme_button, 0)
 
         input_row = QHBoxLayout()
         input_row.addWidget(self.input_box, 1)
         input_row.addWidget(self.submit_button)
 
+        layout.addLayout(top_row, 0)
         layout.addWidget(self.output_area, 4)
         layout.addLayout(input_row, 1)
         self.setLayout(layout)
@@ -85,6 +108,14 @@ class PyQt6View(QWidget):
         """Toggle between dark and light themes."""
         self._is_dark_mode = not self._is_dark_mode
         self._apply_theme()
+
+    def toggle_model(self) -> None:
+        """Toggle between available models and refresh document CSS."""
+        if self.on_model_change:
+            self.current_model = (
+                self.model_selection.currentData() or self.model_selection.currentText()
+            )
+            self.on_model_change(self.current_model)
 
     def _apply_theme(self) -> None:
         """Load and apply QSS stylesheet based on current _is_dark_mode state."""

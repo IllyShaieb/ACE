@@ -191,3 +191,22 @@ def test_view_can_switch_theme_via_button(qtbot):
     assert (
         "background-color: #1e1e1e;" in view.styleSheet()
     ), "View should have dark background color in styleSheet after switching themes."
+
+
+def test_view_can_switch_model_via_combobox(qtbot):
+    """Test that the view can switch models via the model selection combo box."""
+    # ARRANGE: Create a PyQt6View instance and set a mock callback for model change
+    view = PyQt6View()
+    qtbot.addWidget(view)
+
+    mock_model_change_callback = MagicMock()
+    view.on_model_change = mock_model_change_callback
+
+    # ACT: Change the model selection in the combo box.
+    view.model_selection.setCurrentIndex(0)
+
+    # ASSERT: Verify that the on_model_change callback was called with the correct model name
+    expected_model_name = (
+        view.model_selection.currentData() or view.model_selection.currentText()
+    )
+    mock_model_change_callback.assert_called_once_with(expected_model_name)
