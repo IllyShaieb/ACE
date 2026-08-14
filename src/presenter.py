@@ -6,6 +6,8 @@ from typing import Callable, Protocol
 class Model(Protocol):
     """A model deals with the business logic of the application."""
 
+    model_name: str
+
     def process_text(self, text: str) -> str: ...
 
 
