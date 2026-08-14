@@ -17,6 +17,8 @@ from PyQt6.QtWidgets import (
     QWidget,
 )
 
+from src.formatter import markdown_to_html
+
 
 class Theme(Enum):
     """An enumeration representing the available themes for the application."""
@@ -153,7 +155,7 @@ class PyQt6View(QWidget):
         Args:
             text (str): The text to display.
         """
-        self.output_area.append(text)
+        self.output_area.append(markdown_to_html(text))
 
     def show_loading(self) -> None:
         """Show a loading indicator by disabling the input box and changing the submit button text."""

@@ -1,6 +1,6 @@
 """Ensure the view module correctly handles user interactions and displays information."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 from PyQt6.QtCore import Qt
 
@@ -210,3 +210,22 @@ def test_view_can_switch_model_via_combobox(qtbot):
         view.model_selection.currentData() or view.model_selection.currentText()
     )
     mock_model_change_callback.assert_called_once_with(expected_model_name)
+
+
+def test_display_text_converts_markdown_and_appends_to_output(qtbot):
+    """Test that display_text converts Markdown via the formatter before appending."""
+
+    # ARRANGE: Create a PyQt6View instance and mock the markdown_to_html function
+    view = PyQt6View()
+    qtbot.addWidget(view)
+
+    # ACT: Call display_text with some Markdown text
+    raw_markdown = "Raw **Markdown**"
+
+    with patch(
+        "src.view.markdown_to_html", side_effect=lambda x: f"<p>{x}</p>"
+    ) as mock_formatter:
+        view.display_text(raw_markdown)
+
+        # ASSERT: Verify that the formatter was called
+        mock_formatter.assert_called_once_with(raw_markdown)
