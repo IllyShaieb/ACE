@@ -54,8 +54,7 @@ class Presenter:
             return
 
         # Display the user's message immediately.
-        self.view.display_text(f"You: {text}")
-        self.view.display_text("")
+        self.view.display_text(f"## You:\n\n{text}\n\n")
 
         # Show a loading indicator while processing the text
         self.view.show_loading()
@@ -70,13 +69,11 @@ class Presenter:
         except Exception as e:
             # Handle any errors that occur during processing
             self.view.hide_loading()
-            self.view.display_error(f"[ERROR] {str(e)}")
-            self.view.display_text("")
+            self.view.display_error(f"[ERROR] {str(e)}\n\n")
             return
 
         # Display the processed text in the view
-        self.view.display_text(f"ACE: {result}")
-        self.view.display_text("")
+        self.view.display_text(f"## ACE:\n\n{result}\n\n")
 
     def handle_model_change(self, model_name: str) -> None:
         """Handle the event when the user changes the model selection in the view.
