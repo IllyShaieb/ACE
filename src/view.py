@@ -68,7 +68,7 @@ class PyQt6View(QWidget):
         for label, model_name in model_choices:
             self.model_selection.addItem(label, model_name)
 
-        self.model_selection.setCurrentIndex(1)  # Default to "llama-3.3-70b-versatile"
+        self.model_selection.setCurrentIndex(2)
         self.current_model = (
             self.model_selection.currentData() or self.model_selection.currentText()
         )
