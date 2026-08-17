@@ -17,7 +17,7 @@ def test_model_process_text_with_mocked_groq():
     mock_chat_completion.choices[0].message.content = "Processed text"
     mock_groq.chat.completions.create.return_value = mock_chat_completion
 
-    model = GroqModel(groq=mock_groq)
+    model = GroqModel(groq=mock_groq, model_name="openai/gpt-oss-120b")
 
     # ACT: Call the process_text method with a sample input
     input_text = "Hello, World!"
@@ -28,8 +28,7 @@ def test_model_process_text_with_mocked_groq():
         result == "Processed text"
     ), "The model should return the processed text from the mocked Groq client."
     mock_groq.chat.completions.create.assert_called_once_with(
-        model="llama-3.3-70b-versatile",
-        messages=model.messages,
+        model="openai/gpt-oss-120b", messages=model.messages
     )
 
 

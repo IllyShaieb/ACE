@@ -14,14 +14,14 @@ class GroqModel:
     def __init__(
         self,
         groq: Groq,
-        model_name: str = "llama-3.3-70b-versatile",
+        model_name: str = "openai/gpt-oss-120b",
         system_prompt: str | None = None,
     ) -> None:
         """Initialise the model with a Groq instance.
 
         Args:
             groq (Groq): An instance of the Groq class for processing text.
-                Defaults to "llama-3.3-70b-versatile" if not specified.
+                Defaults to "openai/gpt-oss-120b" if not specified.
             system_prompt (str | None): An optional system prompt to initialise
                 the model's message history
             model_name (str): The name of the model to use for processing text.
