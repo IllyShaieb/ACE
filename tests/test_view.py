@@ -202,8 +202,12 @@ def test_view_can_switch_model_via_combobox(qtbot):
     mock_model_change_callback = MagicMock()
     view.on_model_change = mock_model_change_callback
 
+    current_index = view.model_selection.currentIndex()
+
     # ACT: Change the model selection in the combo box.
-    view.model_selection.setCurrentIndex(0)
+    view.model_selection.setCurrentIndex(
+        (current_index + 1) % view.model_selection.count()
+    )  # Switch to the next model in the list
 
     # ASSERT: Verify that the on_model_change callback was called with the correct model name
     expected_model_name = (
