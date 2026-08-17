@@ -1,21 +1,47 @@
 """Ensure that the model processes text correctly and returns expected responses."""
 
+import json
 from unittest.mock import MagicMock
 
 import pytest
 from groq import Groq
 
 from src.model import GroqModel
+from src.tools import Tool
+
+
+class MockTool:
+    """A mock tool for testing purposes."""
+
+    name = "mock_tool"
+    description = "A mock tool for testing."
+    parameters = {}
+
+    def execute(self, *args, **kwargs):
+        return "Mock tool executed"
+
+    def to_groq_spec(self):
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": self.parameters,
+            },
+            "required": [],
+        }
 
 
 def test_model_process_text_with_mocked_groq():
     """Test that the model processes text correctly using a mocked Groq client."""
     # ARRANGE: Create a mock Groq client, expected response and a GroqModel instance
     mock_groq = MagicMock(spec=Groq)
-    mock_chat_completion = MagicMock()
-    mock_chat_completion.choices = [MagicMock()]
-    mock_chat_completion.choices[0].message.content = "Processed text"
-    mock_groq.chat.completions.create.return_value = mock_chat_completion
+    mock_message = MagicMock()
+    mock_message.content = "Processed text"
+    mock_message.tool_calls = None
+    mock_groq.chat.completions.create.return_value = MagicMock(
+        choices=[MagicMock(message=mock_message)]
+    )
 
     model = GroqModel(groq=mock_groq, model_name="openai/gpt-oss-120b")
 
@@ -36,10 +62,12 @@ def test_model_process_text_with_no_response():
     """Test that the model handles cases where no response is received from the Groq client."""
     # ARRANGE: Create a mock Groq client that returns no response
     mock_groq = MagicMock(spec=Groq)
-    mock_chat_completion = MagicMock()
-    mock_chat_completion.choices = [MagicMock()]
-    mock_chat_completion.choices[0].message.content = None  # Simulate no response
-    mock_groq.chat.completions.create.return_value = mock_chat_completion
+    mock_message = MagicMock()
+    mock_message.content = None
+    mock_message.tool_calls = None
+    mock_groq.chat.completions.create.return_value = MagicMock(
+        choices=[MagicMock(message=mock_message)]
+    )
 
     model = GroqModel(groq=mock_groq)
 
@@ -112,3 +140,41 @@ def test_model_process_error_handling():
 
     # Verify that the user message was removed from history after the error
     assert len(model.messages) == 0, "History should be cleaned up on failure."
+
+
+def test_model_passes_tools_to_groq():
+    """Test that the model correctly passes tools to the Groq client."""
+    # ARRANGE: Create a mock Groq client and a list of tools
+    mock_groq = MagicMock(spec=Groq)
+
+    tool_call = MagicMock(id="call_123")
+    tool_call.function.name = "mock_tool"
+    tool_call.function.arguments = json.dumps({})
+
+    first_message = MagicMock(content=None, tool_calls=[tool_call])
+    second_message = MagicMock(
+        content="The tool output was processed.", tool_calls=None
+    )
+
+    mock_groq.chat.completions.create.side_effect = [
+        MagicMock(choices=[MagicMock(message=first_message)]),
+        MagicMock(choices=[MagicMock(message=second_message)]),
+    ]
+
+    tools = [MockTool()]
+    model = GroqModel(groq=mock_groq, tools=tools)  # type: ignore
+
+    # ACT: Call process_text with a sample input
+    input_text = "Run mock tool"
+    result = model.process_text(input_text)
+
+    # ASSERT: Verify that the Groq client was called with the correct tools
+    assert (
+        result == "The tool output was processed."
+    ), "The model should return the final processed response after tool execution."
+    assert (
+        mock_groq.chat.completions.create.call_count == 2
+    ), "The Groq client should be called twice: once for the initial request and once after tool execution."
+    assert mock_groq.chat.completions.create.call_args_list[0][1]["tools"] == [
+        t.to_groq_spec() for t in tools
+    ], "The tools passed to the Groq client should match the provided tools."
