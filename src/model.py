@@ -10,6 +10,13 @@ from src.tools import Tool
 
 load_dotenv()
 
+FALLBACK_RESPONSES = {
+    "content_filter": "I am unable to assist with that particular request.",
+    "length": "My response was cut short due to length constraints. Would you like me to continue?",
+    "tool_silent": "Action completed, though I have nothing further to report.",
+    "default": "I am not sure how to answer that.",
+}
+
 
 class GroqModel:
     """A model deals with the business logic of the application."""
@@ -49,6 +56,21 @@ class GroqModel:
             content (str): The content of the message.
         """
         self.messages.append({"role": role, "content": content})
+
+    def _resolve_empty_content(
+        self, choice: object, was_tool_call: bool = False
+    ) -> str:
+        """Determine the appropriate fallback message based on finish_reason."""
+        finish_reason = getattr(choice, "finish_reason", None)
+
+        if finish_reason == "content_filter":
+            return FALLBACK_RESPONSES["content_filter"]
+        if finish_reason == "length":
+            return FALLBACK_RESPONSES["length"]
+        if was_tool_call:
+            return FALLBACK_RESPONSES["tool_silent"]
+
+        return FALLBACK_RESPONSES["default"]
 
     def process_text(self, text: str) -> str:
         """Process the input text using the Groq model and return the response.
@@ -92,7 +114,7 @@ class GroqModel:
                     if function_to_call:
                         function_response = function_to_call.execute(**function_args)
                     else:
-                        function_response = f"Error: Tool '{function_name}' not found."
+                        function_response = f"Tool '{function_name}' not found."
 
                     # Add tool response to conversation
                     self.messages.append(
@@ -110,13 +132,16 @@ class GroqModel:
                     messages=self.messages,
                 )
 
-                if second_response.choices[0].message.content is None:
-                    return "No response received after tool execution."
-
-                return second_response.choices[0].message.content
+                choice = second_response.choices[0]
+                return choice.message.content or self._resolve_empty_content(
+                    choice, was_tool_call=True
+                )
 
             # If no tool calls, return the direct response (or the fallback string if None)
-            return response_message.content or "No response received."
+            choice = response.choices[0]
+            return choice.message.content or self._resolve_empty_content(
+                choice, was_tool_call=False
+            )
 
         except Exception as e:
             self.messages.pop()  # Remove orphaned user message on error

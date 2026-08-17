@@ -77,8 +77,8 @@ def test_model_process_text_with_no_response():
 
     # ASSERT: Verify that the result indicates no response was received
     assert (
-        result == "No response received."
-    ), "The model should return a message indicating no response was received."
+        result == "I am not sure how to answer that."
+    ), "The model should return a fallback message when no response is received from the Groq client."
 
 
 def test_model_initialises_with_system_prompt():
@@ -178,3 +178,58 @@ def test_model_passes_tools_to_groq():
     assert mock_groq.chat.completions.create.call_args_list[0][1]["tools"] == [
         t.to_groq_spec() for t in tools
     ], "The tools passed to the Groq client should match the provided tools."
+
+
+@pytest.mark.parametrize(
+    "finish_reason, was_tool_call, expected_phrase",
+    [
+        ("content_filter", False, "unable to assist"),
+        ("length", False, "cut short"),
+        ("stop", True, "Action completed"),
+        ("stop", False, "not sure how to answer"),
+        (None, False, "not sure how to answer"),
+    ],
+)
+def test_model_handles_specific_finish_reasons_when_content_is_none(
+    finish_reason, was_tool_call, expected_phrase
+):
+    """Test that the model handles specific finish reasons when the content is None."""
+    # ARRANGE: Create a mock Groq client that returns a message with no content
+    mock_groq = MagicMock(spec=Groq)
+
+    if was_tool_call:
+        # First call triggers the tool
+        tool_call = MagicMock(id="call_123")
+        tool_call.function.name = "mock_tool"
+        tool_call.function.arguments = json.dumps({})
+
+        first_message = MagicMock(content=None, tool_calls=[tool_call])
+
+        # Second call returns empty content with the given finish_reason
+        second_choice = MagicMock()
+        second_choice.message.content = None
+        second_choice.message.tool_calls = None
+        second_choice.finish_reason = finish_reason
+
+        mock_groq.chat.completions.create.side_effect = [
+            MagicMock(choices=[MagicMock(message=first_message)]),
+            MagicMock(choices=[second_choice]),
+        ]
+        model = GroqModel(groq=mock_groq, tools=[MockTool()])
+    else:
+        choice = MagicMock()
+        choice.message.content = None
+        choice.message.tool_calls = None
+        choice.finish_reason = finish_reason
+
+        mock_groq.chat.completions.create.return_value = MagicMock(choices=[choice])
+        model = GroqModel(groq=mock_groq)
+
+    # ACT: Call process_text with a sample input
+    input_text = "Hello, World!"
+    result = model.process_text(input_text)
+
+    # ASSERT: Verify that the result contains the expected phrase based on finish reason
+    assert (
+        expected_phrase in result
+    ), f"The model should return a message indicating '{expected_phrase}' for finish reason '{finish_reason}'."
