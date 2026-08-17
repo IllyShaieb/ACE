@@ -58,17 +58,13 @@ class PyQt6View(QWidget):
 
         self.model_selection = QComboBox()
         model_choices = [
-            ("🦙 Llama 3.1 8B Instant", "llama-3.1-8b-instant"),
-            ("🦙 Llama 3.3 70B Versatile", "llama-3.3-70b-versatile"),
-            ("🤖 OpenAI GPT-OSS 120B", "openai/gpt-oss-120b"),
-            ("🤖 OpenAI GPT-OSS 20B", "openai/gpt-oss-20b"),
-            ("⚡ Groq Compound", "groq/compound"),
-            ("⚡ Groq Compound Mini", "groq/compound-mini"),
+            ("🧠 OpenAI GPT-OSS 120B", "openai/gpt-oss-120b"),
+            ("⚡ OpenAI GPT-OSS 20B", "openai/gpt-oss-20b"),
         ]
         for label, model_name in model_choices:
             self.model_selection.addItem(label, model_name)
 
-        self.model_selection.setCurrentIndex(2)
+        self.model_selection.setCurrentIndex(0)
         self.current_model = (
             self.model_selection.currentData() or self.model_selection.currentText()
         )
