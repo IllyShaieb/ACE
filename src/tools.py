@@ -31,7 +31,11 @@ class ClockTool:
     def to_groq_spec(self) -> dict[str, Any]:
         """Return a specification of the tool for use in Groq."""
         return {
-            "name": self.name,
-            "description": self.description,
-            "parameters": self.parameters,
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": self.parameters,
+            },
+            "required": [],
         }

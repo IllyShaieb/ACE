@@ -38,7 +38,29 @@ def test_clock_tool_execute_returns_current_time():
 
 
 def test_clock_tool_to_groq_spec():
-    """Verify ClockTool's to_groq_spec method returns the correct specification."""
+    """Verify ClockTool's to_groq_spec method returns the correct specification.
+
+    Expected output:
+    ```
+            {
+                "type": "function",
+                "function": {
+                    "name": "<tool_name>",
+                    "description": "<tool_description>",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "<parameter_name>": {
+                            "type": "<type_of_expression>",
+                            "description": "<description_of_expression>"
+                            }
+                        },
+                        "required": ["<parameter_name>"]
+                        }
+                }
+            }
+            ```
+    """
     # ARRANGE: Create an instance of ClockTool
     tool = ClockTool()
 
@@ -46,10 +68,14 @@ def test_clock_tool_to_groq_spec():
     spec = tool.to_groq_spec()
 
     # ASSERT: Check if the specification matches the expected values
-    assert spec["name"] == "clock", "Groq spec name should be 'clock'."
+    assert spec["type"] == "function", "The type should be 'function'."
     assert (
-        spec["description"] == "Provides the current time in ISO format."
-    ), "Groq spec description should match."
+        spec["function"]["name"] == tool.name
+    ), "The function name should match the tool's name."
     assert (
-        spec["parameters"] == {}
-    ), "Groq spec parameters should be an empty dictionary."
+        spec["function"]["description"] == tool.description
+    ), "The function description should match the tool's description."
+    assert (
+        spec["function"]["parameters"] == tool.parameters
+    ), "The function parameters should match the tool's parameters."
+    assert spec["required"] == [], "The required field should be an empty list."
