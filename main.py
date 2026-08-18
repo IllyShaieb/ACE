@@ -9,7 +9,7 @@ from PyQt6.QtWidgets import QApplication
 
 from src.model import GroqModel
 from src.presenter import Presenter
-from src.tools import ClockTool
+from src.tools import ClockTool, WolframAlphaTool
 from src.view import PyQt6View
 
 load_dotenv()
@@ -38,7 +38,9 @@ def main():
         )
         system_prompt = None
 
-    model = GroqModel(client, system_prompt=system_prompt, tools=[ClockTool()])
+    model = GroqModel(
+        client, system_prompt=system_prompt, tools=[ClockTool(), WolframAlphaTool()]
+    )
 
     app = QApplication([])
     view = PyQt6View()
