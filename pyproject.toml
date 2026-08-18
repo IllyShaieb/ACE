@@ -5,6 +5,7 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "ddgs>=9.15.0",
     "dotenv>=0.9.9",
     "groq>=1.6.0",
     "markdown>=3.10.3",
