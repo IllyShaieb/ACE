@@ -1,12 +1,11 @@
 """Ensure the tools can be used as expected."""
 
-import json
 from datetime import datetime
 from unittest.mock import patch
 
 import pytest
 
-from src.tools import ClockTool, Tool, WolframAlphaTool
+from src.tools import ClockTool, DuckDuckGoSearchTool, Tool, WolframAlphaTool
 
 
 class TestClockTool:
@@ -85,10 +84,13 @@ class TestClockTool:
         assert spec["required"] == [], "The required field should be an empty list."
 
 
-def test_wolfram_alpha_tool_satisfies_tool_protocol():
-    """Verify WolframAlphaTool conforms to the Tool interface."""
-    # ARRANGE: Create an instance of WolframAlphaTool
-    tool = WolframAlphaTool()
+class TestWolframAlphaTool:
+    """Test suite for the WolframAlphaTool class."""
+
+    def test_wolfram_alpha_tool_satisfies_tool_protocol(self):
+        """Verify WolframAlphaTool conforms to the Tool interface."""
+        # ARRANGE: Create an instance of WolframAlphaTool
+        tool = WolframAlphaTool()
 
         # ACT & ASSERT: Check if WolframAlphaTool is an instance of Tool
         assert isinstance(
@@ -202,6 +204,132 @@ def test_wolfram_alpha_tool_satisfies_tool_protocol():
         """
         # ARRANGE: Create an instance of WolframAlphaTool
         tool = WolframAlphaTool()
+
+        # ACT: Get the Groq specification
+        spec = tool.to_groq_spec()
+
+        # ASSERT: Check if the specification matches the expected values
+        assert spec["type"] == "function", "The type should be 'function'."
+        assert (
+            spec["function"]["name"] == tool.name
+        ), "The function name should match the tool's name."
+        assert (
+            spec["function"]["description"] == tool.description
+        ), "The function description should match the tool's description."
+        assert (
+            spec["function"]["parameters"] == tool.parameters
+        ), "The function parameters should match the tool's parameters."
+        assert spec["required"] == [
+            "query"
+        ], "The required field should contain 'query'."
+
+
+class TestWebSearchTool:
+    """Test suite for the WebSearchTool class."""
+
+    def test_web_search_tool_satisfies_tool_protocol(self):
+        """Verify WebSearchTool conforms to the Tool interface."""
+        # ARRANGE: Create an instance of WebSearchTool
+        from src.tools import DuckDuckGoSearchTool
+
+        tool = DuckDuckGoSearchTool()
+
+        # ACT & ASSERT: Check if WebSearchTool is an instance of Tool
+        assert isinstance(tool, Tool), "WebSearchTool should satisfy the Tool protocol."
+        assert tool.name, "WebSearchTool name should be defined."
+        assert tool.description, "WebSearchTool should have a description."
+        assert isinstance(
+            tool.parameters, dict
+        ), "WebSearchTool parameters should be a dictionary."
+
+    def test_web_search_tool_execute_returns_formatted_results(self):
+        """Verify WebSearchTool's execute method returns formatted search results."""
+        # ARRANGE: Create an instance of WebSearchTool and set a mock response
+        tool = DuckDuckGoSearchTool()
+        mock_results = [
+            {
+                "title": "Mocked Title 1",
+                "href": "http://example.com/1",
+                "body": "Mocked snippet 1",
+            },
+            {
+                "title": "Mocked Title 2",
+                "href": "http://example.com/2",
+                "body": "Mocked snippet 2",
+            },
+        ]
+
+        # ACT: Execute the tool with a sample query
+        with patch("src.tools.DDGS") as mock_ddgs:
+            mock_ddgs.return_value.__enter__.return_value.text.return_value = (
+                mock_results
+            )
+            result = tool.execute(query="Sample query", max_results=2)
+
+        # ASSERT: Check if the result contains the expected formatted output
+        assert (
+            "Title: Mocked Title 1" in result
+        ), "The result should contain the first mocked title."
+        assert (
+            "URL: http://example.com/1" in result
+        ), "The result should contain the first mocked URL."
+        assert (
+            "Snippet: Mocked snippet 1" in result
+        ), "The result should contain the first mocked snippet."
+        assert (
+            "Title: Mocked Title 2" in result
+        ), "The result should contain the second mocked title."
+        assert (
+            "URL: http://example.com/2" in result
+        ), "The result should contain the second mocked URL."
+        assert (
+            "Snippet: Mocked snippet 2" in result
+        ), "The result should contain the second mocked snippet."
+
+    def test_web_search_tool_handles_empty_results(self):
+        """Verify WebSearchTool handles empty search results gracefully."""
+        # ARRANGE: Create an instance of WebSearchTool and set a mock response
+        tool = DuckDuckGoSearchTool()
+        mock_results = []
+
+        # ACT: Execute the tool with a sample query
+        with patch("src.tools.DDGS") as mock_ddgs:
+            mock_ddgs.return_value.__enter__.return_value.text.return_value = (
+                mock_results
+            )
+            result = tool.execute(query="Sample query", max_results=2)
+
+        # ASSERT: Check if the result indicates no results were found
+        assert (
+            result == "No search results found."
+        ), "The result should indicate no search results."
+
+    def test_web_search_tool_to_groq_spec(self):
+        """Verify WebSearchTool's to_groq_spec method returns the correct specification.
+
+        Expected output:
+        ```
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "<tool_name>",
+                        "description": "<tool_description>",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "<parameter_name>": {
+                                "type": "<type_of_expression>",
+                                "description": "<description_of_expression>"
+                                }
+                            },
+                            "required": ["<parameter_name>"]
+                            }
+                    }
+                }
+                ```
+        """
+        # ARRANGE: Create an instance of WebSearchTool
+        tool = DuckDuckGoSearchTool()
 
         # ACT: Get the Groq specification
         spec = tool.to_groq_spec()

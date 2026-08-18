@@ -5,6 +5,7 @@ from datetime import datetime
 from typing import Any, Protocol, runtime_checkable
 
 import requests
+from ddgs import DDGS
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -105,6 +106,63 @@ class WolframAlphaTool:
 
     def to_groq_spec(self) -> dict[str, Any]:
         """Return a specification of the tool for use in Groq."""
+        return {
+            "type": "function",
+            "function": {
+                "name": self.name,
+                "description": self.description,
+                "parameters": self.parameters,
+            },
+            "required": ["query"],
+        }
+
+
+class DuckDuckGoSearchTool:
+    """Tool for searching the web for real-time news, information, and current events."""
+
+    name = "duckduckgo_search"
+    description = (
+        "Search the web for up-to-date information, current news, public figures, "
+        "recent events, and facts beyond training data cutoff. Use this tool whenever "
+        "the user asks for recent information or real-time web lookups."
+    )
+    parameters = {
+        "type": "object",
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "The search query keywords to look up on the web.",
+            },
+            "max_results": {
+                "type": "integer",
+                "description": "Maximum number of search results to return (default 5).",
+            },
+        },
+    }
+
+    def execute(self, query: str, max_results: int = 5) -> str:
+        """Execute a web search and return formatted titles, URLs, and snippets."""
+        try:
+            with DDGS() as ddgs:
+                results = list(ddgs.text(query, max_results=max_results))
+
+            if not results:
+                return "No search results found."
+
+            formatted = []
+            for r in results:
+                title = r.get("title", "No Title")
+                link = r.get("href", "")
+                snippet = r.get("body", "")
+                formatted.append(f"Title: {title}\nURL: {link}\nSnippet: {snippet}\n")
+
+            return "\n---\n".join(formatted)
+
+        except Exception as e:
+            return f"Error executing web search: {str(e)}"
+
+    def to_groq_spec(self) -> dict[str, Any]:
+        """Return the Groq/OpenAI tool specification."""
         return {
             "type": "function",
             "function": {
