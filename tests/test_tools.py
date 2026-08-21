@@ -1,11 +1,17 @@
 """Ensure the tools can be used as expected."""
 
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from src.tools import ClockTool, DuckDuckGoSearchTool, Tool, WolframAlphaTool
+from src.tools import (
+    ClockTool,
+    DuckDuckGoSearchTool,
+    Tool,
+    UrlReaderTool,
+    WolframAlphaTool,
+)
 
 
 class TestClockTool:
@@ -348,3 +354,322 @@ class TestWebSearchTool:
         assert spec["required"] == [
             "query"
         ], "The required field should contain 'query'."
+
+
+class TestUrlReaderTool:
+    """Test suite for the UrlReaderTool class."""
+
+    def test_url_reader_tool_satisfies_tool_protocol(self):
+        """Verify UrlReaderTool conforms to the Tool interface."""
+        # ARRANGE: Create an instance of UrlReaderTool
+        tool = UrlReaderTool()
+
+        # ACT & ASSERT: Check if UrlReaderTool is an instance of Tool
+        assert isinstance(tool, Tool), "UrlReaderTool should satisfy the Tool protocol."
+        assert tool.name, "UrlReaderTool name should be defined."
+        assert tool.description, "UrlReaderTool should have a description."
+        assert isinstance(
+            tool.parameters, dict
+        ), "UrlReaderTool parameters should be a dictionary."
+
+    def test_url_reader_tool_extracts_structured_markdown(self):
+        """Verify UrlReaderTool extracts content with markdown headings and lists."""
+        # ARRANGE: Create an instance of UrlReaderTool
+        html_content = """
+            <html>
+                <head>
+                    <title>Page Title</title>
+                    <style>body { color: red; }</style>
+                </head>
+                <body>
+                    <nav><a href="/">Home</a></nav>
+                    <h1>Breaking News Story</h1>
+                    <p>An initial overview paragraph detailing the event.</p>
+                    <h2>Key Developments</h2>
+                    <ul>
+                        <li>First major discovery</li>
+                        <li>Second key point</li>
+                    </ul>
+                    <blockquote>Official government statement quote.</blockquote>
+                    <script>console.log("analytics tracking");</script>
+                    <footer>Copyright 2026</footer>
+                </body>
+            </html>
+            """
+
+        tool = UrlReaderTool()
+
+        # ACT: Execute the tool with a sample URL
+        with patch("src.tools.requests.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.text = html_content
+            mock_get.return_value = mock_response
+
+            result = tool.execute(url="https://example.com/article")
+
+        # ASSERT: Check if the result contains the expected output
+        assert (
+            "# Breaking News Story" in result
+        ), "The result should contain the main heading."
+        assert (
+            "An initial overview paragraph detailing the event." in result
+        ), "The result should contain the overview paragraph."
+        assert (
+            "## Key Developments" in result
+        ), "The result should contain the subheading for key developments."
+        assert (
+            "- First major discovery" in result
+        ), "The result should contain the first key point in the list."
+        assert (
+            "- Second key point" in result
+        ), "The result should contain the second key point in the list."
+        assert (
+            "> Official government statement quote." in result
+        ), "The result should contain the blockquote for the official statement."
+
+        assert (
+            "console.log" not in result
+        ), "The result should not contain any script content."
+        assert (
+            "color: red" not in result
+        ), "The result should not contain any style content."
+        assert (
+            "Copyright 2026" not in result
+        ), "The result should not contain any footer content."
+        assert (
+            "Home" not in result
+        ), "The result should not contain any navigation content."
+
+    def test_url_reader_tool_truncates_long_content(self):
+        """Verify UrlReaderTool caps text length while preserving structure."""
+        # ARRANGE: Create an instance of UrlReaderTool with a long HTML content
+        paragraphs = "".join(
+            [f"<p>Paragraph {i} content text.</p>" for i in range(300)]
+        )
+        html_content = f"<html><body><h1>Long Document</h1>{paragraphs}</body></html>"
+
+        tool = UrlReaderTool()
+
+        # ACT: Execute the tool with a sample URL and a character length cap
+        with patch("src.tools.requests.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.text = html_content
+            mock_get.return_value = mock_response
+
+            result = tool.execute(
+                url="https://example.com/long-document", character_length_cap=500
+            )
+
+        # ASSERT: Check if the result is truncated and contains the expected output
+        assert (
+            len(result) <= 524
+        ), "The result should be truncated to the specified character length cap (+ 24 with '[Content truncated...]')."
+        assert (
+            "# Long Document" in result
+        ), "The result should contain the main heading."
+        assert (
+            "[Content truncated...]" in result
+        ), "The result should indicate that content was truncated."
+
+    def test_url_reader_tool_handles_network_failure(self):
+        """Verify UrlReaderTool handles network failures gracefully."""
+        # ARRANGE: Create an instance of UrlReaderTool
+        tool = UrlReaderTool()
+
+        # ACT: Execute the tool with a sample URL and simulate a network failure
+        with patch("src.tools.requests.get") as mock_get:
+            mock_get.side_effect = Exception("Network failure")
+            result = tool.execute(url="https://example.com/failure")
+
+        # ASSERT: Check if the result indicates a network failure
+        assert (
+            "Error reading URL" in result
+        ), "The result should indicate a network failure occurred."
+
+    def test_url_reader_tool_strips_sidebars_and_infoboxes(self):
+        """Verify UrlReaderTool removes sidebars and infoboxes from the content."""
+        # ARRANGE: Create an instance of UrlReaderTool with HTML content containing sidebars and infoboxes
+        html_content = """
+            <html>
+                <body>
+                    <h1>Main Article Heading</h1>
+                    <p>Main article content paragraph.</p>
+                    <div class="sidebar">Sidebar content that should be removed.</div>
+                    <table class="infobox">
+                        <tr><td>Infobox content that should be removed.</td></tr>
+                    </table>
+                </body>
+            </html>
+            """
+
+        tool = UrlReaderTool()
+
+        # ACT: Execute the tool with a sample URL
+        with patch("src.tools.requests.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.text = html_content
+            mock_get.return_value = mock_response
+
+            result = tool.execute(url="https://example.com/article-with-sidebar")
+
+        # ASSERT: Check if the result does not contain sidebar or infobox content
+        assert (
+            "Sidebar content" not in result
+        ), "The result should not contain any sidebar content."
+        assert (
+            "Infobox content" not in result
+        ), "The result should not contain any infobox content."
+        assert (
+            "# Main Article Heading" in result
+        ), "The result should contain the main article heading."
+        assert (
+            "Main article content paragraph." in result
+        ), "The result should contain the main article paragraph."
+
+        assert (
+            "Sidebar content that should be removed." not in result
+        ), "The result should not contain the sidebar content."
+        assert (
+            "Infobox content that should be removed." not in result
+        ), "The result should not contain the infobox content."
+
+    def test_url_reader_tool_formats_links_as_markdown(self):
+        """Verify UrlReaderTool formats links as Markdown."""
+        # ARRANGE: Create an instance of UrlReaderTool with HTML content containing links
+        html_content = """
+            <html>
+                <body>
+                    <p>Visit the <a href="https://gov.uk">Official Government Portal</a> for details.</p>
+                    <ul>
+                        <li>Read the <a href="https://example.com/manifesto">Manifesto</a> here.</li>
+                    </ul>
+                </body>
+            </html>
+            """
+
+        tool = UrlReaderTool()
+
+        # ACT: Execute the tool with a sample URL
+        with patch("src.tools.requests.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.text = html_content
+            mock_get.return_value = mock_response
+
+            result = tool.execute(
+                url="https://example.com/article-with-links", show_urls=True
+            )
+
+        # ASSERT: Check if the result contains the link formatted as Markdown
+        assert (
+            "[Official Government Portal](https://gov.uk)" in result
+        ), "The result should contain the link formatted as Markdown."
+        assert (
+            "- Read the [Manifesto](https://example.com/manifesto) here." in result
+        ), "The result should contain the list item with the link formatted as Markdown."
+
+    def test_url_reader_tool_preserves_spaces_around_links(self):
+        """Verify UrlReaderTool ensures whitespace separation around markdown links."""
+        # ARRANGE: Create an instance of UrlReaderTool with HTML content containing links
+        html_content = """
+        <html>
+            <body>
+                <p>capability of <a href="https://example.com/computer">computational systems</a> to perform tasks</p>
+            </body>
+        </html>
+        """
+
+        tool = UrlReaderTool()
+
+        # ACT: Execute the tool with a sample URL
+        with patch("src.tools.requests.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.text = html_content
+            mock_get.return_value = mock_response
+
+            result = tool.execute(
+                url="https://example.com/article-with-links", show_urls=True
+            )
+
+        # ASSERT: Check if the result contains the link formatted as Markdown with proper spacing
+        assert (
+            "capability of [computational systems](https://example.com/computer) to perform tasks"
+            in result
+        ), "The result should contain the link formatted as Markdown with proper spacing."
+
+    def test_url_reader_tool_handles_empty_content(self):
+        """Verify UrlReaderTool handles pages with no readable content gracefully."""
+        # ARRANGE: Create an instance of UrlReaderTool with HTML content that has no readable content
+        html_content = """
+            <html>
+                <body>
+                    <div class="sidebar">Sidebar content only.</div>
+                    <div class="infobox">Infobox content only.</div>
+                </body>
+            </html>
+            """
+
+        tool = UrlReaderTool()
+
+        # ACT: Execute the tool with a sample URL
+        with patch("src.tools.requests.get") as mock_get:
+            mock_response = MagicMock()
+            mock_response.status_code = 200
+            mock_response.text = html_content
+            mock_get.return_value = mock_response
+
+            result = tool.execute(url="https://example.com/empty-content")
+
+        # ASSERT: Check if the result indicates no readable content was found
+        assert (
+            "<No readable content found at URL.>" in result
+        ), "The result should indicate that no readable content was found."
+
+    def test_url_reader_tool_to_groq_spec(self):
+        """Verify UrlReaderTool's to_groq_spec method returns the correct specification.
+
+        Expected output:
+        ```
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "<tool_name>",
+                        "description": "<tool_description>",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "<parameter_name>": {
+                                "type": "<type_of_expression>",
+                                "description": "<description_of_expression>"
+                                }
+                            },
+                            "required": ["<parameter_name>"]
+                            }
+                    }
+                }
+                ```
+        """
+        # ARRANGE: Create an instance of UrlReaderTool
+        tool = UrlReaderTool()
+
+        # ACT: Get the Groq specification
+        spec = tool.to_groq_spec()
+
+        # ASSERT: Check if the specification matches the expected values
+        assert spec["type"] == "function", "The type should be 'function'."
+        assert (
+            spec["function"]["name"] == tool.name
+        ), "The function name should match the tool's name."
+        assert (
+            spec["function"]["description"] == tool.description
+        ), "The function description should match the tool's description."
+        assert (
+            spec["function"]["parameters"] == tool.parameters
+        ), "The function parameters should match the tool's parameters."
+        assert spec["function"]["parameters"]["required"] == [
+            "url"
+        ], "The required field should contain 'url'."
