@@ -2,6 +2,7 @@
 
 import json
 import os
+from typing import Any
 
 from dotenv import load_dotenv
 from groq import Groq
@@ -27,6 +28,7 @@ class GroqModel:
         model_name: str = "openai/gpt-oss-120b",
         system_prompt: str | None = None,
         tools: list[Tool] | None = None,
+        max_orchestration_loops: int = 5,
     ) -> None:
         """Initialise the model with a Groq instance.
 
@@ -48,14 +50,28 @@ class GroqModel:
         if system_prompt:
             self._append_message("system", system_prompt)
 
-    def _append_message(self, role: str, content: str) -> None:
+        self.max_orchestration_loops = max_orchestration_loops
+
+    def _append_message(
+        self, role: str, content: str, tool_calls: list[dict[str, Any]] | None = None
+    ) -> None:
         """Append a message to the model's message history.
 
         Args:
             role (str): The role of the message sender (e.g., "user", "assistant").
             content (str): The content of the message.
+            tool_calls (list[dict[str, Any]] | None): Optional tool call information to include
+                in the message.
         """
-        self.messages.append({"role": role, "content": content})
+        message = {}
+
+        message["role"] = role
+        message["content"] = content
+
+        if tool_calls:
+            message["tool_calls"] = tool_calls
+
+        self.messages.append(message)
 
     def _resolve_empty_content(
         self, choice: object, was_tool_call: bool = False
@@ -72,6 +88,40 @@ class GroqModel:
 
         return FALLBACK_RESPONSES["default"]
 
+    def _execute_tool_call(self, tool_call: Any) -> str:
+        """Execute a tool call and return the response.
+
+        Args:
+            tool_call (Any): The tool call object containing the function name and arguments.
+
+        Returns:
+            str: The response from the executed tool.
+        """
+        # Extract the function name and arguments from the tool call
+        function_name = tool_call.function.name
+        function_to_call = self.tools.get(function_name)
+
+        if not function_to_call:
+            return f"Error: Tool '{function_name}' not not registered."
+
+        try:
+            function_args = json.loads(tool_call.function.arguments)
+        except json.JSONDecodeError:
+            function_args = {}
+
+        print(f"Executing tool '{function_name}' with arguments: {function_args}")
+
+        # Execute the tool function with the provided arguments
+        try:
+            function_response = function_to_call.execute(**function_args)
+            return (
+                json.dumps(function_response)
+                if isinstance(function_response, (dict, list))
+                else str(function_response)
+            )
+        except Exception as e:
+            return f"Error executing tool '{function_name}': {str(e)}"
+
     def process_text(self, text: str) -> str:
         """Process the input text using the Groq model and return the response.
 
@@ -85,63 +135,80 @@ class GroqModel:
         self._append_message("user", text)
 
         try:
-            # Step 1: Make initial API call
-            kwargs = {}
+            iterations = 0
+            was_tool_call = False
 
-            if self.tools:
-                kwargs["tools"] = [t.to_groq_spec() for t in self.tools.values()]
+            while iterations < self.max_orchestration_loops:
+                iterations += 1
 
-            response = self.client.chat.completions.create(
-                model=self.model_name,
-                messages=self.messages,
-                **kwargs,
-            )
+                # Step 1: Make initial API call
+                kwargs = {}
 
-            response_message = response.choices[0].message
-            tool_calls = response_message.tool_calls
+                if self.tools:
+                    kwargs["tools"] = [t.to_groq_spec() for t in self.tools.values()]
 
-            # Step 2: Check if the model wants to call tools
-            if tool_calls:
-                # Add the assistant's response to conversation
-                self._append_message("assistant", response_message.content)
-
-                # Step 3: Execute each tool call
-                for tool_call in tool_calls:
-                    function_name = tool_call.function.name
-                    function_to_call = self.tools.get(function_name)
-                    function_args = json.loads(tool_call.function.arguments)
-
-                    if function_to_call:
-                        function_response = function_to_call.execute(**function_args)
-                    else:
-                        function_response = f"Tool '{function_name}' not found."
-
-                    # Add tool response to conversation
-                    self.messages.append(
-                        {
-                            "tool_call_id": tool_call.id,
-                            "role": "tool",
-                            "name": function_name,
-                            "content": function_response,
-                        }
-                    )
-
-                # Step 4: Get final response from model
-                second_response = self.client.chat.completions.create(
+                response = self.client.chat.completions.create(
                     model=self.model_name,
                     messages=self.messages,
+                    **kwargs,
                 )
 
-                choice = second_response.choices[0]
-                return choice.message.content or self._resolve_empty_content(
-                    choice, was_tool_call=True
-                )
+                response_message = response.choices[0].message
+                tool_calls = response_message.tool_calls
 
-            # If no tool calls, return the direct response (or the fallback string if None)
-            choice = response.choices[0]
-            return choice.message.content or self._resolve_empty_content(
-                choice, was_tool_call=False
-            )
+                # Step 2: Check if the model wants to call tools
+                if tool_calls:
+                    was_tool_call = True
+
+                    # Add the assistant's response to conversation along with the tool call
+                    # information
+                    self._append_message(
+                        "assistant",
+                        response_message.content,
+                        [
+                            {
+                                "id": tc.id,
+                                "type": "function",
+                                "function": {
+                                    "name": tc.function.name,
+                                    "arguments": tc.function.arguments,
+                                },
+                            }
+                            for tc in tool_calls
+                        ],
+                    )
+
+                    # Step 3: Execute each tool call
+                    for tool_call in tool_calls:
+                        function_response = self._execute_tool_call(tool_call)
+
+                        # Add tool response to conversation
+                        self.messages.append(
+                            {
+                                "tool_call_id": tool_call.id,
+                                "role": "tool",
+                                "name": tool_call.function.name,
+                                "content": function_response,
+                            }
+                        )
+                    # Continue the loop for the next turn / synthesis pass
+                    continue
+
+                # Step 4: If no tool calls, we are done, return the assistant's response
+                assistant_response = response_message.content or ""
+
+                if not assistant_response:
+                    assistant_response = self._resolve_empty_content(
+                        response.choices[0], was_tool_call=was_tool_call
+                    )
+
+                self._append_message("assistant", assistant_response)
+                return assistant_response
+
+            # If we reach here, it means we exceeded the max orchestration loops
+            fallback_msg = "I was unable to complete the request because the tool execution loop limit was reached."
+            self._append_message("assistant", fallback_msg)
+            return fallback_msg
 
         except Exception as e:
             self.messages.pop()  # Remove orphaned user message on error

@@ -32,6 +32,43 @@ class MockTool:
         }
 
 
+def _create_mock_message(
+    content: str | None, tool_calls: list[dict] | None = None
+) -> MagicMock:
+    """Helper function to create a mock message with specified content and tool calls.
+    Args:
+        content (str): The content of the mock message.
+        tool_calls (list[dict] | None): A list of tool call dictionaries or None.
+
+    Returns:
+        MagicMock: A mock message object with the specified content and tool calls.
+    """
+    mock_message = MagicMock()
+    mock_message.content = content
+    mock_message.tool_calls = tool_calls
+    return mock_message
+
+
+def _create_mock_tool_call(
+    call_id: str, function_name: str, arguments: dict
+) -> MagicMock:
+    """Helper to mock a tool call object.
+
+    Args:
+        call_id (str): The ID of the tool call.
+        function_name (str): The name of the function being called.
+        arguments (dict): The arguments for the function call.
+
+    Returns:
+        MagicMock: A mock tool call object with the specified properties.
+    """
+    tool_call = MagicMock()
+    tool_call.id = call_id
+    tool_call.function.name = function_name
+    tool_call.function.arguments = json.dumps(arguments)
+    return tool_call
+
+
 def test_model_process_text_with_mocked_groq():
     """Test that the model processes text correctly using a mocked Groq client."""
     # ARRANGE: Create a mock Groq client, expected response and a GroqModel instance
@@ -107,6 +144,7 @@ def test_model_accumulates_conversation_history():
     mock_chat_completion = MagicMock()
     mock_chat_completion.choices = [MagicMock()]
     mock_chat_completion.choices[0].message.content = "Response 1"
+    mock_chat_completion.choices[0].message.tool_calls = None
     mock_groq.chat.completions.create.return_value = mock_chat_completion
 
     model = GroqModel(groq=mock_groq)
@@ -233,3 +271,133 @@ def test_model_handles_specific_finish_reasons_when_content_is_none(
     assert (
         expected_phrase in result
     ), f"The model should return a message indicating '{expected_phrase}' for finish reason '{finish_reason}'."
+
+
+def test_groq_model_executes_multiple_parallel_tool_calls():
+    """Verify GroqModel handles multiple tool calls in a single completion turn."""
+
+    # ARRANGE: Create a mock Groq client that returns multiple tool calls
+    mock_groq = MagicMock(spec=Groq)
+
+    # Tool 1: clock, Tool 2: wolfram_alpha
+    tool1 = MagicMock()
+    tool1.name = "clock"
+    tool1.execute.return_value = "2026-08-21T12:00:00"
+
+    tool2 = MagicMock()
+    tool2.name = "wolfram_alpha"
+    tool2.execute.return_value = "Result: 42"
+
+    # Turn 1: Model requests both tools
+    call1 = _create_mock_tool_call("call_1", "clock", {})
+    call2 = _create_mock_tool_call("call_2", "wolfram_alpha", {"query": "6 * 7"})
+    resp_turn_1 = MagicMock()
+    resp_turn_1.choices = [
+        MagicMock(message=_create_mock_message(None, [call1, call2]))
+    ]
+
+    # Turn 2: Model synthesizes final text
+    resp_turn_2 = MagicMock()
+    resp_turn_2.choices = [
+        MagicMock(
+            message=_create_mock_message("The time is 12:00 and 6*7 is 42.", None)
+        )
+    ]
+
+    mock_groq.chat.completions.create.side_effect = [resp_turn_1, resp_turn_2]
+
+    model = GroqModel(groq=mock_groq, tools=[tool1, tool2])
+
+    # ACT: Call process_text with a sample input
+    response = model.process_text("What time is it and what is 6*7?")
+
+    # ASSERT: Verify that the final response is as expected
+    tool1.execute.assert_called_once()
+    tool2.execute.assert_called_once_with(query="6 * 7")
+    assert (
+        response == "The time is 12:00 and 6*7 is 42."
+    ), "The model should return the synthesised response after executing both tools."
+
+
+def test_groq_model_executes_sequential_tool_chain():
+    """Verify GroqModel chains tool executions across multiple conversation turns."""
+    # ARRANGE: Create a mock Groq client that returns tool calls in sequence
+    mock_groq = MagicMock(spec=Groq)
+
+    search_tool = MagicMock()
+    search_tool.name = "duckduckgo_search"
+    search_tool.execute.return_value = "Title: Docs\nURL: https://example.com/docs"
+
+    reader_tool = MagicMock()
+    reader_tool.name = "url_reader"
+    reader_tool.execute.return_value = "# Docs\nRelease date is 2026."
+
+    # Turn 1: Model searches web
+    call1 = _create_mock_tool_call(
+        "call_search", "duckduckgo_search", {"query": "python release"}
+    )
+    resp_1 = MagicMock()
+    resp_1.choices = [MagicMock(message=_create_mock_message(None, [call1]))]
+
+    # Turn 2: Model reads the URL found in search results
+    call2 = _create_mock_tool_call(
+        "call_reader", "url_reader", {"url": "https://example.com/docs"}
+    )
+    resp_2 = MagicMock()
+    resp_2.choices = [MagicMock(message=_create_mock_message(None, [call2]))]
+
+    # Turn 3: Model returns final answer
+    resp_3 = MagicMock()
+    resp_3.choices = [
+        MagicMock(message=_create_mock_message("The release date is 2026.", None))
+    ]
+
+    mock_groq.chat.completions.create.side_effect = [resp_1, resp_2, resp_3]
+
+    model = GroqModel(groq=mock_groq, tools=[search_tool, reader_tool])
+
+    # ACT: Call process_text with a sample input
+    response = model.process_text("When is the next Python release?")
+
+    # ASSERT: Verify that the final response is as expected
+    search_tool.execute.assert_called_once_with(query="python release")
+    reader_tool.execute.assert_called_once_with(url="https://example.com/docs")
+    assert (
+        response == "The release date is 2026."
+    ), "The model should return the final answer after executing the tool chain."
+
+
+def test_groq_model_enforces_max_orchestration_loop_guard():
+    """Verify GroqModel breaks out gracefully if a runaway tool loop exceeds the iteration cap."""
+    # ARRANGE: Create a mock Groq client that returns a tool call that triggers itself
+    mock_groq = MagicMock(spec=Groq)
+
+    looping_tool = MagicMock()
+    looping_tool.name = "clock"
+    looping_tool.execute.return_value = "2026-08-21T12:00:00"
+
+    # Continually request the tool without terminating
+    call_infinite = _create_mock_tool_call("call_inf", "clock", {})
+    infinite_response = MagicMock()
+    infinite_response.choices = [
+        MagicMock(message=_create_mock_message(None, [call_infinite]))
+    ]
+
+    mock_groq.chat.completions.create.return_value = infinite_response
+
+    max_loops = 5
+    model = GroqModel(
+        groq=mock_groq, tools=[looping_tool], max_orchestration_loops=max_loops
+    )
+
+    # ACT: Call process_text with a sample input
+    response = model.process_text("Start the loop.")
+
+    # ASSERT: Should have called the API up to the max loop cap (5 times) and returned a
+    # fallback message
+    assert (
+        mock_groq.chat.completions.create.call_count == max_loops
+    ), "The model should call the API up to the max orchestration loop limit."
+    assert (
+        "loop limit" in response.lower()
+    ), "The model should return a message indicating the loop limit was reached."
