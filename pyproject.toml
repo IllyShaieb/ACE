@@ -12,6 +12,7 @@ dependencies = [
     "pygments>=2.20.0",
     "pyqt6>=6.11.0",
     "requests>=2.34.2",
+    "selectolax>=0.4.11",
 ]
 
 [dependency-groups]
