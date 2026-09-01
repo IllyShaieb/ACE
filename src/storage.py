@@ -1,0 +1,195 @@
+"""The storage module provides a simple interface for storing information needed by the application."""
+
+import sqlite3
+from pathlib import Path
+from typing import Protocol, runtime_checkable
+
+DEFAULT_DB_PATH: Path = Path.cwd() / "conversations.db"
+"""The default path for the SQLite database. Set to the current working directory."""
+
+
+@runtime_checkable
+class ConversationStorageProtocol(Protocol):
+    """A protocol for conversation storage classes."""
+
+    def create_session(self, session_id: str) -> None: ...
+
+    def save_message(self, session_id: str, role: str, content: str) -> None: ...
+
+    def get_session_messages(self, session_id: str) -> list[dict[str, str]]: ...
+
+    def get_recent_sessions(self, limit: int = 10) -> list[str]: ...
+
+    def delete_session(self, session_id: str) -> None: ...
+
+
+class SQLiteConversationStorage:
+    """A simple SQLite-based conversation storage."""
+
+    def __init__(self, db_path: str | Path = DEFAULT_DB_PATH) -> None:
+        """Initialise the SQLiteConversationStorage with a database path.
+
+        Args:
+            db_path (str | Path): The path to the SQLite database file.
+                Defaults to DEFAULT_DB_PATH.
+        """
+        self.db_path = Path(db_path)
+        self._conn = sqlite3.connect(self.db_path)
+
+        # Ensure message cascading and relation rules function properly
+        self._conn.execute("PRAGMA foreign_keys = ON")
+
+        self._initialise_database()
+
+    def _initialise_database(self) -> None:
+        """Initialise the database with the required tables."""
+        # Create a cursor to execute SQL commands.
+        cursor = self._conn.cursor()
+
+        # The sessions table stores session IDs and their creation timestamps.
+        cursor.execute("""
+                CREATE TABLE IF NOT EXISTS sessions (
+                    session_id TEXT PRIMARY KEY,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
+        # The messages table stores messages associated with sessions, including
+        # the role of the sender and the content of the message.
+        cursor.execute("""
+                CREATE TABLE IF NOT EXISTS messages (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    session_id TEXT,
+                    role TEXT,
+                    content TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY(session_id) REFERENCES sessions(session_id)
+                )
+            """)
+
+        # Ensure that the changes are saved to the database.
+        self._conn.commit()
+
+    def create_session(self, session_id: str) -> None:
+        """Create a new session in the database.
+
+        The table
+
+        Args:
+            session_id (str): The unique identifier for the session.
+        """
+
+        cursor = self._conn.cursor()
+        cursor.execute(
+            "INSERT OR IGNORE INTO sessions (session_id) VALUES (?)",
+            (session_id,),
+        )
+        self._conn.commit()
+
+    def save_message(self, session_id: str, role: str, content: str) -> None:
+        """Save a message to the database for a given session.
+
+        Args:
+            session_id (str): The unique identifier for the session.
+            role (str): The role of the message sender (e.g., "user", "assistant").
+            content (str): The content of the message.
+        """
+        cursor = self._conn.cursor()
+        cursor.execute(
+            "INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)",
+            (session_id, role, content),
+        )
+        self._conn.commit()
+
+    def get_session_messages(self, session_id: str) -> list[dict[str, str]]:
+        """Retrieve all messages for a given session from the database.
+
+        Args:
+            session_id (str): The unique identifier for the session.
+
+        Returns:
+            list[dict[str, str]]: A list of messages for the session, each represented as a
+                dictionary with keys "role", "content", and "timestamp".
+        """
+        cursor = self._conn.cursor()
+        cursor.execute(
+            "SELECT role, content, created_at FROM messages WHERE session_id = ? ORDER BY created_at ASC",
+            (session_id,),
+        )
+        rows = cursor.fetchall()
+        return [
+            {"role": row[0], "content": row[1], "timestamp": row[2]} for row in rows
+        ]
+
+    def get_recent_sessions(self, limit: int = 10) -> list[str]:
+        """Retrieve the most recent session IDs from the database.
+
+        Args:
+            limit (int): The maximum number of session IDs to retrieve. Defaults to 10.
+
+        Returns:
+            list[str]: A list of the most recent session IDs.
+        """
+        cursor = self._conn.cursor()
+        cursor.execute(
+            """
+            SELECT session_id FROM sessions
+            ORDER BY created_at DESC
+            LIMIT ?
+        """,
+            (limit,),
+        )
+        rows = cursor.fetchall()
+        return [row[0] for row in rows]
+
+    def delete_session(self, session_id: str) -> None:
+        """Delete a session and its associated messages from the database.
+
+        Args:
+            session_id (str): The unique identifier for the session to delete.
+        """
+        cursor = self._conn.cursor()
+        cursor.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+        cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
+        self._conn.commit()
+
+
+if __name__ == "__main__":
+    from pprint import pprint
+
+    def main() -> None:
+        """Demonstrate creating sessions, storing messages, and retrieving them."""
+        storage = SQLiteConversationStorage(":memory:")
+        sample_conversations = {
+            "session_1": [
+                ("user", "Hello, world!"),
+                ("assistant", "Hello! How can I assist you today?"),
+            ],
+            "session_2": [
+                ("user", "Tell me a joke."),
+                (
+                    "assistant",
+                    "Why did the developer go broke? Because they used up all their cache.",
+                ),
+            ],
+            "session_3": [
+                ("user", "What is 2 + 2?"),
+                ("assistant", "4"),
+                ("user", "This is a test message."),
+                ("assistant", "This is a test response."),
+            ],
+        }
+
+        for session_id, messages in sample_conversations.items():
+            storage.create_session(session_id)
+            for role, content in messages:
+                storage.save_message(session_id, role, content)
+
+        print("Recent sessions:")
+        pprint(storage.get_recent_sessions(limit=5))
+
+        for session_id in sample_conversations:
+            print(f"\nMessages in {session_id}:")
+            pprint(storage.get_session_messages(session_id))
+
+    main()
