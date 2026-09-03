@@ -2,6 +2,8 @@
 
 from typing import Callable, Protocol
 
+from src.storage import ConversationStorage
+
 
 class Model(Protocol):
     """A model deals with the business logic of the application."""
@@ -10,12 +12,15 @@ class Model(Protocol):
 
     def process_text(self, text: str) -> str: ...
 
+    def load_session(self, session_id: str) -> None: ...
+
 
 class View(Protocol):
     """A view is responsible for displaying information to the user and capturing user input."""
 
     on_submit: Callable[[str], None] | None
     on_model_change: Callable[[str], None] | None
+    on_session_selected: Callable[[str], None] | None
 
     def display_text(self, text: str) -> None: ...
 
@@ -25,11 +30,17 @@ class View(Protocol):
 
     def display_error(self, message: str) -> None: ...
 
+    def populate_sessions(self, sessions: list[str]) -> None: ...
+
+    def clear_chat(self) -> None: ...
+
 
 class Presenter:
     """The Presenter class acts as an intermediary between the model and view."""
 
-    def __init__(self, model: Model, view: View):
+    def __init__(
+        self, model: Model, view: View, conversation_storage: ConversationStorage
+    ):
         """Initialise the presenter with a model and a view.
 
         Args:
@@ -38,6 +49,7 @@ class Presenter:
         """
         self.model = model
         self.view = view
+        self.conversation_storage = conversation_storage
 
         # Connect the view to the presenter
         self.view.on_submit = self.handle_submit
