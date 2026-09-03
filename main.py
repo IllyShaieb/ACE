@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import QApplication
 
 from src.model import GroqModel
 from src.presenter import Presenter
+from src.storage import SQLiteConversationStorage
 from src.tools import ClockTool, DuckDuckGoSearchTool, UrlReaderTool, WolframAlphaTool
 from src.view import PyQt6View
 
@@ -38,6 +39,8 @@ def main():
         )
         system_prompt = None
 
+    conversation_storage = SQLiteConversationStorage("conversations.db")
+
     model = GroqModel(
         client,
         system_prompt=system_prompt,
@@ -47,6 +50,7 @@ def main():
             UrlReaderTool(),
             WolframAlphaTool(),
         ],
+        conversation_storage=conversation_storage,
     )
 
     app = QApplication([])
