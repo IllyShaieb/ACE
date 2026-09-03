@@ -1,5 +1,6 @@
 """The storage module provides a simple interface for storing information needed by the application."""
 
+import json
 import sqlite3
 from pathlib import Path
 from typing import Protocol, runtime_checkable
@@ -14,7 +15,13 @@ class ConversationStorageProtocol(Protocol):
 
     def create_session(self, session_id: str) -> None: ...
 
-    def save_message(self, session_id: str, role: str, content: str) -> None: ...
+    def save_message(
+        self,
+        session_id: str,
+        role: str,
+        content: str,
+        tool_calls: list[dict[str, str]] | None = None,
+    ) -> None: ...
 
     def get_session_messages(self, session_id: str) -> list[dict[str, str]]: ...
 
@@ -62,6 +69,7 @@ class SQLiteConversationStorage:
                     session_id TEXT,
                     role TEXT,
                     content TEXT,
+                    tool_calls TEXT,
                     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY(session_id) REFERENCES sessions(session_id)
                 )
@@ -86,18 +94,25 @@ class SQLiteConversationStorage:
         )
         self._conn.commit()
 
-    def save_message(self, session_id: str, role: str, content: str) -> None:
+    def save_message(
+        self,
+        session_id: str,
+        role: str,
+        content: str,
+        tool_calls: list[dict[str, str]] | None = None,
+    ) -> None:
         """Save a message to the database for a given session.
 
         Args:
             session_id (str): The unique identifier for the session.
             role (str): The role of the message sender (e.g., "user", "assistant").
             content (str): The content of the message.
+            tool_calls (list[dict[str, str]] | None): Optional tool call information to include in the message.
         """
         cursor = self._conn.cursor()
         cursor.execute(
-            "INSERT INTO messages (session_id, role, content) VALUES (?, ?, ?)",
-            (session_id, role, content),
+            "INSERT INTO messages (session_id, role, content, tool_calls) VALUES (?, ?, ?, ?)",
+            (session_id, role, content, json.dumps(tool_calls) if tool_calls else None),
         )
         self._conn.commit()
 
@@ -113,12 +128,18 @@ class SQLiteConversationStorage:
         """
         cursor = self._conn.cursor()
         cursor.execute(
-            "SELECT role, content, created_at FROM messages WHERE session_id = ? ORDER BY created_at ASC",
+            "SELECT role, content, created_at, tool_calls FROM messages WHERE session_id = ? ORDER BY created_at ASC",
             (session_id,),
         )
         rows = cursor.fetchall()
         return [
-            {"role": row[0], "content": row[1], "timestamp": row[2]} for row in rows
+            {
+                "role": row[0],
+                "content": row[1],
+                "timestamp": row[2],
+                "tool_calls": row[3],
+            }
+            for row in rows
         ]
 
     def get_recent_sessions(self, limit: int = 10) -> list[str]:

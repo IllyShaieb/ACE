@@ -1,5 +1,7 @@
 """Ensure that the storage module works as expected."""
 
+import json
+
 from src.storage import ConversationStorageProtocol, SQLiteConversationStorage
 
 
@@ -26,9 +28,21 @@ class TestSQLiteConversationStorage:
         # ARRANGE: Create an instance of SQLiteConversationStorage with an in-memory database
         storage = SQLiteConversationStorage(":memory:")
         storage.create_session("session_1")
+        tool_calls = [
+            {
+                "tool_name": "example_tool",
+                "input": "example_input",
+                "output": "example_output",
+            }
+        ]
 
         # ACT: Call the save_message method with test data
-        storage.save_message("session_1", "user", "Hello, world!")
+        storage.save_message(
+            "session_1",
+            "user",
+            "Hello, world!",
+            tool_calls,
+        )
 
         # ASSERT: Check that the message was saved successfully
         messages = storage.get_session_messages("session_1")
@@ -36,6 +50,7 @@ class TestSQLiteConversationStorage:
         assert messages[0]["role"] == "user"
         assert messages[0]["content"] == "Hello, world!"
         assert messages[0]["timestamp"] is not None
+        assert messages[0]["tool_calls"] == json.dumps(tool_calls)
 
     def test_sql_conversation_storage_delete_session(self):
         """Test that SQLiteConversationStorage can delete a session."""
