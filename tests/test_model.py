@@ -1,12 +1,13 @@
 """Ensure that the model processes text correctly and returns expected responses."""
 
 import json
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, call
 
 import pytest
 from groq import Groq
 
 from src.model import GroqModel
+from src.storage import ConversationStorageProtocol
 from src.tools import Tool
 
 
@@ -401,3 +402,100 @@ def test_groq_model_enforces_max_orchestration_loop_guard():
     assert (
         "loop limit" in response.lower()
     ), "The model should return a message indicating the loop limit was reached."
+
+
+def test_groq_model_storage_defaults_session_id():
+    """Verify initialising GroqModel with a conversation storage instance defaults session ID to None."""
+    # ARRANGE: Create a mock Groq client and conversation storage
+    mock_groq = MagicMock(spec=Groq)
+    mock_storage = MagicMock(spec=ConversationStorageProtocol)
+
+    # ACT: Create the model with mocks
+    model = GroqModel(groq=mock_groq, conversation_storage=mock_storage)
+
+    # ASSERT: Verify that the session ID defaults to None
+    assert (
+        model.session_id is None
+    ), "The session ID should default to None to prevent ghost session issues."
+
+
+def test_groq_model_storage_process_text_creates_session():
+    """Verify GroqModel creates a session ID when processing text with conversation storage."""
+    # ARRANGE: Create a mock Groq client and conversation storage
+    mock_groq = MagicMock(spec=Groq)
+
+    mock_message = MagicMock()
+    mock_message.content = "Response from assistant"
+    mock_message.tool_calls = None
+
+    mock_groq.chat.completions.create.return_value = MagicMock(
+        choices=[MagicMock(message=mock_message)]
+    )
+
+    mock_storage = MagicMock(spec=ConversationStorageProtocol)
+
+    model = GroqModel(groq=mock_groq, conversation_storage=mock_storage)
+
+    # ACT: Call process_text with a sample input
+    result = model.process_text("Hello, world!")
+
+    # ASSERT: Verify that a session ID was created and the correct methods called on the conversation storage
+    assert result == "Response from assistant"
+    assert model.session_id is not None
+    mock_storage.create_session.assert_called_once_with(session_id=model.session_id)
+
+    expected_calls = [
+        call(
+            session_id=model.session_id,
+            role="user",
+            content="Hello, world!",
+            tool_calls=None,
+        ),
+        call(
+            session_id=model.session_id,
+            role="assistant",
+            content="Response from assistant",
+            tool_calls=None,
+        ),
+    ]
+    mock_storage.save_message.assert_has_calls(expected_calls)
+
+
+def test_groq_model_storage_loading_session():
+    """Verify GroqModel loads an existing session ID from conversation storage into the messages list."""
+    # ARRANGE: Create a mock Groq client and conversation storage
+    mock_groq = MagicMock(spec=Groq)
+    mock_storage = MagicMock(spec=ConversationStorageProtocol)
+    existing_session_id = "existing-session-id"
+
+    mock_storage.get_session_messages.return_value = [
+        {"role": "user", "content": "Initial prompt"},
+        {"role": "assistant", "content": "Initial response"},
+    ]
+
+    model = GroqModel(
+        groq=mock_groq,
+        system_prompt="You are a helpful assistant.",
+        conversation_storage=mock_storage,
+    )
+
+    # ACT: Load the existing session and then process text
+    model.load_session(existing_session_id)
+    result = model.process_text("Hello again!")
+
+    # ASSERT: Verify that the existing session ID was loaded and used
+    assert (
+        model.session_id == existing_session_id
+    ), "The session ID should match the existing session ID."
+    assert model.messages[0] == {
+        "role": "system",
+        "content": "You are a helpful assistant.",
+    }, "The first message should be the system prompt."
+    assert model.messages[1] == {
+        "role": "user",
+        "content": "Initial prompt",
+    }, "The second message should be the initial user prompt."
+    assert model.messages[2] == {
+        "role": "assistant",
+        "content": "Initial response",
+    }, "The third message should be the initial assistant response."

@@ -2,11 +2,13 @@
 
 import json
 import os
+import uuid
 from typing import Any
 
 from dotenv import load_dotenv
 from groq import Groq
 
+from src.storage import ConversationStorageProtocol
 from src.tools import Tool
 
 load_dotenv()
@@ -29,6 +31,7 @@ class GroqModel:
         system_prompt: str | None = None,
         tools: list[Tool] | None = None,
         max_orchestration_loops: int = 5,
+        conversation_storage: ConversationStorageProtocol | None = None,
     ) -> None:
         """Initialise the model with a Groq instance.
 
@@ -39,16 +42,22 @@ class GroqModel:
                 the model's message history
             model_name (str): The name of the model to use for processing text.
             tools (list[Tool] | None): An optional list of tools that the model can use.
+            conversation_storage (ConversationStorageProtocol | None): An optional conversation
+                storage instance.
         """
         self.client = groq
         self.model_name = model_name
 
         self.tools = {tool.name: tool for tool in tools} if tools else {}
+        self.conversation_storage = conversation_storage
 
+        self.session_id = None
         self.messages = []
 
-        if system_prompt:
-            self._append_message("system", system_prompt)
+        self.system_prompt = system_prompt
+
+        if self.system_prompt:
+            self._append_message("system", self.system_prompt)
 
         self.max_orchestration_loops = max_orchestration_loops
 
@@ -72,6 +81,15 @@ class GroqModel:
             message["tool_calls"] = tool_calls
 
         self.messages.append(message)
+
+        # Save to conversation storage if available
+        if self.conversation_storage and self.session_id:
+            self.conversation_storage.save_message(
+                session_id=self.session_id,
+                role=role,
+                content=content,
+                tool_calls=tool_calls,
+            )
 
     def _resolve_empty_content(
         self, choice: object, was_tool_call: bool = False
@@ -132,6 +150,14 @@ class GroqModel:
             str: The response from the model.
         """
         print(f"Using model: {self.model_name}")
+
+        # Ensure session ID exists BEFORE appending messages
+        if not self.session_id:
+            new_id = str(uuid.uuid4())
+            self.session_id = new_id
+            if self.conversation_storage:
+                self.conversation_storage.create_session(session_id=new_id)
+
         self._append_message("user", text)
 
         try:
@@ -214,10 +240,45 @@ class GroqModel:
             self.messages.pop()  # Remove orphaned user message on error
             raise RuntimeError(f"Model API error: {str(e)}") from e
 
+    def load_session(self, session_id: str) -> None:
+        """Load an existing session into the model's message list.
+
+        Args:
+            session_id (str): The ID of the session to load.
+        """
+        # Set the current session ID and clear the message list
+        self.session_id = session_id
+        self.messages = []
+
+        # Ensure the system prompt is at the beginning of the message list
+        if self.system_prompt:
+            self._append_message("system", self.system_prompt)
+
+        # Load the previous messages from the conversation storage if available
+        if self.conversation_storage:
+            historical_messages = self.conversation_storage.get_session_messages(
+                session_id=session_id
+            )
+
+            for message in historical_messages:
+                self._append_message(
+                    message["role"],
+                    message["content"],
+                    tool_calls=json.loads(message.get("tool_calls", "[]")),
+                )
+
 
 if __name__ == "__main__":
+    from src.storage import SQLiteConversationStorage
+
     client = Groq(api_key=os.getenv("GROQ_API_KEY"))
-    model = GroqModel(client)
+
+    storage = SQLiteConversationStorage("conversations.db")
+    for session in storage.get_recent_sessions():
+        print(f"Deleting session: {session}")
+        storage.delete_session(session)
+
+    model = GroqModel(client, conversation_storage=storage)
 
     while True:
         user_input = input("You: ")
