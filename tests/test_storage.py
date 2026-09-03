@@ -2,7 +2,7 @@
 
 import json
 
-from src.storage import ConversationStorageProtocol, SQLiteConversationStorage
+from src.storage import ConversationStorage, SQLiteConversationStorage
 
 
 class TestSQLiteConversationStorage:
@@ -10,7 +10,7 @@ class TestSQLiteConversationStorage:
 
     def test_sql_conversation_storage_conforms_to_protocol(self):
         """Test that SQLiteConversationStorage conforms to the ConversationStorageProtocol."""
-        assert isinstance(SQLiteConversationStorage(), ConversationStorageProtocol)
+        assert isinstance(SQLiteConversationStorage(), ConversationStorage)
 
     def test_sql_conversation_storage_create_session(self):
         """Test that SQLiteConversationStorage can create a session."""

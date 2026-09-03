@@ -10,8 +10,9 @@ DEFAULT_DB_PATH: Path = Path.cwd() / "conversations.db"
 
 
 @runtime_checkable
-class ConversationStorageProtocol(Protocol):
-    """A protocol for conversation storage classes."""
+class ConversationStorage(Protocol):
+    """The conversation storage deals with storing and retrieving conversation sessions
+    and messages."""
 
     def create_session(self, session_id: str) -> None: ...
 

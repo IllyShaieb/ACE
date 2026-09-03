@@ -7,7 +7,7 @@ import pytest
 from groq import Groq
 
 from src.model import GroqModel
-from src.storage import ConversationStorageProtocol
+from src.storage import ConversationStorage
 from src.tools import Tool
 
 
@@ -408,7 +408,7 @@ def test_groq_model_storage_defaults_session_id():
     """Verify initialising GroqModel with a conversation storage instance defaults session ID to None."""
     # ARRANGE: Create a mock Groq client and conversation storage
     mock_groq = MagicMock(spec=Groq)
-    mock_storage = MagicMock(spec=ConversationStorageProtocol)
+    mock_storage = MagicMock(spec=ConversationStorage)
 
     # ACT: Create the model with mocks
     model = GroqModel(groq=mock_groq, conversation_storage=mock_storage)
@@ -432,7 +432,7 @@ def test_groq_model_storage_process_text_creates_session():
         choices=[MagicMock(message=mock_message)]
     )
 
-    mock_storage = MagicMock(spec=ConversationStorageProtocol)
+    mock_storage = MagicMock(spec=ConversationStorage)
 
     model = GroqModel(groq=mock_groq, conversation_storage=mock_storage)
 
@@ -465,7 +465,7 @@ def test_groq_model_storage_loading_session():
     """Verify GroqModel loads an existing session ID from conversation storage into the messages list."""
     # ARRANGE: Create a mock Groq client and conversation storage
     mock_groq = MagicMock(spec=Groq)
-    mock_storage = MagicMock(spec=ConversationStorageProtocol)
+    mock_storage = MagicMock(spec=ConversationStorage)
     existing_session_id = "existing-session-id"
 
     mock_storage.get_session_messages.return_value = [

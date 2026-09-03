@@ -8,7 +8,7 @@ from typing import Any
 from dotenv import load_dotenv
 from groq import Groq
 
-from src.storage import ConversationStorageProtocol
+from src.storage import ConversationStorage
 from src.tools import Tool
 
 load_dotenv()
@@ -31,7 +31,7 @@ class GroqModel:
         system_prompt: str | None = None,
         tools: list[Tool] | None = None,
         max_orchestration_loops: int = 5,
-        conversation_storage: ConversationStorageProtocol | None = None,
+        conversation_storage: ConversationStorage | None = None,
     ) -> None:
         """Initialise the model with a Groq instance.
 
