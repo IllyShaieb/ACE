@@ -56,7 +56,9 @@ def main():
     app = QApplication([])
     view = PyQt6View()
 
-    presenter = Presenter(model=model, view=view)
+    presenter = Presenter(
+        model=model, view=view, conversation_storage=conversation_storage
+    )
 
     view.show()
     app.exec()  # Start the event loop
