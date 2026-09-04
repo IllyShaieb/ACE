@@ -83,7 +83,12 @@ class GroqModel:
         self.messages.append(message)
 
         # Save to conversation storage if available
-        if self.conversation_storage and self.session_id:
+        if (
+            self.conversation_storage
+            and self.session_id
+            and role in ("user", "assistant")
+            and content
+        ):
             self.conversation_storage.save_message(
                 session_id=self.session_id,
                 role=role,
@@ -252,7 +257,7 @@ class GroqModel:
 
         # Ensure the system prompt is at the beginning of the message list
         if self.system_prompt:
-            self._append_message("system", self.system_prompt)
+            self.messages.append({"role": "system", "content": self.system_prompt})
 
         # Load the previous messages from the conversation storage if available
         if self.conversation_storage:
@@ -261,11 +266,25 @@ class GroqModel:
             )
 
             for message in historical_messages:
-                self._append_message(
-                    message["role"],
-                    message["content"],
-                    tool_calls=json.loads(message.get("tool_calls", "[]")),
-                )
+                raw_tool_calls = message.get("tool_calls")
+
+                item = {
+                    "role": message["role"],
+                    "content": message["content"],
+                }
+                if raw_tool_calls:
+                    item["tool_calls"] = json.loads(raw_tool_calls)
+
+                self.messages.append(item)
+
+    def start_new_session(self) -> None:
+        """Start a new session by generating a new session ID and clearing the message list."""
+        self.session_id = None
+        self.messages = []
+
+        # Ensure the system prompt is at the beginning of the message list
+        if self.system_prompt:
+            self.messages.append({"role": "system", "content": self.system_prompt})
 
 
 if __name__ == "__main__":

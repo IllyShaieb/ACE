@@ -499,3 +499,29 @@ def test_groq_model_storage_loading_session():
         "role": "assistant",
         "content": "Initial response",
     }, "The third message should be the initial assistant response."
+
+
+def test_groq_model_start_new_session_resets_session_id_and_messages():
+    """Verify GroqModel's start_new_session method resets the session ID and clears the messages list."""
+    # ARRANGE: Create a mock Groq client and conversation storage
+    mock_groq = MagicMock(spec=Groq)
+    mock_storage = MagicMock(spec=ConversationStorage)
+
+    model = GroqModel(
+        groq=mock_groq,
+        system_prompt="You are a helpful assistant.",
+        conversation_storage=mock_storage,
+    )
+
+    # Simulate an existing session
+    model.session_id = "existing-session-id"
+    model.messages = [{"role": "user", "content": "Some previous message"}]
+
+    # ACT: Start a new session
+    model.start_new_session()
+
+    # ASSERT: Verify that the session ID is reset and messages list is cleared except for the system prompt
+    assert model.session_id is None, "The session ID should be reset to None."
+    assert model.messages == [
+        {"role": "system", "content": "You are a helpful assistant."}
+    ], "The messages list should only contain the system prompt."
