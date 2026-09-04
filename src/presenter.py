@@ -1,5 +1,6 @@
 """The presenter module handles the interaction between the model and view."""
 
+import json
 from typing import Callable, Protocol
 
 from src.storage import ConversationStorage
@@ -15,6 +16,8 @@ class Model(Protocol):
 
     def load_session(self, session_id: str) -> None: ...
 
+    def start_new_session(self) -> None: ...
+
 
 class View(Protocol):
     """A view is responsible for displaying information to the user and capturing user input."""
@@ -22,6 +25,7 @@ class View(Protocol):
     on_submit: Callable[[str], None] | None
     on_model_change: Callable[[str], None] | None
     on_session_selected: Callable[[str], None] | None
+    on_new_chat: Callable[[], None] | None
 
     def display_text(self, text: str) -> None: ...
 
@@ -57,6 +61,7 @@ class Presenter:
         self.view.on_submit = self.handle_submit
         self.view.on_model_change = self.handle_model_change
         self.view.on_session_selected = self.handle_session_selected
+        self.view.on_new_chat = self.handle_new_chat
 
         # Populate the view with recent sessions from the conversation storage
         recent_sessions = self.conversation_storage.get_recent_sessions()
@@ -112,15 +117,21 @@ class Presenter:
         Args:
             session_id (str): The ID of the selected session.
         """
+        self.model.load_session(session_id)
         messages = self.conversation_storage.get_session_messages(session_id)
 
         self.view.clear_chat()
         for message in messages:
-            self.view.display_text(f"## You:\n\n{message}\n\n")
+            # Filter out system instructions and tool artifacts
+            if message["role"] == "system" or not message.get("content"):
+                continue
+
+            sender = "You" if message["role"] == "user" else "ACE"
+            content = message["content"]
+
+            self.view.display_text(f"## {sender}:\n\n{content}\n\n")
 
     def handle_new_chat(self) -> None:
         """Handle the event when the user starts a new chat in the view."""
-        if hasattr(self.model, "session_id"):
-            self.model.session_id = None
-
+        self.model.start_new_session()
         self.view.clear_chat()

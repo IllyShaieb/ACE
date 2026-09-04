@@ -167,6 +167,11 @@ def test_presenter_sets_current_session_on_selection():
         model=mock_model, view=mock_view, conversation_storage=mock_storage
     )
 
+    mock_storage.get_session_messages.return_value = [
+        {"role": "user", "content": "Hello"},
+        {"role": "assistant", "content": "Hello! How can I help?"},
+    ]
+
     # ACT: Simulate a user selecting a session through the view
     selected_session_id = "session1"
     mock_view.on_session_selected(selected_session_id)
@@ -176,7 +181,9 @@ def test_presenter_sets_current_session_on_selection():
     mock_view.clear_chat.assert_called_once()
 
     for message in mock_storage.get_session_messages.return_value:
-        mock_view.display_text.assert_any_call(f"## You:\n\n{message}\n\n")
+        sender = "You" if message["role"] == "user" else "ACE"
+        content = message["content"]
+        mock_view.display_text.assert_any_call(f"## {sender}:\n\n{content}\n\n")
 
 
 def test_presenter_handles_new_chat():
