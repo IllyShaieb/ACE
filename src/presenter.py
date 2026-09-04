@@ -9,6 +9,7 @@ class Model(Protocol):
     """A model deals with the business logic of the application."""
 
     model_name: str
+    session_id: str | None
 
     def process_text(self, text: str) -> str: ...
 
@@ -46,6 +47,7 @@ class Presenter:
         Args:
             model (Model): The model instance to interact with.
             view (View): The view instance to interact with.
+            conversation_storage (ConversationStorage): The conversation storage instance to interact with.
         """
         self.model = model
         self.view = view
@@ -54,6 +56,11 @@ class Presenter:
         # Connect the view to the presenter
         self.view.on_submit = self.handle_submit
         self.view.on_model_change = self.handle_model_change
+        self.view.on_session_selected = self.handle_session_selected
+
+        # Populate the view with recent sessions from the conversation storage
+        recent_sessions = self.conversation_storage.get_recent_sessions()
+        self.view.populate_sessions(recent_sessions)
 
     def handle_submit(self, text: str) -> None:
         """Handle the event when the user submits text through the view.
@@ -87,6 +94,9 @@ class Presenter:
         # Display the processed text in the view
         self.view.display_text(f"## ACE:\n\n{result}\n\n")
 
+        # Refresh the list of recent sessions in the view
+        self.view.populate_sessions(self.conversation_storage.get_recent_sessions())
+
     def handle_model_change(self, model_name: str) -> None:
         """Handle the event when the user changes the model selection in the view.
 
@@ -95,3 +105,22 @@ class Presenter:
         """
         # Update the model's name to reflect the new selection
         self.model.model_name = model_name
+
+    def handle_session_selected(self, session_id: str) -> None:
+        """Handle the event when the user selects a session in the view.
+
+        Args:
+            session_id (str): The ID of the selected session.
+        """
+        messages = self.conversation_storage.get_session_messages(session_id)
+
+        self.view.clear_chat()
+        for message in messages:
+            self.view.display_text(f"## You:\n\n{message}\n\n")
+
+    def handle_new_chat(self) -> None:
+        """Handle the event when the user starts a new chat in the view."""
+        if hasattr(self.model, "session_id"):
+            self.model.session_id = None
+
+        self.view.clear_chat()
