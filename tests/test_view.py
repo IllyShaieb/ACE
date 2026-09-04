@@ -233,3 +233,36 @@ def test_display_text_converts_markdown_and_appends_to_output(qtbot):
 
         # ASSERT: Verify that the formatter was called
         mock_formatter.assert_called_once_with(raw_markdown)
+
+
+def test_clear_chat_empties_output(qtbot):
+    """Test that clear_chat empties the output area."""
+    # ARRANGE: Create a PyQt6View instance and add some text to the output
+    view = PyQt6View()
+    qtbot.addWidget(view)
+    view.display_text("Some text")
+
+    # ACT: Clear the chat
+    view.clear_chat()
+
+    # ASSERT: Verify that the output area is empty
+    assert (
+        view.output_area.toPlainText() == ""
+    ), "Output area should be empty after clearing the chat."
+
+
+def test_populate_sessions_fills_sidebar_with_session_items(qtbot):
+    """Test that populate_sessions fills the sidebar with session items."""
+    # ARRANGE: Create a PyQt6View instance
+    view = PyQt6View()
+    qtbot.addWidget(view)
+
+    # ACT: Populate the view with some session items
+    sessions = ["session1", "session2", "session3"]
+    view.populate_sessions(sessions)
+
+    # ASSERT: Verify that the sidebar contains the session items
+    sidebar_items = [view.sidebar.item(i).text() for i in range(view.sidebar.count())]
+    assert (
+        sidebar_items == sessions
+    ), "Sidebar should contain the populated session items."

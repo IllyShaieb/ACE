@@ -10,6 +10,8 @@ from PyQt6.QtWidgets import (
     QApplication,
     QComboBox,
     QHBoxLayout,
+    QListWidget,
+    QListWidgetItem,
     QPushButton,
     QTextBrowser,
     QTextEdit,
@@ -32,6 +34,8 @@ class PyQt6View(QWidget):
 
     on_submit: Callable[[str], None] | None
     on_model_change: Callable[[str], None] | None
+    on_session_selected: Callable[[str], None] | None
+    on_new_chat: Callable[[], None] | None
 
     def __init__(
         self, styles_dir: Path | None = None, theme: Theme = Theme.DARK
@@ -73,14 +77,18 @@ class PyQt6View(QWidget):
         self.theme_button = QPushButton()
         self.theme_button.clicked.connect(self.toggle_theme)
 
-        self._apply_theme()
-
         self.input_box = QTextEdit()
         self.input_box.setPlaceholderText("Type your message here...")
 
         self.submit_button = QPushButton("Submit")
         self.submit_button.clicked.connect(self._handle_submit)
         self.output_area = QTextBrowser()
+
+        self.sidebar = QListWidget()
+        self.sidebar.itemClicked.connect(self._handle_sidebar_click)
+
+        self.new_chat = QPushButton()
+        self.new_chat.clicked.connect(self._handle_new_chat_click)
 
         # Ctrl + Return shortcut for submission
         self.input_box.installEventFilter(self)
@@ -95,12 +103,22 @@ class PyQt6View(QWidget):
         input_row.addWidget(self.input_box, 1)
         input_row.addWidget(self.submit_button)
 
+        sidebar_layout = QVBoxLayout()
+        sidebar_layout.addWidget(self.new_chat, 0)
+        sidebar_layout.addWidget(self.sidebar, 2)
+
+        output_layout = QHBoxLayout()
+        output_layout.addLayout(sidebar_layout, 2)
+        output_layout.addWidget(self.output_area, 4)
+
         layout.addLayout(top_row, 0)
-        layout.addWidget(self.output_area, 4)
+        layout.addLayout(output_layout, 4)
         layout.addLayout(input_row, 1)
         self.setLayout(layout)
 
         self.input_box.setFocus()
+
+        self._apply_theme()
 
     def toggle_theme(self) -> None:
         """Toggle between dark and light themes."""
@@ -127,9 +145,21 @@ class PyQt6View(QWidget):
                 "QPushButton { background-color: transparent; border: none; font-size: 18px; }"
                 "QPushButton:hover { background-color: rgba(255, 255, 255, 0.1); border-radius: 4px; }"
             )
+            # Set new chat icon to assets/plus-circle-white.svg and update colour
+            self.new_chat.setIcon(QIcon(str("assets/plus-circle-white.svg")))
+            self.new_chat.setStyleSheet(
+                "QPushButton { background-color: transparent; border: none; font-size: 18px; }"
+                "QPushButton:hover { background-color: rgba(255, 255, 255, 0.1); border-radius: 4px; }"
+            )
         else:
             self.theme_button.setText("🌙")
             self.theme_button.setStyleSheet(
+                "QPushButton { background-color: transparent; border: none; font-size: 18px; }"
+                "QPushButton:hover { background-color: rgba(0, 0, 0, 0.1); border-radius: 4px; }"
+            )
+            # Set new chat icon to assets/plus-circle-black.svg and update colour
+            self.new_chat.setIcon(QIcon(str("assets/plus-circle-black.svg")))
+            self.new_chat.setStyleSheet(
                 "QPushButton { background-color: transparent; border: none; font-size: 18px; }"
                 "QPushButton:hover { background-color: rgba(0, 0, 0, 0.1); border-radius: 4px; }"
             )
@@ -195,6 +225,34 @@ class PyQt6View(QWidget):
             self._handle_submit()
             return True
         return super().eventFilter(source, event)
+
+    def clear_chat(self) -> None:
+        """Clear the chat by emptying the output area."""
+        self.output_area.clear()
+
+    def populate_sessions(self, sessions: list[str]) -> None:
+        """Populate the sidebar with session items.
+
+        Args:
+            sessions (list[str]): A list of session names to populate in the sidebar.
+        """
+        self.sidebar.clear()
+        for session in sessions:
+            self.sidebar.addItem(session)
+
+    def _handle_sidebar_click(self, item: QListWidgetItem) -> None:
+        """Handle clicks on sidebar items by invoking the on_session_select callback if set.
+
+        Args:
+            item (QListWidgetItem): The clicked sidebar item.
+        """
+        if self.on_session_selected:
+            self.on_session_selected(item.text())
+
+    def _handle_new_chat_click(self) -> None:
+        """Handle the event when the user clicks the 'New Chat' button by invoking the on_new_chat callback if set."""
+        if self.on_new_chat:
+            self.on_new_chat()
 
 
 if __name__ == "__main__":
