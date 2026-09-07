@@ -1,9 +1,12 @@
 """The presenter module handles the interaction between the model and view."""
 
 import json
+import logging
 from typing import Callable, Protocol
 
 from src.storage import ConversationStorage
+
+logger = logging.getLogger(__name__)
 
 
 class Model(Protocol):
@@ -57,6 +60,10 @@ class Presenter:
         self.view = view
         self.conversation_storage = conversation_storage
 
+        logger.debug(
+            "Presenter initialised with model: %s", model.model_name or "<unknown>"
+        )
+
         # Connect the view to the presenter
         self.view.on_submit = self.handle_submit
         self.view.on_model_change = self.handle_model_change
@@ -92,6 +99,8 @@ class Presenter:
 
         except Exception as e:
             # Handle any errors that occur during processing
+            logger.error("Error occurred while processing text: %s", str(e))
+
             self.view.hide_loading()
             self.view.display_error(f"[ERROR] {str(e)}\n\n")
             return
@@ -110,6 +119,7 @@ class Presenter:
         """
         # Update the model's name to reflect the new selection
         self.model.model_name = model_name
+        logging.info(f"Model changed to {model_name}")
 
     def handle_session_selected(self, session_id: str) -> None:
         """Handle the event when the user selects a session in the view.

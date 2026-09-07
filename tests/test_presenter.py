@@ -1,5 +1,6 @@
 """Ensure the presenter module handles the interaction between the model and view correctly."""
 
+import logging
 from unittest.mock import MagicMock
 
 from src.presenter import Model, Presenter, View
@@ -10,6 +11,8 @@ def test_presenter_attaches_callback_and_handles_user_submit():
     """Test that the presenter correctly attaches a callback and handles user submission."""
     # ARRANGE: Create mock instances of the model, view, and storage
     mock_model = MagicMock(spec=Model)
+    mock_model.model_name = "test_model"
+
     mock_view = MagicMock(spec=View)
     mock_storage = MagicMock(spec=ConversationStorage)
 
@@ -39,6 +42,8 @@ def test_presenter_shows_and_hides_loading_indicator():
     """Test that the presenter correctly shows and hides a loading indicator when handling user input."""
     # ARRANGE: Create mock instances of the model, view, and storage
     mock_model = MagicMock(spec=Model)
+    mock_model.model_name = "test_model"
+
     mock_view = MagicMock(spec=View)
     mock_storage = MagicMock(spec=ConversationStorage)
 
@@ -68,6 +73,8 @@ def test_presenter_handles_errors_gracefully():
     """Test that the presenter handles errors gracefully when processing text."""
     # ARRANGE: Create mock instances of the model, view, and storage
     mock_model = MagicMock(spec=Model)
+    mock_model.model_name = "test_model"
+
     mock_view = MagicMock(spec=View)
     mock_storage = MagicMock(spec=ConversationStorage)
 
@@ -96,6 +103,8 @@ def test_presenter_rejects_empty_or_whitespace_input():
     """Test that the presenter rejects empty or whitespace-only input."""
     # ARRANGE: Create mock instances of the model, view, and storage
     mock_model = MagicMock(spec=Model)
+    mock_model.model_name = "test_model"
+
     mock_view = MagicMock(spec=View)
     mock_storage = MagicMock(spec=ConversationStorage)
 
@@ -120,6 +129,8 @@ def test_presenter_handles_model_change():
     """Test that the presenter correctly handles model changes."""
     # ARRANGE: Create mock instances of the model, view, and storage
     mock_model = MagicMock(spec=Model)
+    mock_model.model_name = "test_model"
+
     mock_view = MagicMock(spec=View)
     mock_storage = MagicMock(spec=ConversationStorage)
 
@@ -142,6 +153,8 @@ def test_presenter_populates_recent_sessions_on_initialisation():
     """Test that the presenter populates recent sessions on initialisation."""
     # ARRANGE: Create mock instances of the model, view, and storage
     mock_model = MagicMock(spec=Model)
+    mock_model.model_name = "test_model"
+
     mock_view = MagicMock(spec=View)
     mock_storage = MagicMock(spec=ConversationStorage)
 
@@ -160,6 +173,8 @@ def test_presenter_sets_current_session_on_selection():
     """Test that the presenter sets the current session when a session is selected."""
     # ARRANGE: Create mock instances of the model, view, storage, and presenter
     mock_model = MagicMock(spec=Model)
+    mock_model.model_name = "test_model"
+
     mock_view = MagicMock(spec=View)
     mock_storage = MagicMock(spec=ConversationStorage)
 
@@ -190,6 +205,8 @@ def test_presenter_handles_new_chat():
     """Test that the presenter handles starting a new chat correctly."""
     # ARRANGE: Create mock instances of the model, view, storage and presenter
     mock_model = MagicMock(spec=Model)
+    mock_model.model_name = "test_model"
+
     mock_view = MagicMock(spec=View)
     mock_storage = MagicMock(spec=ConversationStorage)
 
@@ -211,3 +228,70 @@ def test_presenter_handles_new_chat():
     assert (
         getattr(mock_model, "session_id", None) is None
     ), "Expected the model's session_id to be None after starting a new chat."
+
+
+def test_presenter_logs_debug_on_initialisation(caplog):
+    """Test that the presenter logs a debug message on initialisation."""
+    # ARRANGE: Create mock instances of the model, view, and storage
+    mock_model = MagicMock(spec=Model)
+    mock_model.model_name = "test_model"
+
+    mock_view = MagicMock(spec=View)
+    mock_storage = MagicMock(spec=ConversationStorage)
+
+    # ACT: Initialise the presenter
+    with caplog.at_level(logging.DEBUG):
+        Presenter(model=mock_model, view=mock_view, conversation_storage=mock_storage)
+
+    # ASSERT: Verify that a debug message was logged
+    assert any(
+        "Presenter initialised" in message for message in caplog.messages
+    ), "Expected a debug message indicating presenter initialisation."
+
+
+def test_presenter_logs_info_on_switching_model(caplog):
+    """Test that the presenter logs an info message when switching models."""
+    # ARRANGE: Create mock instances of the model, view, and storage
+    mock_model = MagicMock(spec=Model)
+    mock_model.model_name = "test_model"
+
+    mock_view = MagicMock(spec=View)
+    mock_storage = MagicMock(spec=ConversationStorage)
+
+    presenter = Presenter(
+        model=mock_model, view=mock_view, conversation_storage=mock_storage
+    )
+
+    # ACT: Change the model through the presenter
+    with caplog.at_level(logging.INFO):
+        new_model_name = "new_model"
+        mock_view.on_model_change(new_model_name)
+
+    # ASSERT: Verify that an info message was logged
+    assert any(
+        "Model changed to" in message for message in caplog.messages
+    ), "Expected an info message indicating model change."
+
+
+def test_presenter_logs_error_on_processing_exception(caplog):
+    """Test that the presenter logs an error message when processing text raises an exception."""
+    # ARRANGE: Create mock instances of the model, view, and storage
+    mock_model = MagicMock(spec=Model)
+    mock_model.model_name = "test_model"
+    mock_model.process_text.side_effect = Exception("Processing error")
+
+    mock_view = MagicMock(spec=View)
+    mock_storage = MagicMock(spec=ConversationStorage)
+
+    presenter = Presenter(
+        model=mock_model, view=mock_view, conversation_storage=mock_storage
+    )
+
+    # ACT: Submit text through the presenter
+    with caplog.at_level(logging.ERROR):
+        mock_view.on_submit("test message")
+
+    # ASSERT: Verify that an error message was logged
+    assert any(
+        "Processing error" in message for message in caplog.messages
+    ), "Expected an error message indicating processing failure."
