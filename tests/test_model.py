@@ -549,7 +549,7 @@ def test_model_logs_warning_on_loop_limit(caplog):
 
     # ASSERT: Verify that a warning was logged
     assert any(
-        "Loop limit reached" in record.message for record in caplog.records
+        "loop_limit_reached" in record.message for record in caplog.records
     ), "A warning should be logged when the loop limit is reached."
 
 
@@ -573,7 +573,7 @@ def test_model_logs_info_on_model_used_for_query(caplog):
 
     # ASSERT: Verify that an info message was logged
     assert any(
-        "Using model" in record.message for record in caplog.records
+        "model_request_started" in record.message for record in caplog.records
     ), "An info message should be logged when the model is used for a query."
 
 
@@ -612,7 +612,7 @@ def test_model_logs_info_on_tool_execution_for_query(caplog):
 
     # ASSERT: Verify that an info message was logged for the tool execution
     assert any(
-        "Executing tool" in record.message for record in caplog.records
+        "executing_tool" in record.message for record in caplog.records
     ), "An info message should be logged when a tool is executed for a query."
 
 
@@ -634,7 +634,7 @@ def test_model_logs_info_on_loading_session(caplog):
 
     # ASSERT: Verify that an info message was logged for loading the session
     assert any(
-        "Loading session" in record.message for record in caplog.records
+        "loading_session" in record.message for record in caplog.records
     ), "An info message should be logged when a session is loaded."
 
 
@@ -678,7 +678,7 @@ def test_model_logs_error_on_tool_execution_exception(caplog):
 
     # ASSERT: Verify that an error message was logged for the tool execution exception
     assert any(
-        "Error executing tool" in record.message for record in caplog.records
+        "error_executing_tool" in record.message for record in caplog.records
     ), "An error message should be logged when a tool execution raises an exception."
 
 
@@ -706,7 +706,7 @@ def test_model_logs_error_on_api_failure(caplog):
 
     # ASSERT: Verify that an error message was logged for the API failure
     assert any(
-        "Model API error" in record.message for record in caplog.records
+        "model_api_error" in record.message for record in caplog.records
     ), "An error message should be logged when the API call fails."
 
 
@@ -743,5 +743,5 @@ def test_model_logs_error_on_missing_tool(caplog):
 
     # ASSERT: Verify that an error message was logged for the missing tool
     assert any(
-        "Error executing tool" in record.message for record in caplog.records
+        "tool_not_registered" in record.message for record in caplog.records
     ), "An error message should be logged when a tool is missing."

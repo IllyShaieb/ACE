@@ -129,7 +129,10 @@ class GroqModel:
 
         if not function_to_call:
             logger.error(
-                f"Error executing tool '{function_name}': Tool not registered."
+                "tool_not_registered session_id=%s tool=%s model_name=%s",
+                self.session_id,
+                function_name,
+                self.model_name,
             )
             return f"Error: Tool '{function_name}' not not registered."
 
@@ -137,12 +140,18 @@ class GroqModel:
             function_args = json.loads(tool_call.function.arguments)
         except json.JSONDecodeError:
             logger.warning(
-                f"Failed to decode JSON arguments for tool '{function_name}'. Using empty arguments."
+                "tool_argument_decode_failed session_id=%s tool=%s model_name=%s",
+                self.session_id,
+                function_name,
+                self.model_name,
             )
             function_args = {}
 
         logger.info(
-            f"Executing tool '{function_name}' with arguments: {function_args} ; session_id: {self.session_id}"
+            "executing_tool session_id=%s tool=%s model_name=%s",
+            self.session_id,
+            function_name,
+            self.model_name,
         )
 
         # Execute the tool function with the provided arguments
@@ -155,7 +164,11 @@ class GroqModel:
             )
         except Exception as e:
             logger.error(
-                f"Error executing tool '{function_name}': {str(e)}",
+                "error_executing_tool session_id=%s tool=%s model_name=%s error_type=%s",
+                self.session_id,
+                function_name,
+                self.model_name,
+                type(e).__name__,
                 exc_info=True,
             )
             return f"Error executing tool '{function_name}': {str(e)}"
@@ -169,14 +182,18 @@ class GroqModel:
         Returns:
             str: The response from the model.
         """
-        logger.info(f"Using model: {self.model_name}")
-
         # Ensure session ID exists BEFORE appending messages
         if not self.session_id:
             new_id = str(uuid.uuid4())
             self.session_id = new_id
             if self.conversation_storage:
                 self.conversation_storage.create_session(session_id=new_id)
+
+        logger.info(
+            "model_request_started session_id=%s model_name=%s",
+            self.session_id,
+            self.model_name,
+        )
 
         self._append_message("user", text)
 
@@ -256,13 +273,21 @@ class GroqModel:
             self._append_message("assistant", fallback_msg)
 
             logger.warning(
-                f"Loop limit reached: max_orchestration_loops={self.max_orchestration_loops}, session_id={self.session_id}"
+                "loop_limit_reached max_orchestration_loops=%s session_id=%s",
+                self.max_orchestration_loops,
+                self.session_id,
             )
 
             return fallback_msg
 
         except Exception as e:
-            logger.error(f"Model API error: {str(e)}", exc_info=True)
+            logger.error(
+                "model_api_error session_id=%s model_name=%s error_type=%s",
+                self.session_id,
+                self.model_name,
+                type(e).__name__,
+                exc_info=True,
+            )
             self.messages.pop()  # Remove orphaned user message on error
             raise RuntimeError(f"Model API error: {str(e)}") from e
 
@@ -276,7 +301,10 @@ class GroqModel:
         self.session_id = session_id
         self.messages = []
 
-        logger.info(f"Loading session: session_id={session_id}")
+        logger.info(
+            "loading_session session_id=%s",
+            session_id,
+        )
 
         # Ensure the system prompt is at the beginning of the message list
         if self.system_prompt:
