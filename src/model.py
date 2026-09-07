@@ -1,6 +1,7 @@
 """The model module handles the business logic of the application."""
 
 import json
+import logging
 import os
 import uuid
 from typing import Any
@@ -12,6 +13,8 @@ from src.storage import ConversationStorage
 from src.tools import Tool
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 FALLBACK_RESPONSES = {
     "content_filter": "I am unable to assist with that particular request.",
@@ -125,14 +128,22 @@ class GroqModel:
         function_to_call = self.tools.get(function_name)
 
         if not function_to_call:
+            logger.error(
+                f"Error executing tool '{function_name}': Tool not registered."
+            )
             return f"Error: Tool '{function_name}' not not registered."
 
         try:
             function_args = json.loads(tool_call.function.arguments)
         except json.JSONDecodeError:
+            logger.warning(
+                f"Failed to decode JSON arguments for tool '{function_name}'. Using empty arguments."
+            )
             function_args = {}
 
-        print(f"Executing tool '{function_name}' with arguments: {function_args}")
+        logger.info(
+            f"Executing tool '{function_name}' with arguments: {function_args} ; session_id: {self.session_id}"
+        )
 
         # Execute the tool function with the provided arguments
         try:
@@ -143,6 +154,10 @@ class GroqModel:
                 else str(function_response)
             )
         except Exception as e:
+            logger.error(
+                f"Error executing tool '{function_name}': {str(e)}",
+                exc_info=True,
+            )
             return f"Error executing tool '{function_name}': {str(e)}"
 
     def process_text(self, text: str) -> str:
@@ -154,7 +169,7 @@ class GroqModel:
         Returns:
             str: The response from the model.
         """
-        print(f"Using model: {self.model_name}")
+        logger.info(f"Using model: {self.model_name}")
 
         # Ensure session ID exists BEFORE appending messages
         if not self.session_id:
@@ -239,9 +254,15 @@ class GroqModel:
             # If we reach here, it means we exceeded the max orchestration loops
             fallback_msg = "I was unable to complete the request because the tool execution loop limit was reached."
             self._append_message("assistant", fallback_msg)
+
+            logger.warning(
+                f"Loop limit reached: max_orchestration_loops={self.max_orchestration_loops}, session_id={self.session_id}"
+            )
+
             return fallback_msg
 
         except Exception as e:
+            logger.error(f"Model API error: {str(e)}", exc_info=True)
             self.messages.pop()  # Remove orphaned user message on error
             raise RuntimeError(f"Model API error: {str(e)}") from e
 
@@ -254,6 +275,8 @@ class GroqModel:
         # Set the current session ID and clear the message list
         self.session_id = session_id
         self.messages = []
+
+        logger.info(f"Loading session: session_id={session_id}")
 
         # Ensure the system prompt is at the beginning of the message list
         if self.system_prompt:

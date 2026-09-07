@@ -525,3 +525,223 @@ def test_groq_model_start_new_session_resets_session_id_and_messages():
     assert model.messages == [
         {"role": "system", "content": "You are a helpful assistant."}
     ], "The messages list should only contain the system prompt."
+
+
+def test_model_logs_warning_on_loop_limit(caplog):
+    """Verify that the model logs a warning when the loop limit is reached."""
+    # ARRANGE: Create a mock Groq client and conversation storage
+    mock_groq = MagicMock(spec=Groq)
+    mock_storage = MagicMock(spec=ConversationStorage)
+
+    model = GroqModel(
+        groq=mock_groq,
+        system_prompt="You are a helpful assistant.",
+        conversation_storage=mock_storage,
+        max_orchestration_loops=1,  # Set a low loop limit for testing
+    )
+
+    # Simulate a scenario that would trigger the loop limit
+    model.messages = [{"role": "user", "content": "Message that triggers loop"}]
+
+    # ACT: Process text to trigger the loop limit
+    with caplog.at_level("WARNING"):
+        model.process_text("Trigger loop")
+
+    # ASSERT: Verify that a warning was logged
+    assert any(
+        "Loop limit reached" in record.message for record in caplog.records
+    ), "A warning should be logged when the loop limit is reached."
+
+
+def test_model_logs_info_on_model_used_for_query(caplog):
+    """Verify that the model logs an info message when it is used for a query."""
+    # ARRANGE: Create a mock Groq client and conversation storage
+    mock_groq = MagicMock(spec=Groq)
+    mock_storage = MagicMock(spec=ConversationStorage)
+
+    model = GroqModel(
+        groq=mock_groq,
+        system_prompt="You are a helpful assistant.",
+        conversation_storage=mock_storage,
+    )
+
+    model.messages = [{"role": "user", "content": "Message for the model"}]
+
+    # ACT: Process text to trigger the model usage
+    with caplog.at_level("INFO"):
+        model.process_text("Trigger model usage")
+
+    # ASSERT: Verify that an info message was logged
+    assert any(
+        "Using model" in record.message for record in caplog.records
+    ), "An info message should be logged when the model is used for a query."
+
+
+def test_model_logs_info_on_tool_execution_for_query(caplog):
+    """Verify that the model logs an info message when a tool is executed for a query."""
+    # ARRANGE: Create a mock Groq client, conversation storage, and tool
+    mock_groq = MagicMock(spec=Groq)
+    mock_storage = MagicMock(spec=ConversationStorage)
+    mock_tool = MagicMock(spec=Tool)
+    mock_tool.name = "mock_tool"
+
+    model = GroqModel(
+        groq=mock_groq,
+        system_prompt="You are a helpful assistant.",
+        conversation_storage=mock_storage,
+        tools=[mock_tool],
+    )
+
+    tool_call = MagicMock()
+    tool_call.id = "call_mock_1"
+    tool_call.function.name = "mock_tool"
+    tool_call.function.arguments = "{}"
+
+    tool_call_response = MagicMock(
+        choices=[MagicMock(message=MagicMock(content=None, tool_calls=[tool_call]))]
+    )
+    final_response = MagicMock(
+        choices=[MagicMock(message=MagicMock(content="Final answer", tool_calls=None))]
+    )
+
+    mock_groq.chat.completions.create.side_effect = [tool_call_response, final_response]
+
+    # ACT: Process text to trigger the tool execution
+    with caplog.at_level("INFO"):
+        model.process_text("Trigger tool execution")
+
+    # ASSERT: Verify that an info message was logged for the tool execution
+    assert any(
+        "Executing tool" in record.message for record in caplog.records
+    ), "An info message should be logged when a tool is executed for a query."
+
+
+def test_model_logs_info_on_loading_session(caplog):
+    """Verify that the model logs an info message when a session is loaded."""
+    # ARRANGE: Create a mock Groq client and conversation storage
+    mock_groq = MagicMock(spec=Groq)
+    mock_storage = MagicMock(spec=ConversationStorage)
+
+    model = GroqModel(
+        groq=mock_groq,
+        system_prompt="You are a helpful assistant.",
+        conversation_storage=mock_storage,
+    )
+
+    # ACT: Load a session to trigger the logging
+    with caplog.at_level("INFO"):
+        model.load_session("mock_session_id")
+
+    # ASSERT: Verify that an info message was logged for loading the session
+    assert any(
+        "Loading session" in record.message for record in caplog.records
+    ), "An info message should be logged when a session is loaded."
+
+
+def test_model_logs_error_on_tool_execution_exception(caplog):
+    """Verify that the model logs an error message when a tool execution raises an exception."""
+    # ARRANGE: Create a mock Groq client, conversation storage, and tool
+    mock_groq = MagicMock(spec=Groq)
+    mock_storage = MagicMock(spec=ConversationStorage)
+    mock_tool = MagicMock(spec=Tool)
+    mock_tool.name = "mock_tool"
+
+    model = GroqModel(
+        groq=mock_groq,
+        system_prompt="You are a helpful assistant.",
+        conversation_storage=mock_storage,
+        tools=[mock_tool],
+    )
+
+    tool_call = MagicMock()
+    tool_call.id = "call_mock_1"
+    tool_call.function.name = "mock_tool"
+    tool_call.function.arguments = "{}"
+
+    mock_tool.execute.side_effect = RuntimeError("Tool execution failed")
+
+    tool_call_response = MagicMock(
+        choices=[MagicMock(message=MagicMock(content=None, tool_calls=[tool_call]))]
+    )
+    final_response = MagicMock(
+        choices=[MagicMock(message=MagicMock(content="Final answer", tool_calls=None))]
+    )
+
+    mock_groq.chat.completions.create.side_effect = [tool_call_response, final_response]
+
+    # ACT: Process text to trigger the tool execution exception
+    with caplog.at_level("ERROR"):
+        try:
+            model.process_text("Trigger tool execution exception")
+        except RuntimeError:
+            pass
+
+    # ASSERT: Verify that an error message was logged for the tool execution exception
+    assert any(
+        "Error executing tool" in record.message for record in caplog.records
+    ), "An error message should be logged when a tool execution raises an exception."
+
+
+def test_model_logs_error_on_api_failure(caplog):
+    """Verify that the model logs an error message when the API call fails."""
+    # ARRANGE: Create a mock Groq client and conversation storage
+    mock_groq = MagicMock(spec=Groq)
+    mock_storage = MagicMock(spec=ConversationStorage)
+
+    model = GroqModel(
+        groq=mock_groq,
+        system_prompt="You are a helpful assistant.",
+        conversation_storage=mock_storage,
+    )
+
+    # Simulate an API failure
+    mock_groq.chat.completions.create.side_effect = RuntimeError("API failure")
+
+    # ACT: Process text to trigger the API failure
+    with caplog.at_level("ERROR"):
+        try:
+            model.process_text("Trigger API failure")
+        except RuntimeError:
+            pass
+
+    # ASSERT: Verify that an error message was logged for the API failure
+    assert any(
+        "Model API error" in record.message for record in caplog.records
+    ), "An error message should be logged when the API call fails."
+
+
+def test_model_logs_error_on_missing_tool(caplog):
+    """Verify that the model logs an error message when a tool is missing."""
+    # ARRANGE: Create a mock Groq client and conversation storage
+    mock_groq = MagicMock(spec=Groq)
+    mock_storage = MagicMock(spec=ConversationStorage)
+
+    model = GroqModel(
+        groq=mock_groq,
+        system_prompt="You are a helpful assistant.",
+        conversation_storage=mock_storage,
+        tools=[],  # No tools registered
+    )
+
+    tool_call = MagicMock()
+    tool_call.id = "call_mock_1"
+    tool_call.function.name = "missing_tool"
+    tool_call.function.arguments = "{}"
+
+    tool_call_response = MagicMock(
+        choices=[MagicMock(message=MagicMock(content=None, tool_calls=[tool_call]))]
+    )
+
+    mock_groq.chat.completions.create.side_effect = [tool_call_response]
+
+    # ACT: Process text to trigger the missing tool error
+    with caplog.at_level("ERROR"):
+        try:
+            model.process_text("Trigger missing tool error")
+        except RuntimeError:
+            pass
+
+    # ASSERT: Verify that an error message was logged for the missing tool
+    assert any(
+        "Error executing tool" in record.message for record in caplog.records
+    ), "An error message should be logged when a tool is missing."
