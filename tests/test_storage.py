@@ -2,6 +2,10 @@
 
 import json
 import logging
+import sqlite3
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 from src.storage import ConversationStorage, SQLiteConversationStorage
 
@@ -163,5 +167,112 @@ class TestSQLiteConversationStorage:
         assert any(
             record.levelno == logging.INFO
             and "session_deleted session_id=session_1" in record.message
+            for record in caplog.records
+        )
+
+    def test_storage_logs_error_on_create_session_sqlite_exception(self, caplog):
+        """Verify that an exception during session creation emits an error log."""
+        # ARRANGE: Create an in-memory storage instance, and mock the database connection to raise an exception
+        storage = SQLiteConversationStorage(":memory:")
+
+        mock_conn = MagicMock()
+        mock_conn.cursor.side_effect = sqlite3.Error("Test exception")
+        storage._conn = mock_conn
+
+        # ACT: Attempt to create a session while capturing error logs
+        with caplog.at_level(logging.ERROR, logger="src.storage"):
+            storage.create_session("session_1")
+
+        # ASSERT: Verify that an error message was logged
+        assert any(
+            record.levelno == logging.ERROR
+            and "database_error" in record.message
+            and "error_type=Error" in record.message
+            for record in caplog.records
+        )
+
+    def test_storage_logs_error_on_save_message_sqlite_exception(self, caplog):
+        """Verify that an exception during message saving emits an error log."""
+        # ARRANGE: Create an in-memory storage instance, and mock the database connection to raise an exception
+        storage = SQLiteConversationStorage(":memory:")
+        storage.create_session("session_1")
+
+        # ACT: Attempt to save a message while capturing error logs
+        with caplog.at_level(logging.ERROR, logger="src.storage"):
+            mock_conn = MagicMock()
+            mock_conn.cursor.side_effect = sqlite3.Error("Test exception")
+            storage._conn = mock_conn
+            storage.save_message("session_1", "user", "Hello")
+
+        # ASSERT: Verify that an error message was logged
+        assert any(
+            record.levelno == logging.ERROR
+            and "database_error" in record.message
+            and "error_type=Error" in record.message
+            for record in caplog.records
+        )
+
+    def test_storage_logs_error_on_get_session_messages_sqlite_exception(self, caplog):
+        """Verify that an exception during retrieving session messages emits an error log."""
+        # ARRANGE: Create an in-memory storage instance, and mock the database connection to raise an exception
+        storage = SQLiteConversationStorage(":memory:")
+        storage.create_session("session_1")
+
+        mock_conn = MagicMock()
+        mock_conn.cursor.side_effect = sqlite3.Error("Test exception")
+        storage._conn = mock_conn
+
+        # ACT: Attempt to get session messages while capturing error logs
+        with caplog.at_level(logging.ERROR, logger="src.storage"):
+            storage.get_session_messages("session_1")
+
+        # ASSERT: Verify that an error message was logged
+        assert any(
+            record.levelno == logging.ERROR
+            and "database_error" in record.message
+            and "error_type=Error" in record.message
+            for record in caplog.records
+        )
+
+    def test_storage_logs_error_on_get_recent_sessions_sqlite_exception(self, caplog):
+        """Verify that an exception during retrieving recent sessions emits an error log."""
+        # ARRANGE: Create an in-memory storage instance, and mock the database connection to raise an exception
+        storage = SQLiteConversationStorage(":memory:")
+
+        mock_conn = MagicMock()
+        mock_conn.cursor.side_effect = sqlite3.Error("Test exception")
+        storage._conn = mock_conn
+
+        # ACT: Attempt to get recent sessions while capturing error logs
+        with caplog.at_level(logging.ERROR, logger="src.storage"):
+            storage.get_recent_sessions()
+
+        # ASSERT: Verify that an error message was logged
+        assert any(
+            record.levelno == logging.ERROR
+            and "database_error" in record.message
+            and "error_type=Error" in record.message
+            for record in caplog.records
+        )
+
+    def test_storage_logs_error_on_delete_session_sqlite_exception(self, caplog):
+        """Verify that an exception during deleting a session emits an error log."""
+        # ARRANGE: Create an in-memory storage instance, and mock the database connection to raise an exception
+        storage = SQLiteConversationStorage(":memory:")
+        storage.create_session("session_1")
+
+        mock_conn = MagicMock()
+        mock_conn.cursor.side_effect = sqlite3.Error("Test exception")
+        storage._conn = mock_conn
+
+        # ACT: Attempt to delete a session while capturing error logs
+        with caplog.at_level(logging.ERROR, logger="src.storage"):
+            storage.delete_session("session_1")
+
+        # ASSERT: Verify that an error message was logged
+        assert any(
+            record.levelno == logging.ERROR
+            and "database_error" in record.message
+            and "error_type=Error" in record.message
             for record in caplog.records
         )

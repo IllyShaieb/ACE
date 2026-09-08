@@ -92,13 +92,22 @@ class SQLiteConversationStorage:
             session_id (str): The unique identifier for the session.
         """
 
-        cursor = self._conn.cursor()
-        cursor.execute(
-            "INSERT OR IGNORE INTO sessions (session_id) VALUES (?)",
-            (session_id,),
-        )
-        self._conn.commit()
-        logger.debug("session_created session_id=%s", session_id)
+        try:
+            cursor = self._conn.cursor()
+            cursor.execute(
+                "INSERT OR IGNORE INTO sessions (session_id) VALUES (?)",
+                (session_id,),
+            )
+            self._conn.commit()
+            logger.debug("session_created session_id=%s", session_id)
+        except sqlite3.Error as e:
+            logger.error(
+                "database_error error_type=%s error_message=%s session_id=%s",
+                type(e).__name__,
+                str(e),
+                session_id,
+                exc_info=True,
+            )
 
     def save_message(
         self,
@@ -115,19 +124,33 @@ class SQLiteConversationStorage:
             content (str): The content of the message.
             tool_calls (list[dict[str, str]] | None): Optional tool call information to include in the message.
         """
-        cursor = self._conn.cursor()
-        cursor.execute(
-            "INSERT INTO messages (session_id, role, content, tool_calls) VALUES (?, ?, ?, ?)",
-            (session_id, role, content, json.dumps(tool_calls) if tool_calls else None),
-        )
-        self._conn.commit()
-        logger.debug(
-            "message_saved session_id=%s role=%s content_length=%d has_tool_calls=%s",
-            session_id,
-            role,
-            len(content),
-            bool(tool_calls),
-        )
+        try:
+            cursor = self._conn.cursor()
+            cursor.execute(
+                "INSERT INTO messages (session_id, role, content, tool_calls) VALUES (?, ?, ?, ?)",
+                (
+                    session_id,
+                    role,
+                    content,
+                    json.dumps(tool_calls) if tool_calls else None,
+                ),
+            )
+            self._conn.commit()
+            logger.debug(
+                "message_saved session_id=%s role=%s content_length=%d has_tool_calls=%s",
+                session_id,
+                role,
+                len(content),
+                bool(tool_calls),
+            )
+        except sqlite3.Error as e:
+            logger.error(
+                "database_error error_type=%s error_message=%s session_id=%s",
+                type(e).__name__,
+                str(e),
+                session_id,
+                exc_info=True,
+            )
 
     def get_session_messages(self, session_id: str) -> list[dict[str, str]]:
         """Retrieve all messages for a given session from the database.
@@ -139,26 +162,36 @@ class SQLiteConversationStorage:
             list[dict[str, str]]: A list of messages for the session, each represented as a
                 dictionary with keys "role", "content", and "timestamp".
         """
-        cursor = self._conn.cursor()
-        cursor.execute(
-            "SELECT role, content, created_at, tool_calls FROM messages WHERE session_id = ? ORDER BY created_at ASC",
-            (session_id,),
-        )
-        rows = cursor.fetchall()
-        logger.debug(
-            "session_messages_loaded session_id=%s message_count=%d",
-            session_id,
-            len(rows),
-        )
-        return [
-            {
-                "role": row[0],
-                "content": row[1],
-                "timestamp": row[2],
-                "tool_calls": row[3],
-            }
-            for row in rows
-        ]
+        try:
+            cursor = self._conn.cursor()
+            cursor.execute(
+                "SELECT role, content, created_at, tool_calls FROM messages WHERE session_id = ? ORDER BY created_at ASC",
+                (session_id,),
+            )
+            rows = cursor.fetchall()
+            logger.debug(
+                "session_messages_loaded session_id=%s message_count=%d",
+                session_id,
+                len(rows),
+            )
+            return [
+                {
+                    "role": row[0],
+                    "content": row[1],
+                    "timestamp": row[2],
+                    "tool_calls": row[3],
+                }
+                for row in rows
+            ]
+        except sqlite3.Error as e:
+            logger.error(
+                "database_error error_type=%s error_message=%s session_id=%s",
+                type(e).__name__,
+                str(e),
+                session_id,
+                exc_info=True,
+            )
+            return []
 
     def get_recent_sessions(self, limit: int = 10) -> list[str]:
         """Retrieve the most recent session IDs from the database.
@@ -169,20 +202,29 @@ class SQLiteConversationStorage:
         Returns:
             list[str]: A list of the most recent session IDs.
         """
-        cursor = self._conn.cursor()
-        cursor.execute(
-            """
-            SELECT session_id FROM sessions
-            ORDER BY created_at DESC
-            LIMIT ?
-        """,
-            (limit,),
-        )
-        rows = cursor.fetchall()
-        logger.debug(
-            "recent_sessions_loaded limit=%d session_count=%d", limit, len(rows)
-        )
-        return [row[0] for row in rows]
+        try:
+            cursor = self._conn.cursor()
+            cursor.execute(
+                """
+                SELECT session_id FROM sessions
+                ORDER BY created_at DESC
+                LIMIT ?
+            """,
+                (limit,),
+            )
+            rows = cursor.fetchall()
+            logger.debug(
+                "recent_sessions_loaded limit=%d session_count=%d", limit, len(rows)
+            )
+            return [row[0] for row in rows]
+        except sqlite3.Error as e:
+            logger.error(
+                "database_error error_type=%s error_message=%s",
+                type(e).__name__,
+                str(e),
+                exc_info=True,
+            )
+            return []
 
     def delete_session(self, session_id: str) -> None:
         """Delete a session and its associated messages from the database.
@@ -190,11 +232,20 @@ class SQLiteConversationStorage:
         Args:
             session_id (str): The unique identifier for the session to delete.
         """
-        cursor = self._conn.cursor()
-        cursor.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
-        cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
-        self._conn.commit()
-        logger.info("session_deleted session_id=%s", session_id)
+        try:
+            cursor = self._conn.cursor()
+            cursor.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
+            cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
+            self._conn.commit()
+            logger.info("session_deleted session_id=%s", session_id)
+        except sqlite3.Error as e:
+            logger.error(
+                "database_error error_type=%s error_message=%s session_id=%s",
+                type(e).__name__,
+                str(e),
+                session_id,
+                exc_info=True,
+            )
 
 
 if __name__ == "__main__":
