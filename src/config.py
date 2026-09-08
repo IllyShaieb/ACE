@@ -29,6 +29,11 @@ def setup_logging(
         console_level (int | None): The logging level for the console handler.
         file_level (int | None): The logging level for the file handler.
     """
+    # Allow the log file and its parents to be created if they don't exist
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    if not log_file.exists():
+        log_file.touch()
+
     # Configure the formatter
     formatter = logging.Formatter(LOG_FORMAT, datefmt=DATE_FORMAT)
 

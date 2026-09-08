@@ -221,3 +221,16 @@ class TestSetupLogging:
         # ASSERT: Check that the log message is written to the log file
         log_contents = log_file.read_text()
         assert "This is a test log message with None levels." in log_contents
+
+    def test_setup_logging_creates_log_file_if_not_exists(self, tmp_path):
+        """Test that setup_logging creates the log file if it does not exist."""
+        # ARRANGE: Create a temporary log file path
+        log_file = Path(tmp_path, "test_log", "log.log").resolve()
+
+        # ACT: Call setup_logging
+        setup_logging(log_file=log_file)
+
+        # ASSERT: Check that the log file has been created
+        assert (
+            log_file.exists()
+        ), "Expected the log file to be created if it did not exist."
