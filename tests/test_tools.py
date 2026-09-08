@@ -1,5 +1,6 @@
 """Ensure the tools can be used as expected."""
 
+import logging
 from datetime import datetime
 from unittest.mock import MagicMock, patch
 
@@ -148,11 +149,32 @@ class TestWolframAlphaTool:
                 {
                     "queryresult": {
                         "success": False,
-                        "error": {"msg": "Mocked error message"},
+                        "error": {"status": "1000", "message": "Invalid appid"},
                     }
                 },
-                "Wolfram Alpha was unable to calculate a result for this query.",
-                "Unsuccessful query with an error message",
+                "Wolfram Alpha returned an API error.",
+                "Unsuccessful query with structured API error",
+            ),
+            (
+                {
+                    "queryresult": {
+                        "success": False,
+                        "error": False,
+                        "didyoumeans": {"val": "mars moons count"},
+                    }
+                },
+                "Wolfram Alpha could not understand the query. Did you mean 'mars moons count'?",
+                "Unsuccessful query with didyoumeans suggestion",
+            ),
+            (
+                {
+                    "queryresult": {
+                        "success": False,
+                        "error": False,
+                    }
+                },
+                "Wolfram Alpha could not understand the query.",
+                "Unsuccessful query with no suggestions",
             ),
             (
                 {
@@ -228,6 +250,70 @@ class TestWolframAlphaTool:
         assert spec["required"] == [
             "query"
         ], "The required field should contain 'query'."
+
+    def test_wolfram_alpha_logs_warning_on_unsuccessful_query(self, caplog):
+        """Verify that WolframAlphaTool logs a warning when the query is unsuccessful."""
+        # ARRANGE: Create an instance of WolframAlphaTool and a mock response
+        tool = WolframAlphaTool()
+        mock_response = {
+            "queryresult": {
+                "success": False,
+                "error": {"status": "500", "message": "Internal server error"},
+            }
+        }
+
+        # ACT: Execute the tool with an invalid query to trigger a warning
+        with caplog.at_level(logging.WARNING, logger="src.tools"):
+            with patch("src.tools.requests.get") as mock_get:
+                mock_get.return_value.json.return_value = mock_response
+                tool.execute(query="invalid_query_that_fails")
+
+        # ASSERT: Check if a warning about the failed Wolfram Alpha query was logged
+        assert (
+            "wolfram_alpha_failed" in caplog.text
+        ), "A warning for a failed Wolfram Alpha query should be logged."
+        assert (
+            "failure_reason=api_error" in caplog.text
+        ), "The failure reason should be recorded as api_error."
+        warning = next(
+            record for record in caplog.records if record.levelno == logging.WARNING
+        )
+        assert "error_status=500" in warning.getMessage()
+        assert "Internal server error" not in warning.getMessage()
+
+    def test_wolfram_alpha_no_result_log_excludes_query(self, caplog):
+        """Verify that failed query parsing logs only safe metadata."""
+        tool = WolframAlphaTool()
+        query = "private@example.com account balance"
+        mock_response = {"queryresult": {"success": False, "error": False}}
+
+        with caplog.at_level(logging.WARNING, logger="src.tools"):
+            with patch("src.tools.requests.get") as mock_get:
+                mock_get.return_value.json.return_value = mock_response
+                tool.execute(query=query)
+
+        warning = next(
+            record for record in caplog.records if record.levelno == logging.WARNING
+        )
+        assert "wolfram_alpha_failed" in warning.getMessage()
+        assert "failure_reason=cannot_parse" in warning.getMessage()
+        assert query not in warning.getMessage()
+
+    def test_wolfram_alpha_logs_warning_on_failed_url_query(self, caplog):
+        """Verify that WolframAlphaTool logs a warning when the request to the API fails."""
+        # ARRANGE: Create an instance of WolframAlphaTool
+        tool = WolframAlphaTool()
+
+        # ACT: Execute the tool with a query that triggers a request exception
+        with caplog.at_level(logging.WARNING, logger="src.tools"):
+            with patch("src.tools.requests.get") as mock_get:
+                mock_get.side_effect = Exception("mock_request_failure")
+                tool.execute(query="any_query")
+
+        # ASSERT: Check if a warning about the failed Wolfram Alpha query was logged
+        assert (
+            "wolfram_alpha_failed" in caplog.text
+        ), "A warning for a failed Wolfram Alpha query should be logged."
 
 
 class TestWebSearchTool:
@@ -354,6 +440,23 @@ class TestWebSearchTool:
         assert spec["required"] == [
             "query"
         ], "The required field should contain 'query'."
+
+    def test_web_search_tool_logs_warning_on_failure(self, caplog):
+        """Verify DuckDuckGoSearchTool logs a warning when the search fails."""
+        # ARRANGE: Create an instance of DuckDuckGoSearchTool
+        tool = DuckDuckGoSearchTool()
+
+        # ACT: Execute the tool with a query that triggers an exception
+        with patch("src.tools.DDGS") as mock_ddgs:
+            mock_ddgs.return_value.__enter__.return_value.text.side_effect = Exception(
+                "Search failed"
+            )
+            result = tool.execute(query="test query")
+
+        # ASSERT: Check if a warning was logged
+        assert (
+            "web_search_failed" in caplog.text
+        ), "A warning for web search failure should be logged."
 
 
 class TestUrlReaderTool:
@@ -673,3 +776,18 @@ class TestUrlReaderTool:
         assert spec["function"]["parameters"]["required"] == [
             "url"
         ], "The required field should contain 'url'."
+
+    def test_url_reader_tool_logs_warning_on_failure(self, caplog):
+        """Verify UrlReaderTool logs a warning when reading a URL fails."""
+        # ARRANGE: Create an instance of UrlReaderTool
+        tool = UrlReaderTool()
+
+        # ACT: Execute the tool with a query that triggers an exception
+        with patch("src.tools.requests.get") as mock_get:
+            mock_get.side_effect = Exception("Request failed")
+            result = tool.execute(url="http://example.com")
+
+        # ASSERT: Check if a warning was logged
+        assert (
+            "url_reader_failed" in caplog.text
+        ), "A warning for URL reader failure should be logged."

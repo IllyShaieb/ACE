@@ -1,5 +1,6 @@
 """Tools are a functionality that can be used by the agent to perform specific tasks."""
 
+import logging
 import os
 import re
 from datetime import datetime
@@ -13,6 +14,8 @@ from selectolax.lexbor import LexborHTMLParser as HTMLParser
 from selectolax.lexbor import LexborNode as Node
 
 load_dotenv()
+
+logger = logging.getLogger(__name__)
 
 
 @runtime_checkable
@@ -83,19 +86,65 @@ class WolframAlphaTool:
             str: The response from Wolfram Alpha as a JSON-formatted string.
         """
         # Make a request to the Wolfram Alpha API
-        data = requests.get(
-            "https://api.wolframalpha.com/v2/query",
-            params={
-                "input": query,
-                "appid": os.getenv("WOLFRAM_ALPHA_APP_ID"),
-                "output": "JSON",
-            },
-        ).json()
+        try:
+            response = requests.get(
+                "https://api.wolframalpha.com/v2/query",
+                params={
+                    "input": query,
+                    "appid": os.getenv("WOLFRAM_ALPHA_APP_ID"),
+                    "output": "JSON",
+                },
+            )
+            response.raise_for_status()
+            data = response.json()
+        except Exception as error:
+            logger.warning(
+                "wolfram_alpha_failed tool=%s failure_reason=request_error error_type=%s",
+                self.name,
+                type(error).__name__,
+                exc_info=True,
+            )
+            return f"Error occurred while querying Wolfram Alpha: {str(error)}"
 
         # If the query was not successful, return an error message
         query_result = data.get("queryresult", {})
         if not query_result.get("success"):
-            return "Wolfram Alpha was unable to calculate a result for this query."
+            raw_error = query_result.get("error")
+
+            # Case 1: Wolfram execution or credential error
+            if isinstance(raw_error, dict):
+                error_status = raw_error.get("status", "unknown")
+                logger.warning(
+                    "wolfram_alpha_failed tool=%s failure_reason=api_error error_status=%s",
+                    self.name,
+                    error_status,
+                )
+                return "Wolfram Alpha returned an API error."
+
+            if isinstance(raw_error, str) and raw_error:
+                logger.warning(
+                    "wolfram_alpha_failed tool=%s failure_reason=api_error",
+                    self.name,
+                )
+                return "Wolfram Alpha returned an API error."
+
+            # Case 2: Query could not be parsed or computed
+            did_you_mean = query_result.get("didyoumeans")
+            suggestion = ""
+            if isinstance(did_you_mean, dict):
+                val = did_you_mean.get("val")
+                if val:
+                    suggestion = f" Did you mean '{val}'?"
+            elif isinstance(did_you_mean, list) and did_you_mean:
+                val = did_you_mean[0].get("val")
+                if val:
+                    suggestion = f" Did you mean '{val}'?"
+
+            logger.warning(
+                "wolfram_alpha_failed tool=%s failure_reason=cannot_parse",
+                self.name,
+            )
+            return f"Wolfram Alpha could not understand the query.{suggestion}"
 
         # Extract human-readable text lines from Wolfram's pods
         lines = []
@@ -163,6 +212,12 @@ class DuckDuckGoSearchTool:
             return "\n---\n".join(formatted)
 
         except Exception as e:
+            logger.warning(
+                "web_search_failed tool=%s error_type=%s",
+                self.name,
+                type(e).__name__,
+                exc_info=True,
+            )
             return f"Error executing web search: {str(e)}"
 
     def to_groq_spec(self) -> dict[str, Any]:
@@ -359,6 +414,12 @@ class UrlReaderTool:
             return clean_markdown
 
         except Exception as e:
+            logger.warning(
+                "url_reader_failed tool=%s error_type=%s",
+                self.name,
+                type(e).__name__,
+                exc_info=True,
+            )
             return f"Error reading URL: {str(e)}"
 
     def to_groq_spec(self) -> dict[str, Any]:
