@@ -1,12 +1,15 @@
 """The storage module provides a simple interface for storing information needed by the application."""
 
 import json
+import logging
 import sqlite3
 from pathlib import Path
 from typing import Protocol, runtime_checkable
 
 DEFAULT_DB_PATH: Path = Path.cwd() / "conversations.db"
 """The default path for the SQLite database. Set to the current working directory."""
+
+logger = logging.getLogger(__name__)
 
 
 @runtime_checkable
@@ -48,6 +51,7 @@ class SQLiteConversationStorage:
         self._conn.execute("PRAGMA foreign_keys = ON")
 
         self._initialise_database()
+        logger.info("conversation_storage_opened database_path=%s", self.db_path)
 
     def _initialise_database(self) -> None:
         """Initialise the database with the required tables."""
@@ -94,6 +98,7 @@ class SQLiteConversationStorage:
             (session_id,),
         )
         self._conn.commit()
+        logger.debug("session_created session_id=%s", session_id)
 
     def save_message(
         self,
@@ -116,6 +121,13 @@ class SQLiteConversationStorage:
             (session_id, role, content, json.dumps(tool_calls) if tool_calls else None),
         )
         self._conn.commit()
+        logger.debug(
+            "message_saved session_id=%s role=%s content_length=%d has_tool_calls=%s",
+            session_id,
+            role,
+            len(content),
+            bool(tool_calls),
+        )
 
     def get_session_messages(self, session_id: str) -> list[dict[str, str]]:
         """Retrieve all messages for a given session from the database.
@@ -133,6 +145,11 @@ class SQLiteConversationStorage:
             (session_id,),
         )
         rows = cursor.fetchall()
+        logger.debug(
+            "session_messages_loaded session_id=%s message_count=%d",
+            session_id,
+            len(rows),
+        )
         return [
             {
                 "role": row[0],
@@ -162,6 +179,9 @@ class SQLiteConversationStorage:
             (limit,),
         )
         rows = cursor.fetchall()
+        logger.debug(
+            "recent_sessions_loaded limit=%d session_count=%d", limit, len(rows)
+        )
         return [row[0] for row in rows]
 
     def delete_session(self, session_id: str) -> None:
@@ -174,6 +194,7 @@ class SQLiteConversationStorage:
         cursor.execute("DELETE FROM messages WHERE session_id = ?", (session_id,))
         cursor.execute("DELETE FROM sessions WHERE session_id = ?", (session_id,))
         self._conn.commit()
+        logger.info("session_deleted session_id=%s", session_id)
 
 
 if __name__ == "__main__":
