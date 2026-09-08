@@ -13,7 +13,7 @@ class Model(Protocol):
     """A model deals with the business logic of the application."""
 
     model_name: str
-    session_id: str | None
+    session_id: str | None = None
 
     def process_text(self, text: str) -> str: ...
 
@@ -61,7 +61,9 @@ class Presenter:
         self.conversation_storage = conversation_storage
 
         logger.debug(
-            "Presenter initialised with model: %s", model.model_name or "<unknown>"
+            "presenter_initialised session_id=%s model_name=%s",
+            getattr(self.model, "session_id", None),
+            getattr(self.model, "model_name", None),
         )
 
         # Connect the view to the presenter
@@ -99,7 +101,13 @@ class Presenter:
 
         except Exception as e:
             # Handle any errors that occur during processing
-            logger.error("Error occurred while processing text: %s", str(e))
+            logger.error(
+                "processing_error session_id=%s model_name=%s error_type=%s",
+                getattr(self.model, "session_id", None),
+                getattr(self.model, "model_name", None),
+                type(e).__name__,
+                exc_info=True,
+            )
 
             self.view.hide_loading()
             self.view.display_error(f"[ERROR] {str(e)}\n\n")
@@ -119,7 +127,11 @@ class Presenter:
         """
         # Update the model's name to reflect the new selection
         self.model.model_name = model_name
-        logging.info(f"Model changed to {model_name}")
+        logger.info(
+            "model_changed session_id=%s model_name=%s",
+            getattr(self.model, "session_id", None),
+            getattr(self.model, "model_name", None),
+        )
 
     def handle_session_selected(self, session_id: str) -> None:
         """Handle the event when the user selects a session in the view.
@@ -141,7 +153,18 @@ class Presenter:
 
             self.view.display_text(f"## {sender}:\n\n{content}\n\n")
 
+        logger.info(
+            "session_selected session_id=%s message_count=%d",
+            session_id,
+            len(messages),
+        )
+
     def handle_new_chat(self) -> None:
         """Handle the event when the user starts a new chat in the view."""
+        logger.debug(
+            "new_chat_started previous_session_id=%s",
+            self.model.session_id,
+        )
+
         self.model.start_new_session()
         self.view.clear_chat()

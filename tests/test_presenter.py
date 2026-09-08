@@ -206,6 +206,11 @@ def test_presenter_handles_new_chat():
     # ARRANGE: Create mock instances of the model, view, storage and presenter
     mock_model = MagicMock(spec=Model)
     mock_model.model_name = "test_model"
+    mock_model.session_id = "previous_session_id"
+
+    mock_model.start_new_session.side_effect = lambda: setattr(
+        mock_model, "session_id", None
+    )
 
     mock_view = MagicMock(spec=View)
     mock_storage = MagicMock(spec=ConversationStorage)
@@ -245,7 +250,7 @@ def test_presenter_logs_debug_on_initialisation(caplog):
 
     # ASSERT: Verify that a debug message was logged
     assert any(
-        "Presenter initialised" in message for message in caplog.messages
+        "presenter_initialised" in message for message in caplog.messages
     ), "Expected a debug message indicating presenter initialisation."
 
 
@@ -269,7 +274,7 @@ def test_presenter_logs_info_on_switching_model(caplog):
 
     # ASSERT: Verify that an info message was logged
     assert any(
-        "Model changed to" in message for message in caplog.messages
+        "model_changed" in message for message in caplog.messages
     ), "Expected an info message indicating model change."
 
 
@@ -293,5 +298,58 @@ def test_presenter_logs_error_on_processing_exception(caplog):
 
     # ASSERT: Verify that an error message was logged
     assert any(
-        "Processing error" in message for message in caplog.messages
+        "processing_error" in message for message in caplog.messages
     ), "Expected an error message indicating processing failure."
+
+
+def test_presenter_logs_info_on_session_selected(caplog):
+    """Test that the presenter logs an info message when a session is selected."""
+    # ARRANGE: Create mock instances of the model, view, and storage
+    mock_model = MagicMock(spec=Model)
+    mock_model.model_name = "test_model"
+
+    mock_view = MagicMock(spec=View)
+    mock_storage = MagicMock(spec=ConversationStorage)
+    mock_storage.get_session_messages.return_value = [
+        {"role": "user", "content": "Hello"},
+        {"role": "assistant", "content": "Hi there!"},
+    ]
+
+    presenter = Presenter(
+        model=mock_model, view=mock_view, conversation_storage=mock_storage
+    )
+
+    session_id = "test_session"
+
+    # ACT: Select a session through the presenter
+    with caplog.at_level(logging.INFO):
+        mock_view.on_session_selected(session_id)
+
+    # ASSERT: Verify that an info message was logged
+    assert any(
+        "session_selected" in message for message in caplog.messages
+    ), "Expected an info message indicating session selection."
+
+
+def test_presenter_logs_debug_on_new_chat(caplog):
+    """Test that the presenter logs a debug message when a new chat is started."""
+    # ARRANGE: Create mock instances of the model, view, and storage
+    mock_model = MagicMock(spec=Model)
+    mock_model.model_name = "test_model"
+    mock_model.session_id = "previous_session"
+
+    mock_view = MagicMock(spec=View)
+    mock_storage = MagicMock(spec=ConversationStorage)
+
+    presenter = Presenter(
+        model=mock_model, view=mock_view, conversation_storage=mock_storage
+    )
+
+    # ACT: Start a new chat through the presenter callback
+    with caplog.at_level(logging.DEBUG):
+        mock_view.on_new_chat()
+
+    # ASSERT: Verify that a debug message was logged
+    assert any(
+        "new_chat_started" in message for message in caplog.messages
+    ), "Expected a debug message indicating a new chat was started."
