@@ -145,7 +145,19 @@ class Presenter:
             session_id (str): The ID of the selected session.
         """
         self.model.load_session(session_id)
-        messages = self.conversation_storage.get_session_messages(session_id)
+
+        try:
+            messages = self.conversation_storage.get_session_messages(session_id)
+        except Exception as e:
+            logger.error(
+                "processing_error session_id=%s model_name=%s error_type=%s",
+                getattr(self.model, "session_id", None),
+                getattr(self.model, "model_name", None),
+                type(e).__name__,
+                exc_info=True,
+            )
+            self.view.display_error(f"[ERROR] {str(e)}\n\n")
+            return
 
         self.view.clear_chat()
         for message in messages:

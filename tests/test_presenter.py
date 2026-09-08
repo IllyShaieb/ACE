@@ -376,3 +376,30 @@ def test_presenter_logs_debug_on_empty_submission(caplog):
     assert any(
         "discarding_empty_input" in message for message in caplog.messages
     ), "Expected a debug message indicating that empty input was discarded."
+
+
+def test_presenter_handles_session_selection_exception(caplog):
+    """Test that the presenter handles an exception during session selection gracefully."""
+    # ARRANGE: Create mock instances of the model, view, and storage
+    mock_model = MagicMock(spec=Model)
+    mock_model.model_name = "test_model"
+
+    mock_view = MagicMock(spec=View)
+    mock_storage = MagicMock(spec=ConversationStorage)
+    mock_storage.get_session_messages.side_effect = Exception("Test exception")
+
+    presenter = Presenter(
+        model=mock_model, view=mock_view, conversation_storage=mock_storage
+    )
+
+    session_id = "test_session"
+
+    # ACT: Select a session through the presenter
+    with caplog.at_level(logging.ERROR):
+        mock_view.on_session_selected(session_id)
+
+    # ASSERT: Verify that the view displayed an error message, and an error was logged
+    mock_view.display_error.assert_called_once_with("[ERROR] Test exception\n\n")
+    assert any(
+        "processing_error" in message for message in caplog.messages
+    ), "Expected an error message indicating a processing error during session selection."
