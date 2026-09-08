@@ -353,3 +353,26 @@ def test_presenter_logs_debug_on_new_chat(caplog):
     assert any(
         "new_chat_started" in message for message in caplog.messages
     ), "Expected a debug message indicating a new chat was started."
+
+
+def test_presenter_logs_debug_on_empty_submission(caplog):
+    """Test that the presenter logs a debug message when an empty submission is made."""
+    # ARRANGE: Create mock instances of the model, view, and storage
+    mock_model = MagicMock(spec=Model)
+    mock_model.model_name = "test_model"
+
+    mock_view = MagicMock(spec=View)
+    mock_storage = MagicMock(spec=ConversationStorage)
+
+    presenter = Presenter(
+        model=mock_model, view=mock_view, conversation_storage=mock_storage
+    )
+
+    # ACT: Submit an empty message through the presenter callback
+    with caplog.at_level(logging.DEBUG):
+        mock_view.on_submit("")
+
+    # ASSERT: Verify that a debug message was logged
+    assert any(
+        "discarding_empty_input" in message for message in caplog.messages
+    ), "Expected a debug message indicating that empty input was discarded."

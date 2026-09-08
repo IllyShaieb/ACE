@@ -84,6 +84,11 @@ class Presenter:
         """
         # Return silently if no text is provided
         if not text.strip():
+            logger.debug(
+                "discarding_empty_input session_id=%s model_name=%s",
+                getattr(self.model, "session_id", None),
+                getattr(self.model, "model_name", None),
+            )
             return
 
         # Display the user's message immediately.
